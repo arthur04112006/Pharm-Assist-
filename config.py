@@ -16,6 +16,6 @@ class Config:
     
     REPORTS_FOLDER = 'reports'
     
-    APP_NAME = 'Sistema de Triagem Farmacêutica'
+    APP_NAME = 'Sistema de Triagem Farmaceutica'
     APP_VERSION = '1.0.0'
     ITEMS_PER_PAGE = 20

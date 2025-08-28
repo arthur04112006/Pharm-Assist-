@@ -2,6 +2,33 @@
 
 {% block title %}Administração{% endblock %}
 
+{% block extra_css %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+    .chart-container {
+        position: relative;
+        height: 300px;
+        margin: 20px 0;
+    }
+    .metric-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+    .metric-value {
+        font-size: 2.5rem;
+        font-weight: bold;
+        margin-bottom: 10px;
+    }
+    .metric-label {
+        font-size: 1.1rem;
+        opacity: 0.9;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
     <h1 class="h2">
@@ -85,35 +112,146 @@
     </div>
 </div>
 
+<!-- Métricas de Performance -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="metric-card">
+            <div class="metric-value">{{ "%.1f"|format(taxa_encaminhamento) }}%</div>
+            <div class="metric-label">Taxa de Encaminhamentos</div>
+            <small>Pacientes encaminhados para médico</small>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="metric-card">
+            <div class="metric-value">{{ "%.1f"|format(eficacia_recomendacoes.muito_eficaz) }}%</div>
+            <div class="metric-label">Eficácia das Recomendações</div>
+            <small>Pacientes satisfeitos com tratamento</small>
+        </div>
+    </div>
+</div>
+
 <!-- Gráficos e Análises -->
 <div class="row mb-4">
-    <div class="col-lg-8">
+    <!-- Sintomas Mais Comuns -->
+    <div class="col-lg-6 mb-4">
         <div class="card">
             <div class="card-header">
                 <h5 class="card-title mb-0">
-                    <i class="bi bi-graph-up"></i> Consultas por Período
+                    <i class="bi bi-clipboard-pulse"></i>
+                    Sintomas Mais Comuns
                 </h5>
             </div>
             <div class="card-body">
-                <div class="text-center py-4">
-                    <i class="bi bi-bar-chart fa-3x text-muted"></i>
-                    <p class="text-muted mt-3">Gráfico de consultas será implementado em breve.</p>
+                <div class="chart-container">
+                    <canvas id="sintomasChart"></canvas>
                 </div>
             </div>
         </div>
     </div>
     
-    <div class="col-lg-4">
+    <!-- Medicamentos Mais Recomendados -->
+    <div class="col-lg-6 mb-4">
         <div class="card">
             <div class="card-header">
                 <h5 class="card-title mb-0">
-                    <i class="bi bi-pie-chart"></i> Distribuição por Idade
+                    <i class="bi bi-capsule"></i>
+                    Medicamentos Mais Recomendados
                 </h5>
             </div>
             <div class="card-body">
-                <div class="text-center py-4">
-                    <i class="bi bi-pie-chart fa-3x text-muted"></i>
-                    <p class="text-muted mt-3">Gráfico de distribuição será implementado em breve.</p>
+                <div class="chart-container">
+                    <canvas id="medicamentosChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Distribuição por Gênero -->
+<div class="row mb-4">
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-pie-chart"></i> Distribuição por Gênero
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="generoChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-table"></i> Dados Detalhados
+                </h5>
+            </div>
+            <div class="card-body">
+                <ul class="nav nav-tabs" id="dataTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="sintomas-tab" data-bs-toggle="tab" data-bs-target="#sintomas" type="button" role="tab">
+                            Sintomas
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="medicamentos-tab" data-bs-toggle="tab" data-bs-target="#medicamentos" type="button" role="tab">
+                            Medicamentos
+                        </button>
+                    </li>
+                </ul>
+                
+                <div class="tab-content" id="dataTabsContent">
+                    <div class="tab-pane fade show active" id="sintomas" role="tabpanel">
+                        <div class="table-responsive mt-3">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Sintoma</th>
+                                        <th>Frequência</th>
+                                        <th>Percentual</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for sintoma in sintomas_comuns %}
+                                    <tr>
+                                        <td>{{ sintoma.descricao }}</td>
+                                        <td>{{ sintoma.count }}</td>
+                                        <td>{{ "%.1f"|format(sintoma.count / total_consultas * 100) }}%</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <div class="tab-pane fade" id="medicamentos" role="tabpanel">
+                        <div class="table-responsive mt-3">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Medicamento</th>
+                                        <th>Frequência</th>
+                                        <th>Percentual</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for medicamento in medicamentos_recomendados %}
+                                    <tr>
+                                        <td>{{ medicamento.descricao }}</td>
+                                        <td>{{ medicamento.count }}</td>
+                                        <td>{{ "%.1f"|format(medicamento.count / total_consultas * 100) }}%</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -269,4 +407,94 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Dados para os gráficos
+const sintomasData = {{ sintomas_comuns | tojson }};
+const medicamentosData = {{ medicamentos_recomendados | tojson }};
+const generoData = {
+    masculino: {{ total_pacientes_masculino }},
+    feminino: {{ total_pacientes_feminino }}
+};
+
+// Gráfico de Sintomas
+const sintomasCtx = document.getElementById('sintomasChart').getContext('2d');
+new Chart(sintomasCtx, {
+    type: 'bar',
+    data: {
+        labels: sintomasData.map(item => item.descricao.substring(0, 20) + '...'),
+        datasets: [{
+            label: 'Frequência',
+            data: sintomasData.map(item => item.count),
+            backgroundColor: '#28a745'
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                display: false
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true
+            }
+        }
+    }
+});
+
+// Gráfico de Medicamentos
+const medicamentosCtx = document.getElementById('medicamentosChart').getContext('2d');
+new Chart(medicamentosCtx, {
+    type: 'bar',
+    data: {
+        labels: medicamentosData.map(item => item.descricao.substring(0, 20) + '...'),
+        datasets: [{
+            label: 'Frequência',
+            data: medicamentosData.map(item => item.count),
+            backgroundColor: '#ffc107'
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                display: false
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true
+            }
+        }
+    }
+});
+
+// Gráfico de Gênero
+const generoCtx = document.getElementById('generoChart').getContext('2d');
+new Chart(generoCtx, {
+    type: 'doughnut',
+    data: {
+        labels: ['Masculino', 'Feminino'],
+        datasets: [{
+            data: [generoData.masculino, generoData.feminino],
+            backgroundColor: ['#007bff', '#28a745']
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'bottom'
+            }
+        }
+    }
+});
+</script>
 {% endblock %}

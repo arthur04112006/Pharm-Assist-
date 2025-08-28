@@ -2,6 +2,41 @@
 
 {% block title %}Dashboard - Sistema de Triagem Farmacêutica{% endblock %}
 
+{% block extra_css %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+    .stat-card {
+        transition: transform 0.2s;
+        border-left: 4px solid #007bff;
+    }
+    .stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    .chart-container {
+        position: relative;
+        height: 300px;
+        margin: 20px 0;
+    }
+    .metric-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+    .metric-value {
+        font-size: 2.5rem;
+        font-weight: bold;
+        margin-bottom: 10px;
+    }
+    .metric-label {
+        font-size: 1.1rem;
+        opacity: 0.9;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
     <h1 class="h2">
@@ -133,6 +168,62 @@
     </div>
 </div>
 
+<!-- Métricas de Performance -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="metric-card">
+            <div class="metric-value">{{ "%.1f"|format(taxa_encaminhamento) }}%</div>
+            <div class="metric-label">Taxa de Encaminhamentos</div>
+            <small>Pacientes encaminhados para médico</small>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="metric-card">
+            <div class="metric-value">{{ consultas_30_dias }}</div>
+            <div class="metric-label">Consultas (Últimos 30 dias)</div>
+            <small>Atividade recente do sistema</small>
+        </div>
+    </div>
+</div>
+
+<!-- Gráficos -->
+<div class="row mb-4">
+    <!-- Consultas por Dia -->
+    <div class="col-lg-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-calendar-week"></i>
+                    Consultas por Dia (Últimos 7 dias)
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="consultasChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Pacientes por Faixa Etária -->
+    <div class="col-lg-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-people-fill"></i>
+                    Pacientes por Faixa Etária
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="faixaEtariaChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Últimas Consultas -->
 <div class="row">
     <div class="col-12">
@@ -237,4 +328,70 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Dados para os gráficos
+const consultasData = {{ consultas_por_dia | tojson }};
+const faixaEtariaData = {{ pacientes_por_faixa | tojson }};
+
+// Gráfico de Consultas por Dia
+const consultasCtx = document.getElementById('consultasChart').getContext('2d');
+new Chart(consultasCtx, {
+    type: 'line',
+    data: {
+        labels: consultasData.map(item => item.data),
+        datasets: [{
+            label: 'Consultas',
+            data: consultasData.map(item => item.count),
+            borderColor: '#007bff',
+            backgroundColor: 'rgba(0, 123, 255, 0.1)',
+            tension: 0.4,
+            fill: true
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                display: false
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    stepSize: 1
+                }
+            }
+        }
+    }
+});
+
+// Gráfico de Faixa Etária
+const faixaEtariaCtx = document.getElementById('faixaEtariaChart').getContext('2d');
+new Chart(faixaEtariaCtx, {
+    type: 'doughnut',
+    data: {
+        labels: faixaEtariaData.map(item => item.faixa + ' anos'),
+        datasets: [{
+            data: faixaEtariaData.map(item => item.count),
+            backgroundColor: [
+                '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF'
+            ]
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'bottom'
+            }
+        }
+    }
+});
+</script>
 {% endblock %}
