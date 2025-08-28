@@ -46,8 +46,8 @@
     <div class="col-md-3 mb-3">
         <div class="card text-center">
             <div class="card-body">
-                <h5 class="card-title text-info">{{ medicamentos|selectattr('tipo', 'equalto', 'generico')|list|length }}</h5>
-                <p class="card-text">Genéricos</p>
+                <h5 class="card-title text-info">{{ medicamentos|selectattr('tipo', 'equalto', 'farmacologico')|list|length }}</h5>
+                <p class="card-text">Farmacológicos</p>
             </div>
         </div>
     </div>
@@ -77,7 +77,7 @@
                     {% for medicamento in medicamentos %}
                     <tr>
                         <td>
-                            <strong>{{ medicamento.nome }}</strong>
+                            <strong>{{ medicamento.nome_comercial }}</strong>
                             {% if medicamento.nome_generico %}
                             <br><small class="text-muted">{{ medicamento.nome_generico }}</small>
                             {% endif %}
@@ -87,8 +87,6 @@
                                 <span class="badge bg-primary">Farmacológico</span>
                             {% elif medicamento.tipo == 'fitoterapico' %}
                                 <span class="badge bg-success">Fitoterápico</span>
-                            {% else %}
-                                <span class="badge bg-info">Genérico</span>
                             {% endif %}
                         </td>
                         <td>
@@ -104,10 +102,10 @@
                                         data-bs-target="#medicamentoModal{{ medicamento.id }}">
                                     <i class="bi bi-eye"></i>
                                 </button>
-                                <a href="{{ url_for('editar_medicamento', id=medicamento.id) }}" 
-                                   class="btn btn-sm btn-outline-warning">
+                                <button type="button" class="btn btn-sm btn-outline-warning"
+                                        onclick="alert('Funcionalidade de edição será implementada em breve.')">
                                     <i class="bi bi-pencil"></i>
-                                </a>
+                                </button>
                                 <button type="button" class="btn btn-sm btn-outline-danger"
                                         onclick="confirmarExclusao({{ medicamento.id }})">
                                     <i class="bi bi-trash"></i>
@@ -145,7 +143,7 @@
                 <div class="row">
                     <div class="col-md-6">
                         <h6>Informações Básicas</h6>
-                        <p><strong>Nome:</strong> {{ medicamento.nome }}</p>
+                        <p><strong>Nome:</strong> {{ medicamento.nome_comercial }}</p>
                         {% if medicamento.nome_generico %}
                         <p><strong>Nome Genérico:</strong> {{ medicamento.nome_generico }}</p>
                         {% endif %}
@@ -154,8 +152,6 @@
                                 Farmacológico
                             {% elif medicamento.tipo == 'fitoterapico' %}
                                 Fitoterápico
-                            {% else %}
-                                Genérico
                             {% endif %}
                         </p>
                     </div>
@@ -198,10 +194,10 @@
                 {% endif %}
             </div>
             <div class="modal-footer">
-                <a href="{{ url_for('editar_medicamento', id=medicamento.id) }}" 
-                   class="btn btn-warning">
+                <button type="button" class="btn btn-warning"
+                        onclick="alert('Funcionalidade de edição será implementada em breve.')">
                     <i class="bi bi-pencil"></i> Editar
-                </a>
+                </button>
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
             </div>
         </div>

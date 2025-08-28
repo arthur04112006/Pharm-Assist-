@@ -184,7 +184,16 @@
 <script>
 // Variáveis globais
 let currentQuestionIndex = 0;
-let questions = {{ perguntas|tojson }};
+let questions = [
+    {% for pergunta in perguntas %}
+    {
+        id: {{ pergunta.id }},
+        texto: "{{ pergunta.texto|replace('"', '\\"') }}",
+        tipo: "{{ pergunta.tipo }}",
+        ordem: {{ pergunta.ordem }}
+    }{% if not loop.last %},{% endif %}
+    {% endfor %}
+];
 let answers = {};
 let totalQuestions = questions.length;
 

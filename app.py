@@ -26,7 +26,30 @@ os.makedirs('uploads', exist_ok=True)
 @app.route('/')
 def index():
     """Página inicial do sistema"""
-    return render_template('index.html')
+    # Buscar estatísticas
+    total_pacientes = Paciente.query.count()
+    total_medicamentos = Medicamento.query.count()
+    
+    # Consultas de hoje
+    hoje = datetime.now().date()
+    consultas_hoje = Consulta.query.filter(
+        db.func.date(Consulta.data) == hoje
+    ).count()
+    
+    # Encaminhamentos
+    encaminhamentos = Consulta.query.filter_by(encaminhamento=True).count()
+    
+    # Últimas consultas
+    consultas_recentes = Consulta.query.join(Paciente).order_by(
+        Consulta.data.desc()
+    ).limit(5).all()
+    
+    return render_template('index.html', 
+                         total_pacientes=total_pacientes,
+                         total_medicamentos=total_medicamentos,
+                         consultas_hoje=consultas_hoje,
+                         encaminhamentos=encaminhamentos,
+                         consultas_recentes=consultas_recentes)
 
 @app.route('/pacientes')
 def pacientes():
@@ -78,6 +101,25 @@ def novo_paciente():
     
     # Buscar doenças crônicas para o formulário
     doencas_cronicas = DoencaCronica.query.all()
+    
+    # Se não houver doenças crônicas cadastradas, criar algumas padrão
+    if not doencas_cronicas:
+        doencas_padrao = [
+            'Hipertensão',
+            'Diabetes',
+            'Asma',
+            'Doença Cardíaca',
+            'Obesidade',
+            'Colesterol Alto'
+        ]
+        
+        for doenca_nome in doencas_padrao:
+            doenca = DoencaCronica(nome=doenca_nome)
+            db.session.add(doenca)
+        
+        db.session.commit()
+        doencas_cronicas = DoencaCronica.query.all()
+    
     return render_template('novo_paciente.html', doencas_cronicas=doencas_cronicas)
 
 @app.route('/pacientes/<int:id>')
@@ -124,18 +166,32 @@ def editar_paciente(id):
     doencas_cronicas = DoencaCronica.query.all()
     doencas_paciente = [pd.id_doenca_cronica for pd in paciente.doencas_cronicas]
     
+    # Se não houver doenças crônicas cadastradas, criar algumas padrão
+    if not doencas_cronicas:
+        doencas_padrao = [
+            'Hipertensão',
+            'Diabetes',
+            'Asma',
+            'Doença Cardíaca',
+            'Obesidade',
+            'Colesterol Alto'
+        ]
+        
+        for doenca_nome in doencas_padrao:
+            doenca = DoencaCronica(nome=doenca_nome)
+            db.session.add(doenca)
+        
+        db.session.commit()
+        doencas_cronicas = DoencaCronica.query.all()
+    
     return render_template('editar_paciente.html', paciente=paciente, 
                          doencas_cronicas=doencas_cronicas, doencas_paciente=doencas_paciente)
 
 @app.route('/medicamentos')
 def medicamentos():
     """Lista de medicamentos"""
-    page = request.args.get('page', 1, type=int)
-    per_page = Config.ITEMS_PER_PAGE
-    
-    medicamentos = Medicamento.query.filter_by(ativo=True).paginate(
-        page=page, per_page=per_page, error_out=False
-    )
+    # Buscar todos os medicamentos ativos
+    medicamentos = Medicamento.query.filter_by(ativo=True).all()
     
     return render_template('medicamentos.html', medicamentos=medicamentos)
 
@@ -147,10 +203,11 @@ def novo_medicamento():
             medicamento = Medicamento(
                 nome_comercial=request.form['nome_comercial'],
                 nome_generico=request.form['nome_generico'],
-                descricao=request.form['descricao'],
+                descricao=request.form.get('descricao'),
                 indicacao=request.form['indicacao'],
-                contraindicacao=request.form['contraindicacao'],
-                tipo=request.form['tipo']
+                contraindicacao=request.form.get('contraindicacao'),
+                tipo=request.form['tipo'],
+                ativo=True
             )
             
             db.session.add(medicamento)
@@ -174,15 +231,40 @@ def triagem():
 def buscar_paciente_triagem():
     """Buscar paciente para iniciar triagem"""
     query = request.args.get('q', '')
+    page = request.args.get('page', 1, type=int)
+    per_page = Config.ITEMS_PER_PAGE
     
     if query:
         pacientes = Paciente.query.filter(
             Paciente.nome.ilike(f'%{query}%')
-        ).limit(10).all()
+        ).paginate(
+            page=page, per_page=per_page, error_out=False
+        )
     else:
-        pacientes = []
+        pacientes = None
     
-    return render_template('buscar_paciente_triagem.html', pacientes=pacientes, query=query)
+    # Buscar doenças crônicas para o formulário
+    doencas_cronicas = DoencaCronica.query.all()
+    
+    # Se não houver doenças crônicas cadastradas, criar algumas padrão
+    if not doencas_cronicas:
+        doencas_padrao = [
+            'Hipertensão',
+            'Diabetes',
+            'Asma',
+            'Doença Cardíaca',
+            'Obesidade',
+            'Colesterol Alto'
+        ]
+        
+        for doenca_nome in doencas_padrao:
+            doenca = DoencaCronica(nome=doenca_nome)
+            db.session.add(doenca)
+        
+        db.session.commit()
+        doencas_cronicas = DoencaCronica.query.all()
+    
+    return render_template('buscar_paciente_triagem.html', pacientes=pacientes, query=query, doencas_cronicas=doencas_cronicas)
 
 @app.route('/triagem/novo_paciente', methods=['GET', 'POST'])
 def novo_paciente_triagem():
@@ -192,6 +274,8 @@ def novo_paciente_triagem():
             paciente = Paciente(
                 nome=request.form['nome'],
                 idade=int(request.form['idade']),
+                peso=float(request.form['peso']) if request.form['peso'] else None,
+                altura=float(request.form['altura']) if request.form['altura'] else None,
                 sexo=request.form['sexo'],
                 fuma=request.form.get('fuma') == 'on',
                 bebe=request.form.get('bebe') == 'on'
@@ -200,6 +284,16 @@ def novo_paciente_triagem():
             db.session.add(paciente)
             db.session.commit()
             
+            # Adicionar doenças crônicas se selecionadas
+            doencas_ids = request.form.getlist('doencas_cronicas')
+            for doenca_id in doencas_ids:
+                paciente_doenca = PacienteDoenca(
+                    id_paciente=paciente.id,
+                    id_doenca_cronica=int(doenca_id)
+                )
+                db.session.add(paciente_doenca)
+            
+            db.session.commit()
             flash('Paciente cadastrado! Iniciando triagem...', 'success')
             return redirect(url_for('iniciar_triagem', paciente_id=paciente.id))
             
@@ -207,13 +301,58 @@ def novo_paciente_triagem():
             db.session.rollback()
             flash(f'Erro ao cadastrar paciente: {str(e)}', 'error')
     
-    return render_template('novo_paciente_triagem.html')
+    # Buscar doenças crônicas para o formulário
+    doencas_cronicas = DoencaCronica.query.all()
+    
+    # Se não houver doenças crônicas cadastradas, criar algumas padrão
+    if not doencas_cronicas:
+        doencas_padrao = [
+            'Hipertensão',
+            'Diabetes',
+            'Asma',
+            'Doença Cardíaca',
+            'Obesidade',
+            'Colesterol Alto'
+        ]
+        
+        for doenca_nome in doencas_padrao:
+            doenca = DoencaCronica(nome=doenca_nome)
+            db.session.add(doenca)
+        
+        db.session.commit()
+        doencas_cronicas = DoencaCronica.query.all()
+    
+    return render_template('novo_paciente_triagem.html', doencas_cronicas=doencas_cronicas)
 
 @app.route('/triagem/iniciar/<int:paciente_id>')
 def iniciar_triagem(paciente_id):
     """Iniciar triagem para um paciente"""
     paciente = Paciente.query.get_or_404(paciente_id)
+    
+    # Buscar perguntas ativas ou criar perguntas padrão se não existirem
     perguntas = Pergunta.query.filter_by(ativa=True).order_by(Pergunta.ordem).all()
+    
+    if not perguntas:
+        # Criar perguntas padrão se não existirem
+        perguntas_padrao = [
+            {'texto': 'Você está sentindo dor?', 'tipo': 'sintoma', 'ordem': 1},
+            {'texto': 'A dor é intensa?', 'tipo': 'sintoma', 'ordem': 2},
+            {'texto': 'Você tem febre?', 'tipo': 'sintoma', 'ordem': 3},
+            {'texto': 'Você está tomando algum medicamento?', 'tipo': 'historico', 'ordem': 4},
+            {'texto': 'Você tem alguma alergia conhecida?', 'tipo': 'historico', 'ordem': 5}
+        ]
+        
+        for i, pergunta_data in enumerate(perguntas_padrao):
+            pergunta = Pergunta(
+                texto=pergunta_data['texto'],
+                tipo=pergunta_data['tipo'],
+                ordem=pergunta_data['ordem'],
+                ativa=True
+            )
+            db.session.add(pergunta)
+        
+        db.session.commit()
+        perguntas = Pergunta.query.filter_by(ativa=True).order_by(Pergunta.ordem).all()
     
     return render_template('iniciar_triagem.html', paciente=paciente, perguntas=perguntas)
 
@@ -315,9 +454,45 @@ def resultado_triagem(consulta_id):
             'resposta': resposta.resposta
         })
     
+    # Preparar resultado da triagem para o template
+    resultado = {
+        'score': 0,  # Será calculado baseado nas respostas
+        'risk_level': 'baixo',  # Será calculado baseado nas respostas
+        'alert_signs': [],
+        'recomendacoes_farmacologicas': [],
+        'recomendacoes_nao_farmacologicas': [],
+        'conclusao': 'Resultado da triagem será processado automaticamente.'
+    }
+    
+    # Processar recomendações
+    for rec in recomendacoes:
+        if rec.tipo == 'medicamento':
+            resultado['recomendacoes_farmacologicas'].append({
+                'medicamento': {'nome': rec.descricao},
+                'posologia': rec.justificativa or 'Consultar bula'
+            })
+        elif rec.tipo == 'nao_farmacologico':
+            resultado['recomendacoes_nao_farmacologicas'].append({
+                'titulo': rec.descricao,
+                'descricao': rec.justificativa or 'Recomendação não-farmacológica'
+            })
+        elif rec.tipo == 'encaminhamento':
+            resultado['alert_signs'].append(rec.justificativa or 'Encaminhamento médico necessário')
+    
+    # Calcular score e risk_level baseado nas respostas
+    if respostas_completas:
+        resultado['score'] = len(respostas_completas) * 10  # Score simples baseado no número de respostas
+        if consulta.encaminhamento:
+            resultado['risk_level'] = 'alto'
+        elif resultado['score'] > 50:
+            resultado['risk_level'] = 'medio'
+        else:
+            resultado['risk_level'] = 'baixo'
+    
     return render_template('resultado_triagem.html', 
                          consulta=consulta, 
                          paciente=paciente,
+                         resultado=resultado,
                          respostas=respostas_completas,
                          recomendacoes=recomendacoes)
 
@@ -373,14 +548,22 @@ def admin():
     total_pacientes = Paciente.query.count()
     total_consultas = Consulta.query.count()
     total_medicamentos = Medicamento.query.filter_by(ativo=True).count()
+    total_encaminhamentos = Consulta.query.filter_by(encaminhamento=True).count()
+    
+    # Pacientes por gênero
+    total_pacientes_masculino = Paciente.query.filter_by(sexo='M').count()
+    total_pacientes_feminino = Paciente.query.filter_by(sexo='F').count()
     
     # Consultas recentes
-    consultas_recentes = Consulta.query.order_by(Consulta.data.desc()).limit(5).all()
+    consultas_recentes = Consulta.query.join(Paciente).order_by(Consulta.data.desc()).limit(5).all()
     
     return render_template('admin.html', 
                          total_pacientes=total_pacientes,
                          total_consultas=total_consultas,
                          total_medicamentos=total_medicamentos,
+                         total_encaminhamentos=total_encaminhamentos,
+                         total_pacientes_masculino=total_pacientes_masculino,
+                         total_pacientes_feminino=total_pacientes_feminino,
                          consultas_recentes=consultas_recentes)
 
 @app.route('/api/perguntas')

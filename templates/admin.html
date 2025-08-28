@@ -175,12 +175,12 @@
                 <div class="row text-center">
                     <div class="col-6">
                         <div class="border-end">
-                            <h4 class="text-primary">{{ pacientes_masculino|default(0) }}</h4>
+                            <h4 class="text-primary">{{ total_pacientes_masculino|default(0) }}</h4>
                             <p class="text-muted">Masculino</p>
                         </div>
                     </div>
                     <div class="col-6">
-                        <h4 class="text-success">{{ pacientes_feminino|default(0) }}</h4>
+                        <h4 class="text-success">{{ total_pacientes_feminino|default(0) }}</h4>
                         <p class="text-muted">Feminino</p>
                     </div>
                 </div>
@@ -201,28 +201,32 @@
             <div class="card-body">
                 <div class="row">
                     <div class="col-md-3 mb-3">
-                        <a href="{{ url_for('gerar_relatorio_geral') }}" class="btn btn-outline-primary w-100">
+                        <button type="button" class="btn btn-outline-primary w-100"
+                                onclick="alert('Relatório geral será implementado em breve.')">
                             <i class="bi bi-file-earmark-pdf"></i><br>
                             Relatório Geral
-                        </a>
+                        </button>
                     </div>
                     <div class="col-md-3 mb-3">
-                        <a href="{{ url_for('backup_database') }}" class="btn btn-outline-success w-100">
+                        <button type="button" class="btn btn-outline-success w-100"
+                                onclick="alert('Backup automático será implementado em breve.')">
                             <i class="bi bi-download"></i><br>
                             Backup BD
-                        </a>
+                        </button>
                     </div>
                     <div class="col-md-3 mb-3">
-                        <a href="{{ url_for('configuracoes') }}" class="btn btn-outline-warning w-100">
+                        <button type="button" class="btn btn-outline-warning w-100"
+                                onclick="alert('Configurações serão implementadas em breve.')">
                             <i class="bi bi-gear"></i><br>
                             Configurações
-                        </a>
+                        </button>
                     </div>
                     <div class="col-md-3 mb-3">
-                        <a href="{{ url_for('logs_sistema') }}" class="btn btn-outline-info w-100">
+                        <button type="button" class="btn btn-outline-info w-100"
+                                onclick="alert('Logs do sistema serão implementados em breve.')">
                             <i class="bi bi-journal-text"></i><br>
                             Logs do Sistema
-                        </a>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -247,7 +251,7 @@
                             <li><strong>Versão:</strong> {{ config.APP_VERSION|default('1.0.0') }}</li>
                             <li><strong>Ambiente:</strong> {{ 'Desenvolvimento' if config.DEBUG else 'Produção' }}</li>
                             <li><strong>Banco de Dados:</strong> {{ 'SQLite' if 'sqlite' in config.SQLALCHEMY_DATABASE_URI else 'MySQL' }}</li>
-                            <li><strong>Última Atualização:</strong> {{ moment().format('DD/MM/YYYY HH:mm') }}</li>
+                            <li><strong>Última Atualização:</strong> {{ moment().format('DD/MM/YYYY HH:mm') if moment else 'N/A' }}</li>
                         </ul>
                     </div>
                     <div class="col-md-6">
