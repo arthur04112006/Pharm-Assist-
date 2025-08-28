@@ -1,3 +1,10 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Pharm-Assist - Gerador de Relatorios
+Gerador de relatorios PDF para consultas de triagem
+"""
+
 from reportlab.lib.pagesizes import A4
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -124,7 +131,7 @@ class ReportGenerator:
         elements = []
         
         # Título principal
-        title = Paragraph("SISTEMA DE TRIAGEM FARMACÊUTICA", self.styles['CustomTitle'])
+        title = Paragraph("SISTEMA DE TRIAGEM FARMACEUTICA", self.styles['CustomTitle'])
         elements.append(title)
         
         # Subtítulo
@@ -385,7 +392,7 @@ class ReportGenerator:
         
         # Informações do sistema
         footer_text = Paragraph(
-            "Este relatório foi gerado automaticamente pelo Sistema de Triagem Farmacêutica. "
+            "Este relatorio foi gerado automaticamente pelo Sistema de Triagem Farmaceutica. "
             "Para dúvidas ou esclarecimentos, consulte um farmacêutico.",
             self.styles['CustomBody']
         )

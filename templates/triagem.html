@@ -1,48 +1,81 @@
 {% extends "base.html" %}
 
-{% block title %}Triagem Farmacêutica{% endblock %}
+{% block title %}Triagem Farmacêutica - Pharm-Assist{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-    <h1 class="h2">
-        <i class="bi bi-clipboard-pulse text-primary"></i>
-        Triagem Farmacêutica
-    </h1>
+<!-- Header Section -->
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-4">
+    <div>
+        <h1 class="h2 mb-2">
+            <i class="bi bi-clipboard-pulse-fill text-primary me-3"></i>
+            Triagem Farmacêutica
+        </h1>
+        <p class="text-muted mb-0">Sistema inteligente de avaliação e triagem para atendimento farmacêutico</p>
+    </div>
 </div>
 
-<div class="row">
+<!-- Hero Section -->
+<div class="row mb-4">
     <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
-                    <i class="bi bi-info-circle"></i> Como Funciona a Triagem
-                </h5>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-8">
-                        <p class="lead">
-                            O Sistema de Triagem Farmacêutica auxilia o farmacêutico na avaliação inicial de pacientes, 
-                            fornecendo recomendações baseadas em sintomas, histórico clínico e algoritmos de decisão.
-                        </p>
-                        
-                        <h6>Processo da Triagem:</h6>
-                        <ol>
-                            <li><strong>Identificação do Paciente:</strong> Busque um paciente existente ou cadastre um novo</li>
-                            <li><strong>Questionário de Triagem:</strong> Sistema faz perguntas específicas sobre sintomas</li>
-                            <li><strong>Análise Inteligente:</strong> Algoritmo analisa respostas e calcula risco</li>
-                            <li><strong>Recomendações:</strong> Gera sugestões farmacológicas e não farmacológicas</li>
-                            <li><strong>Relatório:</strong> Cria documento PDF completo da consulta</li>
-                        </ol>
+        <div class="hero-card">
+            <div class="hero-content">
+                <h2 class="hero-title">
+                    <i class="bi bi-shield-check me-3"></i>
+                    Sistema de Triagem Inteligente
+                </h2>
+                <p class="hero-description">
+                    O Pharm-Assist auxilia o farmacêutico na avaliação inicial de pacientes, 
+                    fornecendo recomendações baseadas em sintomas, histórico clínico e algoritmos de decisão avançados.
+                </p>
+                <div class="hero-features">
+                    <div class="feature-item">
+                        <i class="bi bi-check-circle-fill text-success"></i>
+                        <span>Análise baseada em evidências</span>
                     </div>
-                    <div class="col-md-4">
-                        <div class="alert alert-info">
-                            <h6><i class="bi bi-lightbulb"></i> Dica</h6>
-                            <p class="mb-0">
-                                A triagem é baseada em evidências clínicas e sempre prioriza a segurança do paciente.
-                                Em caso de dúvida, o sistema recomenda encaminhamento médico.
-                            </p>
+                    <div class="feature-item">
+                        <i class="bi bi-check-circle-fill text-success"></i>
+                        <span>Algoritmos de decisão inteligentes</span>
+                    </div>
+                    <div class="feature-item">
+                        <i class="bi bi-check-circle-fill text-success"></i>
+                        <span>Recomendações personalizadas</span>
+                    </div>
+                </div>
+            </div>
+            <div class="hero-visual">
+                <div class="process-steps">
+                    <div class="step">
+                        <div class="step-icon">
+                            <i class="bi bi-person-search"></i>
                         </div>
+                        <span>1. Identificação</span>
+                    </div>
+                    <div class="step-arrow">
+                        <i class="bi bi-arrow-right"></i>
+                    </div>
+                    <div class="step">
+                        <div class="step-icon">
+                            <i class="bi bi-clipboard-question"></i>
+                        </div>
+                        <span>2. Questionário</span>
+                    </div>
+                    <div class="step-arrow">
+                        <i class="bi bi-arrow-right"></i>
+                    </div>
+                    <div class="step">
+                        <div class="step-icon">
+                            <i class="bi bi-brain"></i>
+                        </div>
+                        <span>3. Análise</span>
+                    </div>
+                    <div class="step-arrow">
+                        <i class="bi bi-arrow-right"></i>
+                    </div>
+                    <div class="step">
+                        <div class="step-icon">
+                            <i class="bi bi-lightbulb"></i>
+                        </div>
+                        <span>4. Recomendações</span>
                     </div>
                 </div>
             </div>
@@ -50,75 +83,100 @@
     </div>
 </div>
 
-<div class="row mt-4">
-    <div class="col-md-6">
-        <div class="card h-100">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
-                    <i class="bi bi-search"></i> Buscar Paciente Existente
-                </h5>
+<!-- Ações Principais -->
+<div class="row mb-4">
+    <div class="col-md-6 mb-3">
+        <div class="action-card search-patient">
+            <div class="action-icon">
+                <i class="bi bi-search"></i>
             </div>
-            <div class="card-body">
+            <div class="action-content">
+                <h5>Buscar Paciente Existente</h5>
                 <p>Busque um paciente já cadastrado no sistema para iniciar a triagem.</p>
-                <a href="{{ url_for('buscar_paciente_triagem') }}" class="btn btn-primary w-100">
-                    <i class="bi bi-search"></i> Buscar Paciente
+                <a href="{{ url_for('buscar_paciente_triagem') }}" class="btn btn-primary">
+                    <i class="bi bi-search me-2"></i> Buscar Paciente
                 </a>
             </div>
         </div>
     </div>
     
-    <div class="col-md-6">
-        <div class="card h-100">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
-                    <i class="bi bi-person-plus"></i> Cadastrar Novo Paciente
-                </h5>
+    <div class="col-md-6 mb-3">
+        <div class="action-card new-patient">
+            <div class="action-icon">
+                <i class="bi bi-person-plus"></i>
             </div>
-            <div class="card-body">
+            <div class="action-content">
+                <h5>Cadastrar Novo Paciente</h5>
                 <p>Cadastre um novo paciente e inicie a triagem imediatamente.</p>
-                <a href="{{ url_for('novo_paciente_triagem') }}" class="btn btn-success w-100">
-                    <i class="bi bi-person-plus"></i> Novo Paciente
+                <a href="{{ url_for('novo_paciente_triagem') }}" class="btn btn-success">
+                    <i class="bi bi-person-plus me-2"></i> Novo Paciente
                 </a>
             </div>
         </div>
     </div>
 </div>
 
-<div class="row mt-4">
+<!-- Critérios de Triagem -->
+<div class="row mb-4">
     <div class="col-12">
         <div class="card">
             <div class="card-header">
                 <h5 class="card-title mb-0">
-                    <i class="bi bi-shield-check"></i> Critérios de Triagem
+                    <i class="bi bi-shield-check text-primary me-2"></i> 
+                    Critérios de Triagem
                 </h5>
             </div>
             <div class="card-body">
                 <div class="row">
-                    <div class="col-md-4">
-                        <div class="text-center">
-                            <div class="badge bg-success fs-6 p-3 mb-2">
-                                <i class="bi bi-check-circle"></i><br>
-                                Baixo Risco
+                    <div class="col-md-4 mb-3">
+                        <div class="risk-card low-risk">
+                            <div class="risk-header">
+                                <div class="risk-icon">
+                                    <i class="bi bi-check-circle-fill"></i>
+                                </div>
+                                <h6 class="risk-title">Baixo Risco</h6>
                             </div>
-                            <p class="text-muted">Score 0-30<br>Tratamento caseiro adequado</p>
+                            <div class="risk-score">Score 0-30</div>
+                            <p class="risk-description">Tratamento caseiro adequado com acompanhamento farmacêutico</p>
+                            <div class="risk-features">
+                                <span class="risk-feature">Sintomas leves</span>
+                                <span class="risk-feature">Sem sinais de alerta</span>
+                                <span class="risk-feature">Histórico estável</span>
+                            </div>
                         </div>
                     </div>
-                    <div class="col-md-4">
-                        <div class="text-center">
-                            <div class="badge bg-warning fs-6 p-3 mb-2">
-                                <i class="bi bi-exclamation-triangle"></i><br>
-                                Médio Risco
+                    <div class="col-md-4 mb-3">
+                        <div class="risk-card medium-risk">
+                            <div class="risk-header">
+                                <div class="risk-icon">
+                                    <i class="bi bi-exclamation-triangle-fill"></i>
+                                </div>
+                                <h6 class="risk-title">Médio Risco</h6>
                             </div>
-                            <p class="text-muted">Score 31-70<br>Acompanhamento farmacêutico</p>
+                            <div class="risk-score">Score 31-70</div>
+                            <p class="risk-description">Acompanhamento farmacêutico intensivo e monitoramento</p>
+                            <div class="risk-features">
+                                <span class="risk-feature">Sintomas moderados</span>
+                                <span class="risk-feature">Alguns sinais de alerta</span>
+                                <span class="risk-feature">Requer atenção</span>
+                            </div>
                         </div>
                     </div>
-                    <div class="col-md-4">
-                        <div class="text-center">
-                            <div class="badge bg-danger fs-6 p-3 mb-2">
-                                <i class="bi bi-exclamation-triangle-fill"></i><br>
-                                Alto Risco
+                    <div class="col-md-4 mb-3">
+                        <div class="risk-card high-risk">
+                            <div class="risk-header">
+                                <div class="risk-icon">
+                                    <i class="bi bi-exclamation-triangle-fill"></i>
+                                </div>
+                                <h6 class="risk-title">Alto Risco</h6>
                             </div>
-                            <p class="text-muted">Score 71-100<br>Encaminhamento médico</p>
+                            <div class="risk-score">Score 71-100</div>
+                            <p class="risk-description">Encaminhamento médico imediato obrigatório</p>
+                            <div class="risk-features">
+                                <span class="risk-feature">Sintomas graves</span>
+                                <span class="risk-feature">Múltiplos sinais de alerta</span>
+                                <span class="risk-feature">Emergência médica</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -127,50 +185,69 @@
     </div>
 </div>
 
-<div class="row mt-4">
+<!-- Sinais de Alerta -->
+<div class="row mb-4">
     <div class="col-12">
         <div class="card">
             <div class="card-header">
                 <h5 class="card-title mb-0">
-                    <i class="bi bi-list-check"></i> Sinais de Alerta (Red Flags)
+                    <i class="bi bi-exclamation-triangle-fill text-warning me-2"></i> 
+                    Sinais de Alerta (Red Flags)
                 </h5>
             </div>
             <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <h6>Sinais Respiratórios:</h6>
-                        <ul>
-                            <li>Falta de ar</li>
-                            <li>Respiração difícil</li>
-                            <li>Dor no peito</li>
-                            <li>Febre alta (≥39°C)</li>
-                        </ul>
-                    </div>
-                    <div class="col-md-6">
-                        <h6>Sinais Neurológicos:</h6>
-                        <ul>
-                            <li>Dor de cabeça intensa</li>
-                            <li>Perda de consciência</li>
-                            <li>Convulsões</li>
-                            <li>Paralisia</li>
-                        </ul>
+                <div class="alert alert-warning mb-4">
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-exclamation-triangle-fill fs-4 me-3"></i>
+                        <div>
+                            <strong>Atenção:</strong> Qualquer um desses sinais pode indicar necessidade de atendimento médico imediato.
+                        </div>
                     </div>
                 </div>
-                <div class="alert alert-warning mt-3">
-                    <i class="bi bi-exclamation-triangle"></i>
-                    <strong>Atenção:</strong> Qualquer um desses sinais pode indicar necessidade de atendimento médico imediato.
+                
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <div class="alert-category">
+                            <h6 class="alert-category-title">
+                                <i class="bi bi-lungs text-danger me-2"></i>
+                                Sinais Respiratórios
+                            </h6>
+                            <ul class="alert-list">
+                                <li><i class="bi bi-exclamation-circle text-danger me-2"></i>Falta de ar</li>
+                                <li><i class="bi bi-exclamation-circle text-danger me-2"></i>Respiração difícil</li>
+                                <li><i class="bi bi-exclamation-circle text-danger me-2"></i>Dor no peito</li>
+                                <li><i class="bi bi-exclamation-circle text-danger me-2"></i>Febre alta (≥39°C)</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="alert-category">
+                            <h6 class="alert-category-title">
+                                <i class="bi bi-activity text-danger me-2"></i>
+                                Sinais Neurológicos
+                            </h6>
+                            <ul class="alert-list">
+                                <li><i class="bi bi-exclamation-circle text-danger me-2"></i>Dor de cabeça intensa</li>
+                                <li><i class="bi bi-exclamation-circle text-danger me-2"></i>Perda de consciência</li>
+                                <li><i class="bi bi-exclamation-circle text-danger me-2"></i>Convulsões</li>
+                                <li><i class="bi bi-exclamation-circle text-danger me-2"></i>Paralisia</li>
+                            </ul>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<div class="row mt-4">
+<!-- FAQ -->
+<div class="row">
     <div class="col-12">
         <div class="card">
             <div class="card-header">
                 <h5 class="card-title mb-0">
-                    <i class="bi bi-question-circle"></i> Perguntas Frequentes
+                    <i class="bi bi-question-circle text-info me-2"></i> 
+                    Perguntas Frequentes
                 </h5>
             </div>
             <div class="card-body">
@@ -178,6 +255,7 @@
                     <div class="accordion-item">
                         <h2 class="accordion-header" id="faq1">
                             <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse1">
+                                <i class="bi bi-question-circle text-primary me-2"></i>
                                 O sistema substitui a consulta médica?
                             </button>
                         </h2>
@@ -192,6 +270,7 @@
                     <div class="accordion-item">
                         <h2 class="accordion-header" id="faq2">
                             <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse2">
+                                <i class="bi bi-calculator text-primary me-2"></i>
                                 Como o sistema calcula o risco?
                             </button>
                         </h2>
@@ -207,6 +286,7 @@
                     <div class="accordion-item">
                         <h2 class="accordion-header" id="faq3">
                             <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse3">
+                                <i class="bi bi-gear text-primary me-2"></i>
                                 Posso personalizar as perguntas da triagem?
                             </button>
                         </h2>
@@ -222,4 +302,343 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .hero-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 3rem 2rem;
+        border-radius: 1.5rem;
+        position: relative;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .hero-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain3" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="white" opacity="0.1"/><circle cx="75" cy="75" r="1" fill="white" opacity="0.1"/><circle cx="50" cy="10" r="0.5" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain3)"/></svg>');
+        opacity: 0.3;
+    }
+
+    .hero-content {
+        position: relative;
+        z-index: 1;
+        flex: 1;
+    }
+
+    .hero-title {
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+    }
+
+    .hero-description {
+        font-size: 1.2rem;
+        opacity: 0.9;
+        margin-bottom: 2rem;
+        line-height: 1.6;
+    }
+
+    .hero-features {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .feature-item {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        font-weight: 500;
+    }
+
+    .hero-visual {
+        position: relative;
+        z-index: 1;
+        flex: 1;
+        display: flex;
+        justify-content: center;
+    }
+
+    .process-steps {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .step {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+
+    .step-icon {
+        width: 60px;
+        height: 60px;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        margin-bottom: 0.5rem;
+        backdrop-filter: blur(10px);
+    }
+
+    .step-arrow {
+        color: rgba(255, 255, 255, 0.7);
+        font-size: 1.5rem;
+    }
+
+    .action-card {
+        background: white;
+        border-radius: 1.5rem;
+        padding: 2rem;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;
+        border: none;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+    }
+
+    .action-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    }
+
+    .action-icon {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+        color: white;
+        flex-shrink: 0;
+    }
+
+    .action-card.search-patient .action-icon {
+        background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+    }
+
+    .action-card.new-patient .action-icon {
+        background: linear-gradient(135deg, var(--success-color), #059669);
+    }
+
+    .action-content h5 {
+        color: var(--text-primary);
+        margin-bottom: 0.75rem;
+        font-weight: 600;
+    }
+
+    .action-content p {
+        color: var(--text-secondary);
+        margin-bottom: 1.5rem;
+        line-height: 1.6;
+    }
+
+    .risk-card {
+        background: white;
+        border-radius: 1rem;
+        padding: 1.5rem;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;
+        border: none;
+        height: 100%;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .risk-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 4px;
+    }
+
+    .risk-card.low-risk::before {
+        background: linear-gradient(90deg, var(--success-color), #059669);
+    }
+
+    .risk-card.medium-risk::before {
+        background: linear-gradient(90deg, var(--warning-color), #d97706);
+    }
+
+    .risk-card.high-risk::before {
+        background: linear-gradient(90deg, var(--danger-color), #dc2626);
+    }
+
+    .risk-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    }
+
+    .risk-header {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .risk-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        color: white;
+    }
+
+    .low-risk .risk-icon {
+        background: linear-gradient(135deg, var(--success-color), #059669);
+    }
+
+    .medium-risk .risk-icon {
+        background: linear-gradient(135deg, var(--warning-color), #d97706);
+    }
+
+    .high-risk .risk-icon {
+        background: linear-gradient(135deg, var(--danger-color), #dc2626);
+    }
+
+    .risk-title {
+        margin: 0;
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+
+    .risk-score {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: var(--text-secondary);
+        margin-bottom: 0.75rem;
+    }
+
+    .risk-description {
+        color: var(--text-secondary);
+        margin-bottom: 1rem;
+        line-height: 1.5;
+    }
+
+    .risk-features {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .risk-feature {
+        background: var(--light-bg);
+        padding: 0.5rem 0.75rem;
+        border-radius: 0.5rem;
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+        font-weight: 500;
+    }
+
+    .alert-category {
+        background: var(--light-bg);
+        padding: 1.5rem;
+        border-radius: 1rem;
+        height: 100%;
+    }
+
+    .alert-category-title {
+        color: var(--text-primary);
+        font-weight: 600;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+    }
+
+    .alert-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .alert-list li {
+        padding: 0.5rem 0;
+        display: flex;
+        align-items: center;
+        color: var(--text-secondary);
+    }
+
+    .accordion-item {
+        border: none;
+        border-radius: 0.75rem;
+        margin-bottom: 1rem;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        overflow: hidden;
+    }
+
+    .accordion-button {
+        background: white;
+        border: none;
+        padding: 1.25rem 1.5rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        border-radius: 0.75rem;
+    }
+
+    .accordion-button:not(.collapsed) {
+        background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+        color: white;
+        box-shadow: none;
+    }
+
+    .accordion-button:focus {
+        box-shadow: none;
+        border: none;
+    }
+
+    .accordion-body {
+        padding: 1.5rem;
+        background: var(--light-bg);
+        color: var(--text-secondary);
+        line-height: 1.6;
+    }
+
+    @media (max-width: 768px) {
+        .hero-card {
+            flex-direction: column;
+            text-align: center;
+            padding: 2rem 1rem;
+        }
+
+        .hero-title {
+            font-size: 2rem;
+        }
+
+        .process-steps {
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .step-arrow {
+            transform: rotate(90deg);
+        }
+
+        .action-card {
+            flex-direction: column;
+            text-align: center;
+        }
+    }
+</style>
 {% endblock %}
