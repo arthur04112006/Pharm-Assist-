@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
-Sistema de Triagem Farmacêutica
-Arquivo principal de execução
+Sistema de Triagem Farmaceutica
+Pharm-Assist - Interface moderna para triagem farmacêutica
 """
 
 import os
@@ -11,167 +12,113 @@ import webbrowser
 import time
 from pathlib import Path
 
-def check_python_version():
-    """Verifica se a versão do Python é compatível"""
-    if sys.version_info < (3, 8):
-        print("❌ Erro: Python 3.8+ é necessário!")
-        print(f"Versão atual: {sys.version}")
-        sys.exit(1)
-    print(f"✅ Python {sys.version_info.major}.{sys.version_info.minor} detectado")
-
-def check_dependencies():
-    """Verifica se as dependências estão instaladas"""
+def install_requirements():
+    """Instala as dependências necessárias"""
+    print("📦 Verificando dependências...")
+    
     try:
         import flask
-        import flask_sqlalchemy
-        import mysql.connector
-        import reportlab
-        print("✅ Todas as dependências estão instaladas")
+        import sqlalchemy
+        print("✅ Dependências já instaladas")
         return True
-    except ImportError as e:
-        print(f"❌ Dependência não encontrada: {e}")
-        print("Instalando dependências...")
-        return False
-
-def install_dependencies():
-    """Instala as dependências necessárias"""
-    try:
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "-r", "requirements.txt"])
-        print("✅ Dependências instaladas com sucesso!")
-        return True
-    except subprocess.CalledProcessError:
-        print("❌ Erro ao instalar dependências")
-        return False
-
-def check_mysql():
-    """Verifica se o MySQL está rodando"""
-    try:
-        import mysql.connector
-        # Tentar conectar ao MySQL
-        conn = mysql.connector.connect(
-            host="localhost",
-            user="root",
-            password="",
-            port=3306
-        )
-        conn.close()
-        print("✅ MySQL está rodando")
-        return True
-    except Exception as e:
-        print(f"⚠️  Aviso: Não foi possível conectar ao MySQL: {e}")
-        print("   O sistema tentará usar SQLite como alternativa")
-        return False
-
-def setup_database():
-    """Configura o banco de dados"""
-    if check_mysql():
-        print("📊 Configurando banco MySQL...")
+    except ImportError:
+        print("📥 Instalando dependências...")
         try:
-            # Executar script SQL para criar banco e tabelas
-            subprocess.run([
-                "mysql", "-u", "root", "-e", 
-                "source database/schema.sql"
-            ], check=True)
-            print("✅ Banco MySQL configurado!")
-        except subprocess.CalledProcessError:
-            print("⚠️  Erro ao configurar MySQL, usando SQLite")
-            setup_sqlite()
-    else:
-        setup_sqlite()
-
-def setup_sqlite():
-    """Configura SQLite como alternativa"""
-    print("📊 Configurando SQLite...")
-    # Modificar config.py para usar SQLite
-    config_content = '''import os
-from dotenv import load_dotenv
-
-load_dotenv()
-
-class Config:
-    SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev-secret-key-2024'
-    DEBUG = os.environ.get('FLASK_DEBUG', 'True').lower() == 'true'
-    
-    # Usar SQLite como alternativa
-    SQLALCHEMY_DATABASE_URI = 'sqlite:///triagem_farmaceutica.db'
-    SQLALCHEMY_TRACK_MODIFICATIONS = False
-    
-    UPLOAD_FOLDER = 'uploads'
-    MAX_CONTENT_LENGTH = 16 * 1024 * 1024
-    
-    REPORTS_FOLDER = 'reports'
-    
-    APP_NAME = 'Sistema de Triagem Farmacêutica'
-    APP_VERSION = '1.0.0'
-    ITEMS_PER_PAGE = 20
-'''
-    
-    with open('config.py', 'w') as f:
-        f.write(config_content)
-    
-    print("✅ SQLite configurado como alternativa")
+            subprocess.check_call([sys.executable, "-m", "pip", "install", "-r", "requirements.txt"])
+            print("✅ Dependências instaladas com sucesso")
+            return True
+        except subprocess.CalledProcessError as e:
+            print(f"❌ Erro ao instalar dependências: {e}")
+            return False
 
 def create_directories():
     """Cria diretórios necessários"""
-    directories = ['uploads', 'reports', 'templates']
+    directories = ['uploads', 'reports', 'instance']
+    
     for directory in directories:
         Path(directory).mkdir(exist_ok=True)
-    print("✅ Diretórios criados")
+    
+    print("📁 Diretórios criados/verificados")
 
-def start_application():
-    """Inicia a aplicação Flask"""
-    print("🚀 Iniciando Sistema de Triagem Farmacêutica...")
+def check_database():
+    """Verifica se o banco de dados existe"""
+    db_path = Path("instance/triagem_farmaceutica.db")
     
-    # Aguardar um pouco para o servidor inicializar
-    time.sleep(2)
-    
-    # Abrir navegador
-    try:
-        webbrowser.open('http://localhost:5000')
-        print("🌐 Navegador aberto automaticamente")
-    except:
-        print("🌐 Acesse: http://localhost:5000")
-    
-    print("\n🎉 Sistema iniciado com sucesso!")
-    print("📱 Acesse: http://localhost:5000")
-    print("⏹️  Para parar: Ctrl+C")
-    print("\n" + "="*50)
+    if db_path.exists():
+        print("🗄️ Banco de dados encontrado")
+        return True
+    else:
+        print("🗄️ Banco de dados será criado automaticamente")
+        return False
 
-def main():
-    """Função principal"""
-    print("🏥 Sistema de Triagem Farmacêutica")
-    print("=" * 50)
-    
-    # Verificar versão do Python
-    check_python_version()
-    
-    # Verificar e instalar dependências
-    if not check_dependencies():
-        if not install_dependencies():
-            print("❌ Falha ao instalar dependências")
-            sys.exit(1)
-    
-    # Verificar MySQL
-    check_mysql()
-    
-    # Configurar banco de dados
-    setup_database()
+def start_system():
+    """Inicia o sistema"""
+    print("🚀 Iniciando Pharm-Assist...")
     
     # Criar diretórios
     create_directories()
     
-    # Iniciar aplicação
+    # Verificar banco
+    check_database()
+    
+    # Configurar variáveis de ambiente
+    os.environ['FLASK_APP'] = 'app.py'
+    os.environ['FLASK_DEBUG'] = 'True'
+    
     try:
-        start_application()
+        # Importar e executar a aplicação
+        from app import app
         
-        # Executar Flask
-        subprocess.run([sys.executable, "app.py"])
+        print("🌐 Sistema iniciado com sucesso!")
+        print("📱 Abrindo navegador automaticamente...")
         
-    except KeyboardInterrupt:
-        print("\n\n⏹️  Sistema parado pelo usuário")
+        # Aguardar um pouco para o sistema inicializar
+        time.sleep(2)
+        
+        # Abrir navegador
+        webbrowser.open('http://localhost:5000')
+        
+        print("🎉 Pharm-Assist está rodando em: http://localhost:5000")
+        print("🛑 Para parar: Pressione Ctrl+C")
+        
+        # Executar a aplicação
+        app.run(host='0.0.0.0', port=5000, debug=True)
+        
     except Exception as e:
-        print(f"\n❌ Erro ao executar sistema: {e}")
-        sys.exit(1)
+        print(f"❌ Erro ao iniciar o sistema: {e}")
+        print("🔧 Verifique se todas as dependências estão instaladas")
+        return False
+
+def main():
+    """Função principal"""
+    print("=" * 60)
+    print("🏥 Pharm-Assist - Sistema de Triagem Farmaceutica")
+    print("=" * 60)
+    
+    # Verificar Python
+    if sys.version_info < (3, 8):
+        print("❌ Python 3.8+ é necessário")
+        print(f"   Versão atual: {sys.version}")
+        return
+    
+    print(f"🐍 Python {sys.version_info.major}.{sys.version_info.minor} detectado")
+    
+    # Instalar dependências se necessário
+    if not install_requirements():
+        print("❌ Falha na instalação das dependências")
+        return
+    
+    # Iniciar sistema
+    if not start_system():
+        print("❌ Falha ao iniciar o sistema")
+        return
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        print("\n🛑 Sistema interrompido pelo usuário")
+        print("👋 Até logo!")
+    except Exception as e:
+        print(f"\n❌ Erro inesperado: {e}")
+        print("🔧 Verifique os logs para mais detalhes")

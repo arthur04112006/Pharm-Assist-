@@ -1,3 +1,10 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Pharm-Assist - Motor de Triagem
+Motor de triagem farmaceutica baseado em regras
+"""
+
 from models import db, Sintoma, Medicamento, DoencaCronica
 from typing import List, Dict, Tuple, Optional
 import re

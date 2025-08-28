@@ -1,3 +1,10 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Pharm-Assist - Sistema de Triagem Farmaceutica
+Aplicacao Flask principal
+"""
+
 from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, send_file
 from flask_sqlalchemy import SQLAlchemy
 from models import db, Paciente, DoencaCronica, PacienteDoenca, Sintoma, Pergunta, Medicamento, Consulta, ConsultaResposta, ConsultaRecomendacao
