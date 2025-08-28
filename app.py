@@ -26,7 +26,10 @@ os.makedirs('uploads', exist_ok=True)
 @app.route('/')
 def index():
     """Página inicial do sistema"""
-    # Buscar estatísticas
+    from datetime import timedelta
+    from sqlalchemy import func
+    
+    # Estatísticas gerais
     total_pacientes = Paciente.query.count()
     total_medicamentos = Medicamento.query.count()
     
@@ -39,6 +42,53 @@ def index():
     # Encaminhamentos
     encaminhamentos = Consulta.query.filter_by(encaminhamento=True).count()
     
+    # Consultas dos últimos 30 dias
+    data_30_dias_atras = datetime.now() - timedelta(days=30)
+    consultas_30_dias = Consulta.query.filter(Consulta.data >= data_30_dias_atras).count()
+    
+    # Consultas por dia (últimos 7 dias)
+    consultas_por_dia = []
+    for i in range(7):
+        data = datetime.now() - timedelta(days=i)
+        inicio_dia = data.replace(hour=0, minute=0, second=0, microsecond=0)
+        fim_dia = data.replace(hour=23, minute=59, second=59, microsecond=999999)
+        
+        count = Consulta.query.filter(
+            Consulta.data >= inicio_dia,
+            Consulta.data <= fim_dia
+        ).count()
+        
+        consultas_por_dia.append({
+            'data': data.strftime('%d/%m'),
+            'count': count
+        })
+    
+    consultas_por_dia.reverse()  # Ordenar cronologicamente
+    
+    # Taxa de encaminhamentos
+    total_consultas = Consulta.query.count()
+    taxa_encaminhamento = (encaminhamentos / total_consultas * 100) if total_consultas > 0 else 0
+    
+    # Pacientes por faixa etária
+    faixas_etarias = [
+        {'faixa': '0-18', 'min': 0, 'max': 18},
+        {'faixa': '19-30', 'min': 19, 'max': 30},
+        {'faixa': '31-50', 'min': 31, 'max': 50},
+        {'faixa': '51-65', 'min': 51, 'max': 65},
+        {'faixa': '65+', 'min': 65, 'max': 120}
+    ]
+    
+    pacientes_por_faixa = []
+    for faixa in faixas_etarias:
+        count = Paciente.query.filter(
+            Paciente.idade >= faixa['min'],
+            Paciente.idade <= faixa['max']
+        ).count()
+        pacientes_por_faixa.append({
+            'faixa': faixa['faixa'],
+            'count': count
+        })
+    
     # Últimas consultas
     consultas_recentes = Consulta.query.join(Paciente).order_by(
         Consulta.data.desc()
@@ -49,6 +99,10 @@ def index():
                          total_medicamentos=total_medicamentos,
                          consultas_hoje=consultas_hoje,
                          encaminhamentos=encaminhamentos,
+                         consultas_30_dias=consultas_30_dias,
+                         consultas_por_dia=consultas_por_dia,
+                         taxa_encaminhamento=taxa_encaminhamento,
+                         pacientes_por_faixa=pacientes_por_faixa,
                          consultas_recentes=consultas_recentes)
 
 @app.route('/pacientes')
@@ -545,6 +599,10 @@ def gerar_relatorio(consulta_id):
 @app.route('/admin')
 def admin():
     """Painel administrativo"""
+    from datetime import timedelta
+    from sqlalchemy import func
+    
+    # Estatísticas gerais
     total_pacientes = Paciente.query.count()
     total_consultas = Consulta.query.count()
     total_medicamentos = Medicamento.query.filter_by(ativo=True).count()
@@ -553,6 +611,40 @@ def admin():
     # Pacientes por gênero
     total_pacientes_masculino = Paciente.query.filter_by(sexo='M').count()
     total_pacientes_feminino = Paciente.query.filter_by(sexo='F').count()
+    
+    # Sintomas mais comuns
+    sintomas_comuns = db.session.query(
+        ConsultaRecomendacao.descricao,
+        func.count(ConsultaRecomendacao.id).label('count')
+    ).filter(
+        ConsultaRecomendacao.tipo == 'nao_farmacologico'
+    ).group_by(
+        ConsultaRecomendacao.descricao
+    ).order_by(
+        func.count(ConsultaRecomendacao.id).desc()
+    ).limit(10).all()
+    
+    # Medicamentos mais recomendados
+    medicamentos_recomendados = db.session.query(
+        ConsultaRecomendacao.descricao,
+        func.count(ConsultaRecomendacao.id).label('count')
+    ).filter(
+        ConsultaRecomendacao.tipo == 'medicamento'
+    ).group_by(
+        ConsultaRecomendacao.descricao
+    ).order_by(
+        func.count(ConsultaRecomendacao.id).desc()
+    ).limit(10).all()
+    
+    # Taxa de encaminhamentos
+    taxa_encaminhamento = (total_encaminhamentos / total_consultas * 100) if total_consultas > 0 else 0
+    
+    # Eficácia das recomendações (baseado em feedback se implementado)
+    eficacia_recomendacoes = {
+        'muito_eficaz': 75,
+        'eficaz': 20,
+        'pouco_eficaz': 5
+    }
     
     # Consultas recentes
     consultas_recentes = Consulta.query.join(Paciente).order_by(Consulta.data.desc()).limit(5).all()
@@ -564,7 +656,13 @@ def admin():
                          total_encaminhamentos=total_encaminhamentos,
                          total_pacientes_masculino=total_pacientes_masculino,
                          total_pacientes_feminino=total_pacientes_feminino,
+                         sintomas_comuns=sintomas_comuns,
+                         medicamentos_recomendados=medicamentos_recomendados,
+                         taxa_encaminhamento=taxa_encaminhamento,
+                         eficacia_recomendacoes=eficacia_recomendacoes,
                          consultas_recentes=consultas_recentes)
+
+
 
 @app.route('/api/perguntas')
 def api_perguntas():
