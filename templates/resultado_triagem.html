@@ -1,0 +1,304 @@
+{% extends "base.html" %}
+
+{% block title %}Resultado da Triagem{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">
+        <i class="bi bi-clipboard-check text-success"></i>
+        Resultado da Triagem
+    </h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <div class="btn-group me-2">
+            <a href="{{ url_for('gerar_relatorio', consulta_id=consulta.id) }}" class="btn btn-primary">
+                <i class="bi bi-download"></i> Baixar PDF
+            </a>
+            <a href="{{ url_for('iniciar_triagem', paciente_id=consulta.paciente.id) }}" class="btn btn-success">
+                <i class="bi bi-plus-circle"></i> Nova Triagem
+            </a>
+        </div>
+        <a href="{{ url_for('visualizar_paciente', id=consulta.paciente.id) }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Voltar ao Paciente
+        </a>
+    </div>
+</div>
+
+<!-- Informações da Consulta -->
+<div class="row mb-4">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-info-circle"></i> Informações da Consulta
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">Paciente</label>
+                        <p class="form-control-plaintext">{{ consulta.paciente.nome }}</p>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label fw-bold">Idade</label>
+                        <p class="form-control-plaintext">{{ consulta.paciente.idade }} anos</p>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label fw-bold">Data</label>
+                        <p class="form-control-plaintext">
+                            {{ consulta.data.strftime('%d/%m/%Y %H:%M') if consulta.data else 'N/A' }}
+                        </p>
+                    </div>
+                </div>
+                
+                {% if consulta.observacoes %}
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Observações</label>
+                    <p class="form-control-plaintext">{{ consulta.observacoes }}</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-graph-up"></i> Resultado da Triagem
+                </h5>
+            </div>
+            <div class="card-body text-center">
+                <div class="mb-3">
+                    <h2 class="display-4 
+                        {% if resultado.score <= 30 %}text-success
+                        {% elif resultado.score <= 60 %}text-warning
+                        {% else %}text-danger{% endif %}">
+                        {{ resultado.score }}
+                    </h2>
+                    <p class="text-muted">Pontuação</p>
+                </div>
+                
+                <div class="mb-3">
+                    <span class="badge 
+                        {% if resultado.risk_level == 'baixo' %}bg-success
+                        {% elif resultado.risk_level == 'medio' %}bg-warning
+                        {% else %}bg-danger{% endif %} fs-6">
+                        {{ resultado.risk_level|title }}
+                    </span>
+                    <p class="text-muted">Nível de Risco</p>
+                </div>
+                
+                {% if resultado.alert_signs %}
+                <div class="alert alert-danger">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    <strong>Sinais de Alerta Detectados!</strong>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Sinais de Alerta -->
+{% if resultado.alert_signs %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card border-danger">
+            <div class="card-header bg-danger text-white">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-exclamation-triangle"></i> Sinais de Alerta - Encaminhamento Médico Necessário
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-danger">
+                    <strong>Atenção!</strong> Os seguintes sinais foram identificados e requerem 
+                    avaliação médica imediata:
+                </div>
+                
+                <ul class="list-group list-group-flush">
+                    {% for sign in resultado.alert_signs %}
+                    <li class="list-group-item">
+                        <i class="bi bi-exclamation-circle text-danger"></i>
+                        {{ sign }}
+                    </li>
+                    {% endfor %}
+                </ul>
+                
+                <div class="mt-3">
+                    <h6>Recomendações Imediatas:</h6>
+                    <ul>
+                        <li>Encaminhar o paciente para atendimento médico</li>
+                        <li>Não administrar medicamentos sem prescrição médica</li>
+                        <li>Monitorar sinais vitais se possível</li>
+                        <li>Documentar todos os sintomas relatados</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Perguntas e Respostas -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-question-circle"></i> Perguntas e Respostas da Triagem
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if consulta.respostas %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Pergunta</th>
+                                <th>Resposta</th>
+                                <th>Tipo</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for resposta in consulta.respostas %}
+                            <tr>
+                                <td>{{ resposta.pergunta.texto }}</td>
+                                <td>
+                                    {% if resposta.pergunta.tipo == 'sintoma' %}
+                                        <span class="badge bg-primary">{{ resposta.resposta }}</span>
+                                    {% elif resposta.pergunta.tipo == 'habito' %}
+                                        <span class="badge bg-info">{{ resposta.resposta }}</span>
+                                    {% elif resposta.pergunta.tipo == 'historico' %}
+                                        <span class="badge bg-warning">{{ resposta.resposta }}</span>
+                                    {% else %}
+                                        {{ resposta.resposta }}
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <small class="text-muted">{{ resposta.pergunta.tipo|title }}</small>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted text-center">Nenhuma resposta registrada.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recomendações -->
+<div class="row mb-4">
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-capsule"></i> Recomendações Farmacológicas
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if resultado.recomendacoes_farmacologicas %}
+                <ul class="list-group list-group-flush">
+                    {% for rec in resultado.recomendacoes_farmacologicas %}
+                    <li class="list-group-item">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <strong>{{ rec.medicamento.nome }}</strong>
+                                {% if rec.medicamento.nome_generico %}
+                                <br><small class="text-muted">{{ rec.medicamento.nome_generico }}</small>
+                                {% endif %}
+                            </div>
+                            <span class="badge bg-primary">{{ rec.medicamento.tipo|title }}</span>
+                        </div>
+                        <p class="mb-1 mt-2">{{ rec.medicamento.indicacao }}</p>
+                        <small class="text-muted">
+                            <strong>Posologia:</strong> {{ rec.posologia|default('Consultar bula') }}
+                        </small>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p class="text-muted text-center">Nenhuma recomendação farmacológica.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-heart"></i> Recomendações Não-Farmacológicas
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if resultado.recomendacoes_nao_farmacologicas %}
+                <ul class="list-group list-group-flush">
+                    {% for rec in resultado.recomendacoes_nao_farmacologicas %}
+                    <li class="list-group-item">
+                        <div class="d-flex align-items-start">
+                            <i class="bi bi-check-circle text-success me-2 mt-1"></i>
+                            <div>
+                                <strong>{{ rec.titulo }}</strong>
+                                <p class="mb-0 text-muted">{{ rec.descricao }}</p>
+                            </div>
+                        </div>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p class="text-muted text-center">Nenhuma recomendação não-farmacológica.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Conclusão -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-clipboard-check"></i> Conclusão da Triagem
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-8">
+                        <h6>Resumo da Avaliação</h6>
+                        <p>{{ resultado.conclusao|default('Conclusão da triagem será gerada automaticamente.') }}</p>
+                        
+                        <h6>Próximos Passos</h6>
+                        <ul>
+                            {% if resultado.alert_signs %}
+                            <li><strong>Encaminhamento Médico:</strong> O paciente deve ser encaminhado para avaliação médica</li>
+                            {% else %}
+                            <li><strong>Atendimento Farmacêutico:</strong> Pode prosseguir com orientações farmacêuticas</li>
+                            {% endif %}
+                            <li><strong>Monitoramento:</strong> Acompanhar evolução dos sintomas</li>
+                            <li><strong>Retorno:</strong> Agendar retorno se necessário</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-center">
+                            <div class="mb-3">
+                                <i class="bi bi-file-earmark-pdf fa-3x text-primary"></i>
+                                <h6 class="mt-2">Relatório Completo</h6>
+                                <p class="text-muted">Gere o relatório em PDF com todos os detalhes da triagem.</p>
+                            </div>
+                            <a href="{{ url_for('gerar_relatorio', consulta_id=consulta.id) }}" 
+                               class="btn btn-primary w-100">
+                                <i class="bi bi-download"></i> Baixar PDF
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

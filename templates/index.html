@@ -1,0 +1,240 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Sistema de Triagem Farmacêutica{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">
+        <i class="bi bi-heart-pulse text-primary"></i>
+        Dashboard
+    </h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <div class="btn-group me-2">
+            <a href="{{ url_for('triagem') }}" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> Nova Triagem
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Cards de Estatísticas -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-primary shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                            Total de Pacientes
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_pacientes|default(0) }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="bi bi-people fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-success shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                            Consultas Hoje
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ consultas_hoje|default(0) }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="bi bi-clipboard-pulse fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-info shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                            Medicamentos Ativos
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_medicamentos|default(0) }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="bi bi-capsule fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-warning shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                            Encaminhamentos
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ encaminhamentos|default(0) }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="bi bi-exclamation-triangle fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Ações Rápidas -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-lightning"></i> Ações Rápidas
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <a href="{{ url_for('triagem') }}" class="btn btn-primary btn-lg w-100">
+                            <i class="bi bi-clipboard-pulse"></i><br>
+                            Nova Triagem
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <a href="{{ url_for('novo_paciente') }}" class="btn btn-success btn-lg w-100">
+                            <i class="bi bi-person-plus"></i><br>
+                            Novo Paciente
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <a href="{{ url_for('novo_medicamento') }}" class="btn btn-info btn-lg w-100">
+                            <i class="bi bi-capsule"></i><br>
+                            Novo Medicamento
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <a href="{{ url_for('pacientes') }}" class="btn btn-secondary btn-lg w-100">
+                            <i class="bi bi-search"></i><br>
+                            Buscar Paciente
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Últimas Consultas -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-clock-history"></i> Últimas Consultas
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if consultas_recentes %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Data</th>
+                                <th>Paciente</th>
+                                <th>Idade</th>
+                                <th>Status</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for consulta in consultas_recentes %}
+                            <tr>
+                                <td>{{ consulta.data.strftime('%d/%m/%Y %H:%M') if consulta.data else 'N/A' }}</td>
+                                <td>
+                                    <a href="{{ url_for('visualizar_paciente', id=consulta.paciente.id) }}">
+                                        {{ consulta.paciente.nome }}
+                                    </a>
+                                </td>
+                                <td>{{ consulta.paciente.idade }} anos</td>
+                                <td>
+                                    {% if consulta.encaminhamento %}
+                                        <span class="badge bg-danger">Encaminhado</span>
+                                    {% else %}
+                                        <span class="badge bg-success">Atendido</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="{{ url_for('resultado_triagem', consulta_id=consulta.id) }}" 
+                                       class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-eye"></i> Ver
+                                    </a>
+                                    <a href="{{ url_for('gerar_relatorio', consulta_id=consulta.id) }}" 
+                                       class="btn btn-sm btn-outline-secondary">
+                                        <i class="bi bi-download"></i> PDF
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="bi bi-inbox fa-3x text-muted"></i>
+                    <p class="text-muted mt-3">Nenhuma consulta realizada ainda.</p>
+                    <a href="{{ url_for('triagem') }}" class="btn btn-primary">
+                        <i class="bi bi-plus-circle"></i> Iniciar Primeira Triagem
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Informações do Sistema -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-info-circle"></i> Sobre o Sistema
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Funcionalidades Principais</h6>
+                        <ul class="list-unstyled">
+                            <li><i class="bi bi-check-circle text-success"></i> Cadastro de pacientes</li>
+                            <li><i class="bi bi-check-circle text-success"></i> Triagem farmacêutica</li>
+                            <li><i class="bi bi-check-circle text-success"></i> Recomendações personalizadas</li>
+                            <li><i class="bi bi-check-circle text-success"></i> Geração de relatórios PDF</li>
+                            <li><i class="bi bi-check-circle text-success"></i> Histórico de consultas</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Como Usar</h6>
+                        <ol>
+                            <li>Cadastre um paciente ou busque um existente</li>
+                            <li>Inicie uma nova triagem</li>
+                            <li>Responda as perguntas do questionário</li>
+                            <li>Analise as recomendações geradas</li>
+                            <li>Gere o relatório em PDF</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

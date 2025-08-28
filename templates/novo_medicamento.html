@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+
+{% block title %}Novo Medicamento{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">
+        <i class="bi bi-capsule text-info"></i>
+        Novo Medicamento
+    </h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <a href="{{ url_for('medicamentos') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Voltar
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-info-circle"></i> Informações do Medicamento
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('novo_medicamento') }}">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="nome" class="form-label">Nome Comercial *</label>
+                            <input type="text" class="form-control" id="nome" name="nome" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="nome_generico" class="form-label">Nome Genérico</label>
+                            <input type="text" class="form-control" id="nome_generico" name="nome_generico">
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="tipo" class="form-label">Tipo *</label>
+                            <select class="form-select" id="tipo" name="tipo" required>
+                                <option value="">Selecione...</option>
+                                <option value="farmacologico">Farmacológico</option>
+                                <option value="fitoterapico">Fitoterápico</option>
+                                <option value="generico">Genérico</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="categoria" class="form-label">Categoria</label>
+                            <input type="text" class="form-control" id="categoria" name="categoria" 
+                                   placeholder="Ex: Analgésico, Anti-inflamatório...">
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="indicacao" class="form-label">Indicações *</label>
+                        <textarea class="form-control" id="indicacao" name="indicacao" rows="3" required
+                                  placeholder="Descreva as principais indicações do medicamento..."></textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="contraindicacao" class="form-label">Contraindicações</label>
+                        <textarea class="form-control" id="contraindicacao" name="contraindicacao" rows="3"
+                                  placeholder="Descreva as principais contraindicações..."></textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="posologia" class="form-label">Posologia</label>
+                        <textarea class="form-control" id="posologia" name="posologia" rows="2"
+                                  placeholder="Dosagem e forma de administração recomendada..."></textarea>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="ativo" name="ativo" checked>
+                                <label class="form-check-label" for="ativo">
+                                    Medicamento Ativo
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="controlado" name="controlado">
+                                <label class="form-check-label" for="controlado">
+                                    Medicamento Controlado
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <button type="submit" class="btn btn-success">
+                            <i class="bi bi-check-circle"></i> Cadastrar Medicamento
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

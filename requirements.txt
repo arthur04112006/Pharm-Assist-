@@ -1,0 +1,6 @@
+Flask==2.3.3
+Flask-SQLAlchemy==3.0.5
+mysql-connector-python==8.1.0
+ReportLab==4.0.4
+python-dotenv==1.0.0
+Werkzeug==2.3.7

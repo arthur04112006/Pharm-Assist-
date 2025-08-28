@@ -1,0 +1,219 @@
+{% extends "base.html" %}
+
+{% block title %}Buscar Paciente para Triagem{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">
+        <i class="bi bi-search text-primary"></i>
+        Buscar Paciente
+    </h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <a href="{{ url_for('triagem') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Voltar
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-search"></i> Buscar Paciente Existente
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="GET" action="{{ url_for('buscar_paciente_triagem') }}" class="mb-4">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="input-group">
+                                <input type="text" class="form-control" name="q" 
+                                       placeholder="Digite o nome do paciente..." 
+                                       value="{{ query or '' }}" required>
+                                <button class="btn btn-primary" type="submit">
+                                    <i class="bi bi-search"></i> Buscar
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <a href="{{ url_for('novo_paciente_triagem') }}" class="btn btn-success w-100">
+                                <i class="bi bi-person-plus"></i> Novo Paciente
+                            </a>
+                        </div>
+                    </div>
+                </form>
+
+                {% if query %}
+                <div class="mb-3">
+                    <h6>Resultados para: "{{ query }}"</h6>
+                    <p class="text-muted">{{ pacientes.total }} paciente(s) encontrado(s)</p>
+                </div>
+                {% endif %}
+
+                {% if pacientes and pacientes.items %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Nome</th>
+                                <th>Idade</th>
+                                <th>Sexo</th>
+                                <th>Última Consulta</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for paciente in pacientes.items %}
+                            <tr>
+                                <td>
+                                    <strong>{{ paciente.nome }}</strong>
+                                    {% if paciente.doencas_cronicas %}
+                                    <br><small class="text-muted">
+                                        {% for paciente_doenca in paciente.doencas_cronicas[:2] %}
+                                            {{ paciente_doenca.doenca_cronica.nome }}{% if not loop.last %}, {% endif %}
+                                        {% endfor %}
+                                        {% if paciente.doencas_cronicas|length > 2 %}...{% endif %}
+                                    </small>
+                                    {% endif %}
+                                </td>
+                                <td>{{ paciente.idade }} anos</td>
+                                <td>
+                                    {% if paciente.sexo == 'M' %}
+                                        <span class="badge bg-primary">M</span>
+                                    {% elif paciente.sexo == 'F' %}
+                                        <span class="badge bg-success">F</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">O</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if paciente.consultas %}
+                                        {{ paciente.consultas[0].data.strftime('%d/%m/%Y') if paciente.consultas[0].data else 'N/A' }}
+                                    {% else %}
+                                        <span class="text-muted">Primeira consulta</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="btn-group" role="group">
+                                        <a href="{{ url_for('iniciar_triagem', paciente_id=paciente.id) }}" 
+                                           class="btn btn-sm btn-primary">
+                                            <i class="bi bi-clipboard-pulse"></i> Iniciar Triagem
+                                        </a>
+                                        <a href="{{ url_for('visualizar_paciente', id=paciente.id) }}" 
+                                           class="btn btn-sm btn-outline-secondary">
+                                            <i class="bi bi-eye"></i> Ver
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Paginação -->
+                {% if pacientes.pages > 1 %}
+                <nav aria-label="Navegação de páginas">
+                    <ul class="pagination justify-content-center">
+                        {% if pacientes.has_prev %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('buscar_paciente_triagem', page=pacientes.prev_num, q=query) }}">
+                                <i class="bi bi-chevron-left"></i> Anterior
+                            </a>
+                        </li>
+                        {% endif %}
+
+                        {% for page_num in pacientes.iter_pages() %}
+                            {% if page_num %}
+                                {% if page_num != pacientes.page %}
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ url_for('buscar_paciente_triagem', page=page_num, q=query) }}">
+                                        {{ page_num }}
+                                    </a>
+                                </li>
+                                {% else %}
+                                <li class="page-item active">
+                                    <span class="page-link">{{ page_num }}</span>
+                                </li>
+                                {% endif %}
+                            {% else %}
+                            <li class="page-item disabled">
+                                <span class="page-link">...</span>
+                            </li>
+                            {% endif %}
+                        {% endfor %}
+
+                        {% if pacientes.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('buscar_paciente_triagem', page=pacientes.next_num, q=query) }}">
+                                Próxima <i class="bi bi-chevron-right"></i>
+                            </a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+                {% endif %}
+
+                {% elif query %}
+                <div class="text-center py-4">
+                    <i class="bi bi-search fa-3x text-muted"></i>
+                    <h5 class="text-muted mt-3">Nenhum paciente encontrado</h5>
+                    <p class="text-muted">Não foi possível encontrar pacientes com o termo "{{ query }}".</p>
+                    <div class="mt-3">
+                        <a href="{{ url_for('novo_paciente_triagem') }}" class="btn btn-success me-2">
+                            <i class="bi bi-person-plus"></i> Cadastrar Novo Paciente
+                        </a>
+                        <a href="{{ url_for('buscar_paciente_triagem') }}" class="btn btn-outline-primary">
+                            <i class="bi bi-arrow-clockwise"></i> Nova Busca
+                        </a>
+                    </div>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="bi bi-search fa-3x text-muted"></i>
+                    <h5 class="text-muted mt-3">Buscar Paciente</h5>
+                    <p class="text-muted">Digite o nome do paciente para iniciar uma triagem ou cadastre um novo paciente.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Dicas de Busca -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-lightbulb"></i> Dicas de Busca
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Como Buscar</h6>
+                        <ul>
+                            <li>Digite o nome completo ou parcial do paciente</li>
+                            <li>A busca é case-insensitive (não diferencia maiúsculas/minúsculas)</li>
+                            <li>Use apenas o primeiro nome para buscas mais amplas</li>
+                            <li>O sistema mostrará até 20 resultados por página</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Próximos Passos</h6>
+                        <ol>
+                            <li>Encontre o paciente desejado</li>
+                            <li>Clique em "Iniciar Triagem"</li>
+                            <li>Responda o questionário de triagem</li>
+                            <li>Receba as recomendações</li>
+                            <li>Gere o relatório em PDF</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

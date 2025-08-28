@@ -1,0 +1,297 @@
+{% extends "base.html" %}
+
+{% block title %}Pacientes - Sistema de Triagem Farmacêutica{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">
+        <i class="bi bi-people text-primary"></i>
+        Gerenciar Pacientes
+    </h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <div class="btn-group me-2">
+            <a href="{{ url_for('novo_paciente') }}" class="btn btn-primary">
+                <i class="bi bi-person-plus"></i> Novo Paciente
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Filtros e Busca -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <form method="GET" class="row g-3">
+                    <div class="col-md-4">
+                        <label for="search" class="form-label">Buscar por Nome</label>
+                        <input type="text" class="form-control" id="search" name="q" 
+                               value="{{ request.args.get('q', '') }}" placeholder="Digite o nome...">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="age_filter" class="form-label">Faixa Etária</label>
+                        <select class="form-select" id="age_filter" name="age">
+                            <option value="">Todas as idades</option>
+                            <option value="0-18" {% if request.args.get('age') == '0-18' %}selected{% endif %}>0-18 anos</option>
+                            <option value="19-30" {% if request.args.get('age') == '19-30' %}selected{% endif %}>19-30 anos</option>
+                            <option value="31-50" {% if request.args.get('age') == '31-50' %}selected{% endif %}>31-50 anos</option>
+                            <option value="51-65" {% if request.args.get('age') == '51-65' %}selected{% endif %}>51-65 anos</option>
+                            <option value="65+" {% if request.args.get('age') == '65+' %}selected{% endif %}>65+ anos</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="sex_filter" class="form-label">Sexo</label>
+                        <select class="form-select" id="sex_filter" name="sex">
+                            <option value="">Todos</option>
+                            <option value="M" {% if request.args.get('sex') == 'M' %}selected{% endif %}>Masculino</option>
+                            <option value="F" {% if request.args.get('sex') == 'F' %}selected{% endif %}>Feminino</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">&nbsp;</label>
+                        <div>
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="bi bi-search"></i> Buscar
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Lista de Pacientes -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-list-ul"></i> Lista de Pacientes
+                    <span class="badge bg-secondary ms-2">{{ pacientes.total }} pacientes</span>
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if pacientes.items %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Nome</th>
+                                <th>Idade</th>
+                                <th>Sexo</th>
+                                <th>Peso/Altura</th>
+                                <th>Hábitos</th>
+                                <th>Última Consulta</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for paciente in pacientes.items %}
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="avatar-sm me-3">
+                                            <i class="bi bi-person-circle fs-2 text-primary"></i>
+                                        </div>
+                                        <div>
+                                            <h6 class="mb-0">{{ paciente.nome }}</h6>
+                                            <small class="text-muted">ID: {{ paciente.id }}</small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge bg-info">{{ paciente.idade }} anos</span>
+                                </td>
+                                <td>
+                                    {% if paciente.sexo == 'M' %}
+                                        <span class="badge bg-primary">Masculino</span>
+                                    {% elif paciente.sexo == 'F' %}
+                                        <span class="badge bg-pink">Feminino</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Outro</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if paciente.peso and paciente.altura %}
+                                        <div>{{ paciente.peso }} kg</div>
+                                        <div>{{ paciente.altura }} m</div>
+                                        {% set imc = (paciente.peso / (paciente.altura ** 2)) %}
+                                        <small class="text-muted">IMC: {{ "%.1f"|format(imc) }}</small>
+                                    {% else %}
+                                        <span class="text-muted">N/A</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="d-flex flex-column gap-1">
+                                        {% if paciente.fuma %}
+                                            <span class="badge bg-danger">Fumante</span>
+                                        {% endif %}
+                                        {% if paciente.bebe %}
+                                            <span class="badge bg-warning">Consome álcool</span>
+                                        {% endif %}
+                                        {% if not paciente.fuma and not paciente.bebe %}
+                                            <span class="badge bg-success">Sem hábitos</span>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                                <td>
+                                    {% if paciente.consultas %}
+                                        {% set ultima_consulta = paciente.consultas|sort(attribute='data')|last %}
+                                        <small class="text-muted">
+                                            {{ ultima_consulta.data.strftime('%d/%m/%Y') if ultima_consulta.data else 'N/A' }}
+                                        </small>
+                                    {% else %}
+                                        <span class="text-muted">Nunca consultou</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="btn-group" role="group">
+                                        <a href="{{ url_for('visualizar_paciente', id=paciente.id) }}" 
+                                           class="btn btn-sm btn-outline-primary" title="Visualizar">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                        <a href="{{ url_for('editar_paciente', id=paciente.id) }}" 
+                                           class="btn btn-sm btn-outline-secondary" title="Editar">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        <a href="{{ url_for('iniciar_triagem', paciente_id=paciente.id) }}" 
+                                           class="btn btn-sm btn-outline-success" title="Nova Triagem">
+                                            <i class="bi bi-clipboard-pulse"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Paginação -->
+                {% if pacientes.pages > 1 %}
+                <nav aria-label="Navegação de páginas" class="mt-4">
+                    <ul class="pagination justify-content-center">
+                        {% if pacientes.has_prev %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('pacientes', page=pacientes.prev_num, **request.args) }}">
+                                    <i class="bi bi-chevron-left"></i> Anterior
+                                </a>
+                            </li>
+                        {% endif %}
+                        
+                        {% for page_num in pacientes.iter_pages() %}
+                            {% if page_num %}
+                                {% if page_num != pacientes.page %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="{{ url_for('pacientes', page=page_num, **request.args) }}">
+                                            {{ page_num }}
+                                        </a>
+                                    </li>
+                                {% else %}
+                                    <li class="page-item active">
+                                        <span class="page-link">{{ page_num }}</span>
+                                    </li>
+                                {% endif %}
+                            {% else %}
+                                <li class="page-item disabled">
+                                    <span class="page-link">...</span>
+                                </li>
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {% if pacientes.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('pacientes', page=pacientes.next_num, **request.args) }}">
+                                    Próxima <i class="bi bi-chevron-right"></i>
+                                </a>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+                {% endif %}
+                
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="bi bi-people fs-1 text-muted"></i>
+                    <h5 class="text-muted mt-3">Nenhum paciente encontrado</h5>
+                    <p class="text-muted">Comece cadastrando o primeiro paciente do sistema.</p>
+                    <a href="{{ url_for('novo_paciente') }}" class="btn btn-primary">
+                        <i class="bi bi-person-plus"></i> Cadastrar Primeiro Paciente
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Estatísticas Rápidas -->
+<div class="row mt-4">
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="bi bi-people-fill fs-1 text-primary"></i>
+                <h4 class="mt-2">{{ pacientes.total }}</h4>
+                <p class="text-muted mb-0">Total de Pacientes</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="bi bi-gender-male fs-1 text-info"></i>
+                <h4 class="mt-2">{{ pacientes.items|selectattr('sexo', 'equalto', 'M')|list|length }}</h4>
+                <p class="text-muted mb-0">Masculino</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="bi bi-gender-female fs-1 text-pink"></i>
+                <h4 class="mt-2">{{ pacientes.items|selectattr('sexo', 'equalto', 'F')|list|length }}</h4>
+                <p class="text-muted mb-0">Feminino</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="bi bi-clipboard-pulse fs-1 text-success"></i>
+                <h4 class="mt-2">{{ pacientes.items|selectattr('consultas')|list|length }}</h4>
+                <p class="text-muted mb-0">Com Consultas</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .avatar-sm {
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .badge.bg-pink {
+        background-color: #e83e8c;
+    }
+    
+    .table th {
+        background-color: #f8f9fa;
+        border-top: none;
+        font-weight: 600;
+    }
+    
+    .btn-group .btn {
+        margin-right: 2px;
+    }
+    
+    .btn-group .btn:last-child {
+        margin-right: 0;
+    }
+</style>
+{% endblock %}

@@ -1,0 +1,421 @@
+{% extends "base.html" %}
+
+{% block title %}Iniciar Triagem - {{ paciente.nome }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .question-container {
+        min-height: 400px;
+    }
+    
+    .question-card {
+        transition: all 0.3s ease;
+    }
+    
+    .question-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    
+    .progress-bar {
+        height: 8px;
+        border-radius: 4px;
+    }
+    
+    .answer-option {
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    
+    .answer-option:hover {
+        background-color: #e9ecef;
+        transform: scale(1.02);
+    }
+    
+    .answer-option.selected {
+        background-color: #0d6efd;
+        color: white;
+        border-color: #0d6efd;
+    }
+    
+    .patient-info-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">
+        <i class="bi bi-clipboard-pulse text-primary"></i>
+        Triagem - {{ paciente.nome }}
+    </h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <a href="{{ url_for('visualizar_paciente', id=paciente.id) }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Voltar ao Paciente
+        </a>
+    </div>
+</div>
+
+<!-- Informações do Paciente -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card patient-info-card">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5 class="card-title">
+                            <i class="bi bi-person-circle"></i> Dados do Paciente
+                        </h5>
+                        <p class="mb-1"><strong>Nome:</strong> {{ paciente.nome }}</p>
+                        <p class="mb-1"><strong>Idade:</strong> {{ paciente.idade }} anos</p>
+                        <p class="mb-1"><strong>Sexo:</strong> 
+                            {% if paciente.sexo == 'M' %}Masculino{% elif paciente.sexo == 'F' %}Feminino{% else %}Outro{% endif %}
+                        </p>
+                    </div>
+                    <div class="col-md-6">
+                        <p class="mb-1"><strong>Peso:</strong> {{ paciente.peso|default('N/A') }} kg</p>
+                        <p class="mb-1"><strong>Altura:</strong> {{ paciente.altura|default('N/A') }} m</p>
+                        <p class="mb-1"><strong>Hábitos:</strong> 
+                            {% if paciente.fuma %}Fumante{% endif %}{% if paciente.fuma and paciente.bebe %}, {% endif %}
+                            {% if paciente.bebe %}Consome álcool{% endif %}
+                            {% if not paciente.fuma and not paciente.bebe %}Nenhum hábito registrado{% endif %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Progresso da Triagem -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6 class="card-title mb-0">Progresso da Triagem</h6>
+                    <span class="badge bg-primary" id="progress-text">0 de {{ perguntas|length }}</span>
+                </div>
+                <div class="progress">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                         role="progressbar" id="progress-bar" 
+                         style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Container das Perguntas -->
+<div class="row">
+    <div class="col-12">
+        <div class="card question-container">
+            <div class="card-body">
+                <div id="questions-container">
+                    <!-- As perguntas serão carregadas aqui via JavaScript -->
+                </div>
+                
+                <!-- Botões de Navegação -->
+                <div class="row mt-4" id="navigation-buttons" style="display: none;">
+                    <div class="col-6">
+                        <button type="button" class="btn btn-secondary w-100" id="prev-btn" onclick="previousQuestion()">
+                            <i class="bi bi-arrow-left"></i> Anterior
+                        </button>
+                    </div>
+                    <div class="col-6">
+                        <button type="button" class="btn btn-primary w-100" id="next-btn" onclick="nextQuestion()">
+                            Próxima <i class="bi bi-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Botão Finalizar -->
+                <div class="row mt-4" id="finish-section" style="display: none;">
+                    <div class="col-12 text-center">
+                        <button type="button" class="btn btn-success btn-lg" onclick="finishTriagem()">
+                            <i class="bi bi-check-circle"></i> Finalizar Triagem
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Confirmação -->
+<div class="modal fade" id="confirmModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirmar Finalização</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Tem certeza que deseja finalizar a triagem?</p>
+                <p class="text-muted">Após finalizar, o sistema gerará recomendações baseadas nas respostas.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-success" onclick="confirmFinishTriagem()">Confirmar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Loading Spinner -->
+<div class="modal fade" id="loadingModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-body text-center">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Processando...</span>
+                </div>
+                <p class="mt-3">Processando triagem...</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Variáveis globais
+let currentQuestionIndex = 0;
+let questions = {{ perguntas|tojson }};
+let answers = {};
+let totalQuestions = questions.length;
+
+// Inicializar triagem
+document.addEventListener('DOMContentLoaded', function() {
+    loadQuestion(currentQuestionIndex);
+    updateProgress();
+});
+
+// Carregar pergunta
+function loadQuestion(index) {
+    if (index < 0 || index >= totalQuestions) return;
+    
+    const question = questions[index];
+    const container = document.getElementById('questions-container');
+    
+    let answerOptions = '';
+    
+    // Gerar opções de resposta baseadas no tipo de pergunta
+    if (question.tipo === 'geral' && question.texto.includes('intensidade')) {
+        // Escala de 1-10 para intensidade
+        for (let i = 1; i <= 10; i++) {
+            const selected = answers[question.id] === i.toString() ? 'selected' : '';
+            answerOptions += `
+                <div class="col-md-2 mb-2">
+                    <div class="answer-option border rounded p-3 text-center ${selected}" 
+                         onclick="selectAnswer(${question.id}, '${i}')">
+                        <strong>${i}</strong>
+                        <br><small>${i <= 3 ? 'Leve' : i <= 6 ? 'Moderado' : i <= 8 ? 'Forte' : 'Muito Forte'}</small>
+                    </div>
+                </div>
+            `;
+        }
+    } else if (question.tipo === 'sintoma' || question.tipo === 'habito') {
+        // Sim/Não para sintomas e hábitos
+        const options = [
+            { value: 'sim', label: 'Sim', icon: 'bi-check-circle-fill', color: 'success' },
+            { value: 'nao', label: 'Não', icon: 'bi-x-circle-fill', color: 'danger' }
+        ];
+        
+        options.forEach(option => {
+            const selected = answers[question.id] === option.value ? 'selected' : '';
+            answerOptions += `
+                <div class="col-md-6">
+                    <div class="answer-option border rounded p-4 text-center ${selected}" 
+                         onclick="selectAnswer(${question.id}, '${option.value}')">
+                        <i class="bi ${option.icon} fs-1 text-${option.color}"></i>
+                        <br><strong>${option.label}</strong>
+                    </div>
+                </div>
+            `;
+        });
+    } else {
+        // Campo de texto livre
+        answerOptions = `
+            <div class="col-12">
+                <textarea class="form-control" rows="3" 
+                          placeholder="Digite sua resposta aqui..."
+                          onchange="selectAnswer(${question.id}, this.value)"
+                          >${answers[question.id] || ''}</textarea>
+            </div>
+        `;
+    }
+    
+    container.innerHTML = `
+        <div class="question-card">
+            <h4 class="mb-4">
+                <span class="badge bg-primary me-2">${index + 1}</span>
+                ${question.texto}
+            </h4>
+            
+            <div class="row">
+                ${answerOptions}
+            </div>
+            
+            <div class="mt-4">
+                <small class="text-muted">
+                    <i class="bi bi-info-circle"></i>
+                    Tipo: ${question.tipo.charAt(0).toUpperCase() + question.tipo.slice(1)}
+                </small>
+            </div>
+        </div>
+    `;
+    
+    updateNavigationButtons();
+}
+
+// Selecionar resposta
+function selectAnswer(questionId, answer) {
+    answers[questionId] = answer;
+    
+    // Atualizar visualização se for opção selecionável
+    const questionContainer = document.getElementById('questions-container');
+    const options = questionContainer.querySelectorAll('.answer-option');
+    
+    options.forEach(option => {
+        option.classList.remove('selected');
+        if (option.onclick && option.onclick.toString().includes(answer)) {
+            option.classList.add('selected');
+        }
+    });
+    
+    // Salvar resposta
+    localStorage.setItem(`triagem_${questionId}`, answer);
+}
+
+// Navegar para próxima pergunta
+function nextQuestion() {
+    if (currentQuestionIndex < totalQuestions - 1) {
+        currentQuestionIndex++;
+        loadQuestion(currentQuestionIndex);
+        updateProgress();
+    }
+}
+
+// Navegar para pergunta anterior
+function previousQuestion() {
+    if (currentQuestionIndex > 0) {
+        currentQuestionIndex--;
+        loadQuestion(currentQuestionIndex);
+        updateProgress();
+    }
+}
+
+// Atualizar botões de navegação
+function updateNavigationButtons() {
+    const navButtons = document.getElementById('navigation-buttons');
+    const finishSection = document.getElementById('finish-section');
+    const prevBtn = document.getElementById('prev-btn');
+    const nextBtn = document.getElementById('next-btn');
+    
+    if (currentQuestionIndex === 0) {
+        prevBtn.disabled = true;
+    } else {
+        prevBtn.disabled = false;
+    }
+    
+    if (currentQuestionIndex === totalQuestions - 1) {
+        nextBtn.style.display = 'none';
+        finishSection.style.display = 'block';
+    } else {
+        nextBtn.style.display = 'block';
+        finishSection.style.display = 'none';
+    }
+    
+    navButtons.style.display = 'block';
+}
+
+// Atualizar barra de progresso
+function updateProgress() {
+    const progress = ((currentQuestionIndex + 1) / totalQuestions) * 100;
+    const progressBar = document.getElementById('progress-bar');
+    const progressText = document.getElementById('progress-text');
+    
+    progressBar.style.width = progress + '%';
+    progressBar.setAttribute('aria-valuenow', progress);
+    progressText.textContent = `${currentQuestionIndex + 1} de ${totalQuestions}`;
+}
+
+// Finalizar triagem
+function finishTriagem() {
+    // Verificar se todas as perguntas foram respondidas
+    const answeredQuestions = Object.keys(answers).length;
+    if (answeredQuestions < totalQuestions) {
+        alert(`Por favor, responda todas as perguntas. ${answeredQuestions}/${totalQuestions} respondidas.`);
+        return;
+    }
+    
+    // Mostrar modal de confirmação
+    const modal = new bootstrap.Modal(document.getElementById('confirmModal'));
+    modal.show();
+}
+
+// Confirmar finalização da triagem
+function confirmFinishTriagem() {
+    // Fechar modal
+    const modal = bootstrap.Modal.getInstance(document.getElementById('confirmModal'));
+    modal.hide();
+    
+    // Mostrar loading
+    const loadingModal = new bootstrap.Modal(document.getElementById('loadingModal'));
+    loadingModal.show();
+    
+    // Preparar dados para envio
+    const respostas = [];
+    for (let questionId in answers) {
+        respostas.push({
+            pergunta_id: parseInt(questionId),
+            resposta: answers[questionId]
+        });
+    }
+    
+    // Enviar dados para o servidor
+    fetch('{{ url_for("processar_triagem") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            paciente_id: {{ paciente.id }},
+            respostas: respostas
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        loadingModal.hide();
+        
+        if (data.success) {
+            // Redirecionar para resultado
+            window.location.href = `/triagem/resultado/${data.consulta_id}`;
+        } else {
+            alert('Erro ao processar triagem: ' + data.error);
+        }
+    })
+    .catch(error => {
+        loadingModal.hide();
+        alert('Erro ao processar triagem: ' + error);
+    });
+}
+
+// Carregar respostas salvas do localStorage
+function loadSavedAnswers() {
+    questions.forEach(question => {
+        const saved = localStorage.getItem(`triagem_${question.id}`);
+        if (saved) {
+            answers[question.id] = saved;
+        }
+    });
+}
+
+// Carregar respostas ao iniciar
+loadSavedAnswers();
+</script>
+{% endblock %}

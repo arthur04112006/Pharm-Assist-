@@ -1,0 +1,221 @@
+{% extends "base.html" %}
+
+{% block title %}Medicamentos{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">
+        <i class="bi bi-capsule text-info"></i>
+        Medicamentos
+    </h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <div class="btn-group me-2">
+            <a href="{{ url_for('novo_medicamento') }}" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> Novo Medicamento
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Estatísticas -->
+<div class="row mb-4">
+    <div class="col-md-3 mb-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title text-primary">{{ medicamentos|length }}</h5>
+                <p class="card-text">Total de Medicamentos</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title text-success">{{ medicamentos|selectattr('tipo', 'equalto', 'farmacologico')|list|length }}</h5>
+                <p class="card-text">Farmacológicos</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title text-warning">{{ medicamentos|selectattr('tipo', 'equalto', 'fitoterapico')|list|length }}</h5>
+                <p class="card-text">Fitoterápicos</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title text-info">{{ medicamentos|selectattr('tipo', 'equalto', 'generico')|list|length }}</h5>
+                <p class="card-text">Genéricos</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Lista de Medicamentos -->
+<div class="card">
+    <div class="card-header">
+        <h5 class="card-title mb-0">
+            <i class="bi bi-list-ul"></i> Lista de Medicamentos
+        </h5>
+    </div>
+    <div class="card-body">
+        {% if medicamentos %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Nome</th>
+                        <th>Tipo</th>
+                        <th>Indicação</th>
+                        <th>Contraindicações</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for medicamento in medicamentos %}
+                    <tr>
+                        <td>
+                            <strong>{{ medicamento.nome }}</strong>
+                            {% if medicamento.nome_generico %}
+                            <br><small class="text-muted">{{ medicamento.nome_generico }}</small>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if medicamento.tipo == 'farmacologico' %}
+                                <span class="badge bg-primary">Farmacológico</span>
+                            {% elif medicamento.tipo == 'fitoterapico' %}
+                                <span class="badge bg-success">Fitoterápico</span>
+                            {% else %}
+                                <span class="badge bg-info">Genérico</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <small>{{ medicamento.indicacao[:100] }}{% if medicamento.indicacao|length > 100 %}...{% endif %}</small>
+                        </td>
+                        <td>
+                            <small>{{ medicamento.contraindicacao[:100] }}{% if medicamento.contraindicacao|length > 100 %}...{% endif %}</small>
+                        </td>
+                        <td>
+                            <div class="btn-group" role="group">
+                                <button type="button" class="btn btn-sm btn-outline-primary" 
+                                        data-bs-toggle="modal" 
+                                        data-bs-target="#medicamentoModal{{ medicamento.id }}">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                                <a href="{{ url_for('editar_medicamento', id=medicamento.id) }}" 
+                                   class="btn btn-sm btn-outline-warning">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <button type="button" class="btn btn-sm btn-outline-danger"
+                                        onclick="confirmarExclusao({{ medicamento.id }})">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="bi bi-capsule fa-3x text-muted"></i>
+            <h5 class="text-muted mt-3">Nenhum medicamento cadastrado</h5>
+            <p class="text-muted">Comece cadastrando o primeiro medicamento do sistema.</p>
+            <a href="{{ url_for('novo_medicamento') }}" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> Cadastrar Medicamento
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Modais para visualizar detalhes -->
+{% for medicamento in medicamentos %}
+<div class="modal fade" id="medicamentoModal{{ medicamento.id }}" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">{{ medicamento.nome }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Informações Básicas</h6>
+                        <p><strong>Nome:</strong> {{ medicamento.nome }}</p>
+                        {% if medicamento.nome_generico %}
+                        <p><strong>Nome Genérico:</strong> {{ medicamento.nome_generico }}</p>
+                        {% endif %}
+                        <p><strong>Tipo:</strong> 
+                            {% if medicamento.tipo == 'farmacologico' %}
+                                Farmacológico
+                            {% elif medicamento.tipo == 'fitoterapico' %}
+                                Fitoterápico
+                            {% else %}
+                                Genérico
+                            {% endif %}
+                        </p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Classificação</h6>
+                        <p><strong>Categoria:</strong> {{ medicamento.categoria|default('Não informado') }}</p>
+                        <p><strong>Status:</strong> 
+                            {% if medicamento.ativo %}
+                                <span class="badge bg-success">Ativo</span>
+                            {% else %}
+                                <span class="badge bg-danger">Inativo</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <div class="row">
+                    <div class="col-12">
+                        <h6>Indicações</h6>
+                        <p>{{ medicamento.indicacao|default('Não informado') }}</p>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-12">
+                        <h6>Contraindicações</h6>
+                        <p>{{ medicamento.contraindicacao|default('Não informado') }}</p>
+                    </div>
+                </div>
+                
+                {% if medicamento.posologia %}
+                <div class="row">
+                    <div class="col-12">
+                        <h6>Posologia</h6>
+                        <p>{{ medicamento.posologia }}</p>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            <div class="modal-footer">
+                <a href="{{ url_for('editar_medicamento', id=medicamento.id) }}" 
+                   class="btn btn-warning">
+                    <i class="bi bi-pencil"></i> Editar
+                </a>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+<!-- Script para confirmação de exclusão -->
+<script>
+function confirmarExclusao(id) {
+    if (confirm('Tem certeza que deseja excluir este medicamento?')) {
+        // Implementar exclusão via AJAX ou redirecionar para rota de exclusão
+        alert('Funcionalidade de exclusão será implementada em breve.');
+    }
+}
+</script>
+{% endblock %}

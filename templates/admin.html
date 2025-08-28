@@ -1,0 +1,268 @@
+{% extends "base.html" %}
+
+{% block title %}Administração{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">
+        <i class="bi bi-gear text-secondary"></i>
+        Administração
+    </h1>
+</div>
+
+<!-- Estatísticas Gerais -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-primary shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                            Total de Pacientes
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_pacientes|default(0) }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="bi bi-people fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-success shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                            Total de Consultas
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_consultas|default(0) }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="bi bi-clipboard-pulse fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-info shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                            Total de Medicamentos
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_medicamentos|default(0) }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="bi bi-capsule fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-warning shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                            Encaminhamentos
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_encaminhamentos|default(0) }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="bi bi-exclamation-triangle fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Gráficos e Análises -->
+<div class="row mb-4">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-graph-up"></i> Consultas por Período
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="text-center py-4">
+                    <i class="bi bi-bar-chart fa-3x text-muted"></i>
+                    <p class="text-muted mt-3">Gráfico de consultas será implementado em breve.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-pie-chart"></i> Distribuição por Idade
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="text-center py-4">
+                    <i class="bi bi-pie-chart fa-3x text-muted"></i>
+                    <p class="text-muted mt-3">Gráfico de distribuição será implementado em breve.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tabelas de Dados -->
+<div class="row">
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-clock-history"></i> Últimas Consultas
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if consultas_recentes %}
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Data</th>
+                                <th>Paciente</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for consulta in consultas_recentes[:5] %}
+                            <tr>
+                                <td>{{ consulta.data.strftime('%d/%m') if consulta.data else 'N/A' }}</td>
+                                <td>{{ consulta.paciente.nome[:20] }}{% if consulta.paciente.nome|length > 20 %}...{% endif %}</td>
+                                <td>
+                                    {% if consulta.encaminhamento %}
+                                        <span class="badge bg-danger">Encaminhado</span>
+                                    {% else %}
+                                        <span class="badge bg-success">Atendido</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted text-center">Nenhuma consulta realizada ainda.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-people"></i> Pacientes por Gênero
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-6">
+                        <div class="border-end">
+                            <h4 class="text-primary">{{ pacientes_masculino|default(0) }}</h4>
+                            <p class="text-muted">Masculino</p>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <h4 class="text-success">{{ pacientes_feminino|default(0) }}</h4>
+                        <p class="text-muted">Feminino</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Ações Administrativas -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-tools"></i> Ações Administrativas
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <a href="{{ url_for('gerar_relatorio_geral') }}" class="btn btn-outline-primary w-100">
+                            <i class="bi bi-file-earmark-pdf"></i><br>
+                            Relatório Geral
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <a href="{{ url_for('backup_database') }}" class="btn btn-outline-success w-100">
+                            <i class="bi bi-download"></i><br>
+                            Backup BD
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <a href="{{ url_for('configuracoes') }}" class="btn btn-outline-warning w-100">
+                            <i class="bi bi-gear"></i><br>
+                            Configurações
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <a href="{{ url_for('logs_sistema') }}" class="btn btn-outline-info w-100">
+                            <i class="bi bi-journal-text"></i><br>
+                            Logs do Sistema
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Informações do Sistema -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-info-circle"></i> Informações do Sistema
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Versão e Status</h6>
+                        <ul class="list-unstyled">
+                            <li><strong>Versão:</strong> {{ config.APP_VERSION|default('1.0.0') }}</li>
+                            <li><strong>Ambiente:</strong> {{ 'Desenvolvimento' if config.DEBUG else 'Produção' }}</li>
+                            <li><strong>Banco de Dados:</strong> {{ 'SQLite' if 'sqlite' in config.SQLALCHEMY_DATABASE_URI else 'MySQL' }}</li>
+                            <li><strong>Última Atualização:</strong> {{ moment().format('DD/MM/YYYY HH:mm') }}</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Recursos do Sistema</h6>
+                        <ul class="list-unstyled">
+                            <li><i class="bi bi-check-circle text-success"></i> Sistema de Triagem</li>
+                            <li><i class="bi bi-check-circle text-success"></i> Gestão de Pacientes</li>
+                            <li><i class="bi bi-check-circle text-success"></i> Controle de Medicamentos</li>
+                            <li><i class="bi bi-check-circle text-success"></i> Relatórios PDF</li>
+                            <li><i class="bi bi-check-circle text-success"></i> Backup Automático</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,225 @@
+{% extends "base.html" %}
+
+{% block title %}Triagem Farmacêutica{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">
+        <i class="bi bi-clipboard-pulse text-primary"></i>
+        Triagem Farmacêutica
+    </h1>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-info-circle"></i> Como Funciona a Triagem
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-8">
+                        <p class="lead">
+                            O Sistema de Triagem Farmacêutica auxilia o farmacêutico na avaliação inicial de pacientes, 
+                            fornecendo recomendações baseadas em sintomas, histórico clínico e algoritmos de decisão.
+                        </p>
+                        
+                        <h6>Processo da Triagem:</h6>
+                        <ol>
+                            <li><strong>Identificação do Paciente:</strong> Busque um paciente existente ou cadastre um novo</li>
+                            <li><strong>Questionário de Triagem:</strong> Sistema faz perguntas específicas sobre sintomas</li>
+                            <li><strong>Análise Inteligente:</strong> Algoritmo analisa respostas e calcula risco</li>
+                            <li><strong>Recomendações:</strong> Gera sugestões farmacológicas e não farmacológicas</li>
+                            <li><strong>Relatório:</strong> Cria documento PDF completo da consulta</li>
+                        </ol>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="alert alert-info">
+                            <h6><i class="bi bi-lightbulb"></i> Dica</h6>
+                            <p class="mb-0">
+                                A triagem é baseada em evidências clínicas e sempre prioriza a segurança do paciente.
+                                Em caso de dúvida, o sistema recomenda encaminhamento médico.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-search"></i> Buscar Paciente Existente
+                </h5>
+            </div>
+            <div class="card-body">
+                <p>Busque um paciente já cadastrado no sistema para iniciar a triagem.</p>
+                <a href="{{ url_for('buscar_paciente_triagem') }}" class="btn btn-primary w-100">
+                    <i class="bi bi-search"></i> Buscar Paciente
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-person-plus"></i> Cadastrar Novo Paciente
+                </h5>
+            </div>
+            <div class="card-body">
+                <p>Cadastre um novo paciente e inicie a triagem imediatamente.</p>
+                <a href="{{ url_for('novo_paciente_triagem') }}" class="btn btn-success w-100">
+                    <i class="bi bi-person-plus"></i> Novo Paciente
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-shield-check"></i> Critérios de Triagem
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="text-center">
+                            <div class="badge bg-success fs-6 p-3 mb-2">
+                                <i class="bi bi-check-circle"></i><br>
+                                Baixo Risco
+                            </div>
+                            <p class="text-muted">Score 0-30<br>Tratamento caseiro adequado</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-center">
+                            <div class="badge bg-warning fs-6 p-3 mb-2">
+                                <i class="bi bi-exclamation-triangle"></i><br>
+                                Médio Risco
+                            </div>
+                            <p class="text-muted">Score 31-70<br>Acompanhamento farmacêutico</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-center">
+                            <div class="badge bg-danger fs-6 p-3 mb-2">
+                                <i class="bi bi-exclamation-triangle-fill"></i><br>
+                                Alto Risco
+                            </div>
+                            <p class="text-muted">Score 71-100<br>Encaminhamento médico</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-list-check"></i> Sinais de Alerta (Red Flags)
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Sinais Respiratórios:</h6>
+                        <ul>
+                            <li>Falta de ar</li>
+                            <li>Respiração difícil</li>
+                            <li>Dor no peito</li>
+                            <li>Febre alta (≥39°C)</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Sinais Neurológicos:</h6>
+                        <ul>
+                            <li>Dor de cabeça intensa</li>
+                            <li>Perda de consciência</li>
+                            <li>Convulsões</li>
+                            <li>Paralisia</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="alert alert-warning mt-3">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    <strong>Atenção:</strong> Qualquer um desses sinais pode indicar necessidade de atendimento médico imediato.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-question-circle"></i> Perguntas Frequentes
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="accordion" id="faqAccordion">
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="faq1">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse1">
+                                O sistema substitui a consulta médica?
+                            </button>
+                        </h2>
+                        <div id="collapse1" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                            <div class="accordion-body">
+                                <strong>Não.</strong> O sistema é uma ferramenta de apoio para triagem farmacêutica. 
+                                Em casos de alto risco ou sintomas graves, sempre recomendamos encaminhamento médico.
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="faq2">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse2">
+                                Como o sistema calcula o risco?
+                            </button>
+                        </h2>
+                        <div id="collapse2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                            <div class="accordion-body">
+                                O sistema analisa múltiplos fatores: intensidade dos sintomas, duração, 
+                                presença de sinais de alerta, idade do paciente e comorbidades. 
+                                Cada fator contribui para um score final de 0-100.
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="faq3">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse3">
+                                Posso personalizar as perguntas da triagem?
+                            </button>
+                        </h2>
+                        <div id="collapse3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                            <div class="accordion-body">
+                                Sim! As perguntas podem ser editadas no painel administrativo. 
+                                O sistema permite adicionar, remover ou modificar perguntas conforme necessário.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
