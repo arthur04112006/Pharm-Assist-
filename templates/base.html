@@ -1,467 +1,579 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
+    <!-- Meta tags essenciais para responsividade e codificação -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- Título dinâmico da página - será substituído pelo bloco title de cada template -->
     <title>{% block title %}Pharm-Assist - Sistema de Triagem Farmacêutica{% endblock %}</title>
     
-    <!-- Bootstrap CSS -->
+    <!-- Bootstrap CSS - Framework CSS para layout responsivo e componentes -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Bootstrap Icons -->
+    
+    <!-- Bootstrap Icons - Biblioteca de ícones SVG para interface -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
-    <!-- Google Fonts -->
+    
+    <!-- Google Fonts - Fonte Inter para melhor legibilidade -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Custom CSS -->
+    
+    <!-- CSS Customizado - Estilos específicos do sistema -->
     <style>
+        /* ===== VARIÁVEIS CSS GLOBAIS ===== */
         :root {
-            --primary-color: #6366f1;
-            --primary-dark: #4f46e5;
-            --secondary-color: #8b5cf6;
-            --success-color: #10b981;
-            --warning-color: #f59e0b;
-            --danger-color: #ef4444;
-            --info-color: #06b6d4;
-            --light-bg: #f8fafc;
-            --dark-bg: #1e293b;
-            --text-primary: #1e293b;
-            --text-secondary: #64748b;
-            --border-color: #e2e8f0;
-            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+            /* Cores primárias do sistema */
+            --primary-color: #6366f1;        /* Azul principal */
+            --primary-dark: #4f46e5;         /* Azul escuro para hover */
+            --secondary-color: #8b5cf6;      /* Roxo secundário */
+            
+            /* Cores de status e feedback */
+            --success-color: #10b981;        /* Verde para sucesso */
+            --warning-color: #f59e0b;        /* Amarelo para avisos */
+            --danger-color: #ef4444;         /* Vermelho para erros */
+            --info-color: #06b6d4;           /* Azul para informações */
+            
+            /* Cores de fundo padrão */
+            --light-bg: #f8fafc;             /* Fundo claro principal */
+            --dark-bg: #1e293b;              /* Fundo escuro (não usado atualmente) */
+            
+            /* Cores de texto */
+            --text-primary: #1e293b;         /* Texto principal escuro */
+            --text-secondary: #64748b;       /* Texto secundário cinza */
+            
+            /* Cores de borda */
+            --border-color: #e2e8f0;         /* Cor padrão das bordas */
+            
+            /* Sistema de sombras para profundidade visual */
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);                    /* Sombra pequena */
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);  /* Sombra média */
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1); /* Sombra grande */
         }
 
+        /* ===== ESTILOS GLOBAIS ===== */
         * {
+            /* Aplicar fonte Inter em todo o sistema */
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
 
+        /* Estilo do corpo da página */
         body {
+            /* Fundo gradiente sutil para toda a página */
             background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-            min-height: 100vh;
-            color: var(--text-primary);
-            margin: 0;
-            padding: 0;
+            min-height: 100vh;               /* Altura mínima de 100% da viewport */
+            color: var(--text-primary);      /* Cor do texto principal */
+            margin: 0;                       /* Remover margens padrão */
+            padding: 0;                      /* Remover padding padrão */
         }
 
-        /* Navbar Modernizado */
+        /* ===== NAVBAR (BARRA DE NAVEGAÇÃO SUPERIOR) ===== */
         .navbar {
+            /* Fundo gradiente com cores primárias */
             background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%) !important;
-            box-shadow: var(--shadow-lg);
-            backdrop-filter: blur(10px);
-            border: none;
-            padding: 1rem 0;
-            position: sticky;
-            top: 0;
-            z-index: 1000;
+            box-shadow: var(--shadow-lg);    /* Sombra para destacar a navbar */
+            backdrop-filter: blur(10px);     /* Efeito de blur para modernidade */
+            border: none;                    /* Sem bordas */
+            padding: 1rem 0;                 /* Padding vertical */
+            position: sticky;                /* Fixar no topo durante scroll */
+            top: 0;                          /* Posição no topo */
+            z-index: 1000;                  /* Z-index alto para ficar sobre outros elementos */
         }
 
+        /* Logo/nome do sistema na navbar */
         .navbar-brand {
-            font-weight: 700;
-            font-size: 1.5rem;
-            color: white !important;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            font-weight: 700;                /* Peso da fonte em negrito */
+            font-size: 1.5rem;              /* Tamanho da fonte */
+            color: white !important;        /* Cor branca para contraste */
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1); /* Sombra sutil no texto */
         }
 
+        /* Ícone do logo */
         .navbar-brand i {
-            margin-right: 0.5rem;
-            font-size: 1.8rem;
+            margin-right: 0.5rem;            /* Espaçamento à direita do ícone */
+            font-size: 1.8rem;              /* Tamanho do ícone */
         }
 
+        /* Links de navegação na navbar */
         .navbar-nav .nav-link {
-            color: rgba(255,255,255,0.9) !important;
-            font-weight: 500;
-            padding: 0.5rem 1rem;
-            margin: 0 0.25rem;
-            border-radius: 0.5rem;
-            transition: all 0.3s ease;
+            color: rgba(255,255,255,0.9) !important; /* Cor branca com transparência */
+            font-weight: 500;                /* Peso da fonte médio */
+            padding: 0.5rem 1rem;           /* Padding interno */
+            margin: 0 0.25rem;              /* Margem entre links */
+            border-radius: 0.5rem;          /* Bordas arredondadas */
+            transition: all 0.3s ease;      /* Transição suave para hover */
         }
 
+        /* Efeito hover nos links de navegação */
         .navbar-nav .nav-link:hover {
-            color: white !important;
-            background: rgba(255,255,255,0.1);
-            transform: translateY(-1px);
+            color: white !important;         /* Cor branca sólida no hover */
+            background: rgba(255,255,255,0.1); /* Fundo branco transparente */
+            transform: translateY(-1px);     /* Movimento sutil para cima */
         }
 
+        /* Ícones nos links de navegação */
         .navbar-nav .nav-link i {
-            margin-right: 0.5rem;
+            margin-right: 0.5rem;            /* Espaçamento à direita do ícone */
         }
 
-        /* Layout Principal */
+        /* ===== LAYOUT PRINCIPAL ===== */
         .main-container {
-            display: flex;
-            min-height: calc(100vh - 80px);
-            margin-top: 0;
+            display: flex;                   /* Layout flexbox horizontal */
+            min-height: calc(100vh - 80px); /* Altura mínima considerando a navbar */
+            margin-top: 0;                   /* Sem margem superior */
         }
 
-        /* Sidebar Modernizado */
+        /* ===== SIDEBAR (BARRA LATERAL) ===== */
         .sidebar {
-            background: white;
-            box-shadow: var(--shadow-md);
-            border-radius: 1rem;
-            margin: 1rem;
-            padding: 1.5rem 0;
-            width: 280px;
-            flex-shrink: 0;
-            height: fit-content;
-            position: sticky;
-            top: 100px;
+            background: white;               /* Fundo branco */
+            box-shadow: var(--shadow-md);    /* Sombra para destacar */
+            border-radius: 1rem;             /* Bordas arredondadas */
+            margin: 1rem;                    /* Margem externa */
+            padding: 1.5rem 0;              /* Padding interno */
+            width: 280px;                    /* Largura fixa */
+            flex-shrink: 0;                  /* Não permitir encolhimento */
+            height: fit-content;             /* Altura ajustada ao conteúdo */
+            position: sticky;                /* Fixar durante scroll */
+            top: 100px;                      /* Posição abaixo da navbar */
         }
 
+        /* Links de navegação na sidebar */
         .sidebar .nav-link {
-            color: var(--text-secondary);
-            padding: 0.875rem 1.5rem;
-            margin: 0.25rem 1rem;
-            border-radius: 0.75rem;
-            font-weight: 500;
-            transition: all 0.3s ease;
-            border: 2px solid transparent;
+            color: var(--text-secondary);    /* Cor do texto secundário */
+            padding: 0.875rem 1.5rem;       /* Padding interno */
+            margin: 0.25rem 1rem;           /* Margem entre links */
+            border-radius: 0.75rem;         /* Bordas arredondadas */
+            font-weight: 500;                /* Peso da fonte médio */
+            transition: all 0.3s ease;      /* Transição suave */
+            border: 2px solid transparent;  /* Borda transparente para hover */
         }
 
+        /* Efeito hover nos links da sidebar */
         .sidebar .nav-link:hover {
+            /* Fundo gradiente no hover */
             background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
-            color: white;
-            transform: translateX(5px);
-            box-shadow: var(--shadow-md);
+            color: white;                    /* Texto branco */
+            transform: translateX(5px);      /* Movimento para direita */
+            box-shadow: var(--shadow-md);    /* Sombra no hover */
         }
 
+        /* Link ativo na sidebar */
         .sidebar .nav-link.active {
+            /* Fundo gradiente para link ativo */
             background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
-            color: white;
-            box-shadow: var(--shadow-md);
+            color: white;                    /* Texto branco */
+            box-shadow: var(--shadow-md);    /* Sombra */
         }
 
+        /* Ícones nos links da sidebar */
         .sidebar .nav-link i {
-            margin-right: 0.75rem;
-            font-size: 1.1rem;
+            margin-right: 0.75rem;           /* Espaçamento à direita */
+            font-size: 1.1rem;              /* Tamanho do ícone */
         }
 
-        /* Main Content */
+        /* ===== CONTEÚDO PRINCIPAL ===== */
         .main-content {
-            flex: 1;
-            padding: 2rem;
-            background: white;
-            border-radius: 1rem;
-            margin: 1rem;
-            box-shadow: var(--shadow-sm);
-            min-height: calc(100vh - 120px);
+            flex: 1;                         /* Ocupar espaço restante */
+            padding: 2rem;                   /* Padding interno */
+            background: white;                /* Fundo branco */
+            border-radius: 1rem;             /* Bordas arredondadas */
+            margin: 1rem;                    /* Margem externa */
+            box-shadow: var(--shadow-sm);    /* Sombra sutil */
+            min-height: calc(100vh - 120px); /* Altura mínima */
         }
 
-        /* Cards Modernizados */
+        /* ===== CARDS (CARTÕES) ===== */
         .card {
-            border: none;
-            border-radius: 1rem;
-            box-shadow: var(--shadow-sm);
-            transition: all 0.3s ease;
-            overflow: hidden;
+            border: none;                    /* Sem bordas */
+            border-radius: 1rem;             /* Bordas arredondadas */
+            box-shadow: var(--shadow-sm);    /* Sombra sutil */
+            transition: all 0.3s ease;      /* Transição suave */
+            overflow: hidden;                /* Esconder conteúdo que ultrapassa */
         }
 
+        /* Efeito hover nos cards */
         .card:hover {
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-lg);
+            transform: translateY(-2px);     /* Movimento para cima */
+            box-shadow: var(--shadow-lg);    /* Sombra maior no hover */
         }
 
+        /* Cabeçalho dos cards */
         .card-header {
+            /* Fundo gradiente sutil */
             background: linear-gradient(135deg, var(--light-bg) 0%, #f1f5f9 100%);
-            border-bottom: 1px solid var(--border-color);
-            padding: 1.25rem 1.5rem;
-            font-weight: 600;
-            color: var(--text-primary);
+            border-bottom: 1px solid var(--border-color); /* Borda inferior */
+            padding: 1.25rem 1.5rem;        /* Padding interno */
+            font-weight: 600;                /* Peso da fonte semi-negrito */
+            color: var(--text-primary);      /* Cor do texto */
         }
 
+        /* Corpo dos cards */
         .card-body {
-            padding: 1.5rem;
+            padding: 1.5rem;                 /* Padding interno */
         }
 
-        /* Botões Modernizados */
+        /* ===== BOTÕES ===== */
         .btn {
-            border-radius: 0.75rem;
-            font-weight: 500;
-            padding: 0.75rem 1.5rem;
-            transition: all 0.3s ease;
-            border: none;
-            position: relative;
-            overflow: hidden;
+            border-radius: 0.75rem;          /* Bordas arredondadas */
+            font-weight: 500;                /* Peso da fonte médio */
+            padding: 0.75rem 1.5rem;        /* Padding interno */
+            transition: all 0.3s ease;      /* Transição suave */
+            border: none;                    /* Sem bordas */
+            position: relative;              /* Posição relativa para pseudo-elementos */
+            overflow: hidden;                /* Esconder overflow */
         }
 
+        /* Pseudo-elemento para efeito de brilho no hover */
         .btn::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
+            content: '';                     /* Conteúdo vazio */
+            position: absolute;              /* Posição absoluta */
+            top: 0;                          /* Topo */
+            left: -100%;                     /* Iniciar fora da área visível */
+            width: 100%;                     /* Largura total */
+            height: 100%;                    /* Altura total */
+            /* Gradiente de brilho */
             background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-            transition: left 0.5s;
+            transition: left 0.5s;           /* Transição da posição */
         }
 
+        /* Efeito de brilho no hover */
         .btn:hover::before {
-            left: 100%;
+            left: 100%;                      /* Mover para direita */
         }
 
+        /* Botão primário */
         .btn-primary {
+            /* Fundo gradiente azul */
             background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
-            box-shadow: var(--shadow-md);
+            box-shadow: var(--shadow-md);    /* Sombra */
         }
 
+        /* Hover do botão primário */
         .btn-primary:hover {
+            /* Inverter gradiente no hover */
             background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-color) 100%);
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-lg);
+            transform: translateY(-2px);     /* Movimento para cima */
+            box-shadow: var(--shadow-lg);    /* Sombra maior */
         }
 
+        /* Botão de sucesso */
         .btn-success {
+            /* Fundo gradiente verde */
             background: linear-gradient(135deg, var(--success-color) 0%, #059669 100%);
-            box-shadow: var(--shadow-md);
+            box-shadow: var(--shadow-md);    /* Sombra */
         }
 
+        /* Hover do botão de sucesso */
         .btn-success:hover {
+            /* Inverter gradiente no hover */
             background: linear-gradient(135deg, #059669 0%, var(--success-color) 100%);
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-lg);
+            transform: translateY(-2px);     /* Movimento para cima */
+            box-shadow: var(--shadow-lg);    /* Sombra maior */
         }
 
+        /* Botão de informação */
         .btn-info {
+            /* Fundo gradiente azul claro */
             background: linear-gradient(135deg, var(--info-color) 0%, #0891b2 100%);
-            box-shadow: var(--shadow-md);
+            box-shadow: var(--shadow-md);    /* Sombra */
         }
 
+        /* Hover do botão de informação */
         .btn-info:hover {
+            /* Inverter gradiente no hover */
             background: linear-gradient(135deg, #0891b2 0%, var(--info-color) 100%);
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-lg);
+            transform: translateY(-2px);     /* Movimento para cima */
+            box-shadow: var(--shadow-lg);    /* Sombra maior */
         }
 
+        /* Botão de aviso */
         .btn-warning {
+            /* Fundo gradiente amarelo */
             background: linear-gradient(135deg, var(--warning-color) 0%, #d97706 100%);
-            box-shadow: var(--shadow-md);
+            box-shadow: var(--shadow-md);    /* Sombra */
         }
 
+        /* Hover do botão de aviso */
         .btn-warning:hover {
+            /* Inverter gradiente no hover */
             background: linear-gradient(135deg, #d97706 0%, var(--warning-color) 100%);
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-lg);
+            transform: translateY(-2px);     /* Movimento para cima */
+            box-shadow: var(--shadow-lg);    /* Sombra maior */
         }
 
+        /* Botão de perigo */
         .btn-danger {
+            /* Fundo gradiente vermelho */
             background: linear-gradient(135deg, var(--danger-color) 0%, #dc2626 100%);
-            box-shadow: var(--shadow-md);
+            box-shadow: var(--shadow-md);    /* Sombra */
         }
 
+        /* Hover do botão de perigo */
         .btn-danger:hover {
+            /* Inverter gradiente no hover */
             background: linear-gradient(135deg, #dc2626 0%, var(--danger-color) 100%);
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-lg);
+            transform: translateY(-2px);     /* Movimento para cima */
+            box-shadow: var(--shadow-lg);    /* Sombra maior */
         }
 
-        /* Tabelas Modernizadas */
+        /* ===== TABELAS ===== */
         .table {
-            border-radius: 0.75rem;
-            overflow: hidden;
-            box-shadow: var(--shadow-sm);
+            border-radius: 0.75rem;          /* Bordas arredondadas */
+            overflow: hidden;                /* Esconder overflow */
+            box-shadow: var(--shadow-sm);    /* Sombra sutil */
+            background: white;                /* Fundo branco */
         }
 
+        /* Cabeçalhos das tabelas */
         .table th {
+            /* Fundo gradiente sutil */
             background: linear-gradient(135deg, var(--light-bg) 0%, #f1f5f9 100%);
-            border: none;
-            padding: 1rem 1.5rem;
-            font-weight: 600;
-            color: var(--text-primary);
-            text-transform: uppercase;
-            font-size: 0.875rem;
-            letter-spacing: 0.05em;
+            border: none;                    /* Sem bordas */
+            padding: 1rem 1.5rem;           /* Padding interno */
+            font-weight: 600;                /* Peso da fonte semi-negrito */
+            color: var(--text-primary);      /* Cor do texto */
+            text-transform: uppercase;       /* Texto em maiúsculas */
+            font-size: 0.875rem;            /* Tamanho da fonte */
+            letter-spacing: 0.05em;          /* Espaçamento entre letras */
         }
 
+        /* Células das tabelas */
         .table td {
-            padding: 1rem 1.5rem;
-            border: none;
-            border-bottom: 1px solid var(--border-color);
-            vertical-align: middle;
+            padding: 1rem 1.5rem;           /* Padding interno */
+            border: none;                    /* Sem bordas */
+            border-bottom: 1px solid var(--border-color); /* Borda inferior */
+            vertical-align: middle;          /* Alinhamento vertical centralizado */
         }
 
+        /* Efeito hover nas linhas da tabela */
         .table tbody tr:hover {
+            /* Fundo gradiente sutil no hover */
             background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-            transform: scale(1.01);
-            transition: all 0.2s ease;
+            transform: scale(1.01);          /* Escala sutil */
+            transition: all 0.2s ease;      /* Transição rápida */
         }
 
-        /* Badges Modernizados */
+        /* ===== BADGES (ETIQUETAS) ===== */
         .badge {
-            border-radius: 0.5rem;
-            font-weight: 500;
-            padding: 0.5rem 0.75rem;
-            font-size: 0.75rem;
+            border-radius: 0.5rem;           /* Bordas arredondadas */
+            font-weight: 500;                /* Peso da fonte médio */
+            padding: 0.5rem 0.75rem;        /* Padding interno */
+            font-size: 0.75rem;             /* Tamanho da fonte */
         }
 
+        /* Badge de risco alto */
         .risk-high {
+            /* Fundo gradiente vermelho */
             background: linear-gradient(135deg, var(--danger-color) 0%, #dc2626 100%);
-            color: white;
+            color: white;                    /* Texto branco */
         }
 
+        /* Badge de risco médio */
         .risk-medium {
+            /* Fundo gradiente amarelo */
             background: linear-gradient(135deg, var(--warning-color) 0%, #d97706 100%);
-            color: white;
+            color: white;                    /* Texto branco */
         }
 
+        /* Badge de risco baixo */
         .risk-low {
+            /* Fundo gradiente verde */
             background: linear-gradient(135deg, var(--success-color) 0%, #059669 100%);
-            color: white;
+            color: white;                    /* Texto branco */
         }
 
-        /* Alertas Modernizados */
+        /* ===== ALERTAS ===== */
         .alert {
-            border: none;
-            border-radius: 1rem;
-            padding: 1rem 1.5rem;
-            box-shadow: var(--shadow-sm);
+            border: none;                    /* Sem bordas */
+            border-radius: 1rem;             /* Bordas arredondadas */
+            padding: 1rem 1.5rem;           /* Padding interno */
+            box-shadow: var(--shadow-sm);    /* Sombra sutil */
         }
 
+        /* Alerta de sucesso */
         .alert-success {
+            /* Fundo gradiente verde claro */
             background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
-            color: #065f46;
+            color: #065f46;                  /* Texto verde escuro */
         }
 
+        /* Alerta de perigo */
         .alert-danger {
+            /* Fundo gradiente vermelho claro */
             background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
-            color: #991b1b;
+            color: #991b1b;                  /* Texto vermelho escuro */
         }
 
+        /* Alerta de aviso */
         .alert-warning {
+            /* Fundo gradiente amarelo claro */
             background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-            color: #92400e;
+            color: #92400e;                  /* Texto amarelo escuro */
         }
 
+        /* Alerta de informação */
         .alert-info {
+            /* Fundo gradiente azul claro */
             background: linear-gradient(135deg, #cffafe 0%, #a5f3fc 100%);
-            color: #0e7490;
+            color: #0e7490;                  /* Texto azul escuro */
         }
 
-        /* Formulários Modernizados */
+        /* ===== FORMULÁRIOS ===== */
         .form-control, .form-select {
-            border: 2px solid var(--border-color);
-            border-radius: 0.75rem;
-            padding: 0.75rem 1rem;
-            font-size: 1rem;
-            transition: all 0.3s ease;
-            background: white;
+            border: 2px solid var(--border-color); /* Borda com 2px */
+            border-radius: 0.75rem;          /* Bordas arredondadas */
+            padding: 0.75rem 1rem;          /* Padding interno */
+            font-size: 1rem;                /* Tamanho da fonte */
+            transition: all 0.3s ease;      /* Transição suave */
+            background: white;                /* Fundo branco */
         }
 
+        /* Estado de foco dos campos */
         .form-control:focus, .form-select:focus {
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 0.2rem rgba(99, 102, 241, 0.25);
-            transform: translateY(-1px);
+            border-color: var(--primary-color); /* Borda azul no foco */
+            box-shadow: 0 0 0 0.2rem rgba(99, 102, 241, 0.25); /* Sombra azul */
+            transform: translateY(-1px);     /* Movimento sutil para cima */
         }
 
+        /* Labels dos formulários */
         .form-label {
-            font-weight: 600;
-            color: var(--text-primary);
-            margin-bottom: 0.5rem;
+            font-weight: 600;                /* Peso da fonte semi-negrito */
+            color: var(--text-primary);      /* Cor do texto */
+            margin-bottom: 0.5rem;           /* Margem inferior */
         }
 
-        /* Animações */
+        /* ===== ANIMAÇÕES ===== */
         @keyframes fadeInUp {
             from {
-                opacity: 0;
-                transform: translateY(30px);
+                opacity: 0;                  /* Invisível */
+                transform: translateY(30px); /* Posição inicial abaixo */
             }
             to {
-                opacity: 1;
-                transform: translateY(0);
+                opacity: 1;                  /* Visível */
+                transform: translateY(0);    /* Posição final */
             }
         }
 
+        /* Classe para aplicar a animação */
         .fade-in-up {
-            animation: fadeInUp 0.6s ease-out;
+            animation: fadeInUp 0.6s ease-out; /* Aplicar animação */
         }
 
-        /* Responsividade */
+        /* ===== RESPONSIVIDADE ===== */
         @media (max-width: 768px) {
+            /* Em telas pequenas, mudar para layout vertical */
             .main-container {
-                flex-direction: column;
+                flex-direction: column;      /* Direção vertical */
             }
             
+            /* Sidebar ocupa toda a largura */
             .sidebar {
-                width: 100%;
-                margin: 0.5rem;
-                position: static;
+                width: 100%;                 /* Largura total */
+                margin: 0.5rem;              /* Margem menor */
+                position: static;            /* Posição estática */
             }
             
+            /* Conteúdo principal com margens menores */
             .main-content {
-                margin: 0.5rem;
-                padding: 1rem;
+                margin: 0.5rem;              /* Margem menor */
+                padding: 1rem;               /* Padding menor */
             }
             
+            /* Logo menor em telas pequenas */
             .navbar-brand {
-                font-size: 1.25rem;
+                font-size: 1.25rem;         /* Tamanho menor */
             }
         }
 
-        /* Scrollbar personalizada */
+        /* ===== SCROLLBAR PERSONALIZADA ===== */
         ::-webkit-scrollbar {
-            width: 8px;
+            width: 8px;                      /* Largura da scrollbar */
         }
 
         ::-webkit-scrollbar-track {
-            background: var(--light-bg);
+            background: var(--light-bg);     /* Fundo da trilha */
         }
 
         ::-webkit-scrollbar-thumb {
+            /* Fundo gradiente da barra de rolagem */
             background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
-            border-radius: 4px;
+            border-radius: 4px;              /* Bordas arredondadas */
         }
 
         ::-webkit-scrollbar-thumb:hover {
+            /* Gradiente mais escuro no hover */
             background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-color) 100%);
         }
     </style>
     
+    <!-- Bloco para CSS adicional específico de cada página -->
     {% block extra_css %}{% endblock %}
 </head>
 <body>
-    <!-- Navbar -->
+    <!-- ===== NAVBAR (BARRA DE NAVEGAÇÃO SUPERIOR) ===== -->
     <nav class="navbar navbar-expand-lg navbar-dark">
         <div class="container-fluid">
+            <!-- Logo/Nome do sistema -->
             <a class="navbar-brand" href="{{ url_for('index') }}">
-                <i class="bi bi-heart-pulse-fill"></i>
+                <i class="bi bi-heart-pulse-fill"></i> <!-- Ícone de coração com pulso -->
                 Pharm-Assist
             </a>
             
+            <!-- Botão hambúrguer para menu mobile -->
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
             
+            <!-- Menu de navegação colapsável -->
             <div class="collapse navbar-collapse" id="navbarNav">
+                <!-- Links de navegação principais -->
                 <ul class="navbar-nav me-auto">
+                    <!-- Link para página inicial -->
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('index') }}">
-                            <i class="bi bi-house-door"></i> Início
+                            <i class="bi bi-house-door"></i> <!-- Ícone de casa -->
+                            Início
                         </a>
                     </li>
+                    
+                    <!-- Link para gerenciamento de pacientes -->
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('pacientes') }}">
-                            <i class="bi bi-people"></i> Pacientes
+                            <i class="bi bi-people"></i> <!-- Ícone de pessoas -->
+                            Pacientes
                         </a>
                     </li>
+                    
+                    <!-- Link para gerenciamento de medicamentos -->
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('medicamentos') }}">
-                            <i class="bi bi-capsule"></i> Medicamentos
+                            <i class="bi bi-capsule"></i> <!-- Ícone de cápsula -->
+                            Medicamentos
                         </a>
                     </li>
+                    
+                    <!-- Link para sistema de triagem -->
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('triagem') }}">
-                            <i class="bi bi-clipboard-pulse"></i> Triagem
+                            <i class="bi bi-clipboard-pulse"></i> <!-- Ícone de prancheta com pulso -->
+                            Triagem
                         </a>
                     </li>
+                    
+                    <!-- Link para estatísticas e admin -->
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('admin') }}">
-                            <i class="bi bi-graph-up"></i> Estatísticas
+                            <i class="bi bi-graph-up"></i> <!-- Ícone de gráfico -->
+                            Estatísticas
                         </a>
                     </li>
                 </ul>
                 
+                <!-- Área direita da navbar -->
                 <ul class="navbar-nav">
+                    <!-- Informações do usuário logado -->
                     <li class="nav-item">
                         <span class="navbar-text text-white">
-                            <i class="bi bi-person-circle"></i> Farmacêutico
+                            <i class="bi bi-person-circle"></i> <!-- Ícone de usuário -->
+                            Farmacêutico
                         </span>
                     </li>
                 </ul>
@@ -469,66 +581,87 @@
         </div>
     </nav>
 
-    <!-- Main Container -->
+    <!-- ===== CONTAINER PRINCIPAL ===== -->
     <div class="main-container">
-        <!-- Sidebar -->
+        <!-- ===== SIDEBAR (BARRA LATERAL) ===== -->
         <nav class="sidebar">
             <div class="position-sticky pt-3">
+                <!-- Menu de navegação lateral -->
                 <ul class="nav flex-column">
+                    <!-- Link para dashboard -->
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('index') }}">
-                            <i class="bi bi-speedometer2"></i> Dashboard
+                            <i class="bi bi-speedometer2"></i> <!-- Ícone de velocímetro -->
+                            Dashboard
                         </a>
                     </li>
+                    
+                    <!-- Link para gerenciamento de pacientes -->
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('pacientes') }}">
-                            <i class="bi bi-people-fill"></i> Gerenciar Pacientes
+                            <i class="bi bi-people-fill"></i> <!-- Ícone de pessoas preenchido -->
+                            Gerenciar Pacientes
                         </a>
                     </li>
+                    
+                    <!-- Link para gerenciamento de medicamentos -->
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('medicamentos') }}">
-                            <i class="bi bi-capsule"></i> Gerenciar Medicamentos
+                            <i class="bi bi-capsule"></i> <!-- Ícone de cápsula -->
+                            Gerenciar Medicamentos
                         </a>
                     </li>
+                    
+                    <!-- Link para nova triagem -->
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('triagem') }}">
-                            <i class="bi bi-clipboard-pulse"></i> Nova Triagem
+                            <i class="bi bi-clipboard-pulse"></i> <!-- Ícone de prancheta com pulso -->
+                            Nova Triagem
                         </a>
                     </li>
+                    
+                    <!-- Link para estatísticas -->
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('admin') }}">
-                            <i class="bi bi-bar-chart"></i> Estatísticas
+                            <i class="bi bi-bar-chart"></i> <!-- Ícone de gráfico de barras -->
+                            Estatísticas
                         </a>
                     </li>
                 </ul>
             </div>
         </nav>
 
-        <!-- Main Content -->
+        <!-- ===== CONTEÚDO PRINCIPAL ===== -->
         <main class="main-content fade-in-up">
-            <!-- Flash Messages -->
+            <!-- ===== MENSAGENS FLASH ===== -->
             {% with messages = get_flashed_messages(with_categories=true) %}
                 {% if messages %}
                     {% for category, message in messages %}
+                        <!-- Alerta dinâmico baseado na categoria da mensagem -->
                         <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                            <!-- Ícone baseado na categoria -->
                             <i class="bi bi-{{ 'exclamation-triangle' if category == 'error' else 'info-circle' }} me-2"></i>
-                            {{ message }}
+                            {{ message }} <!-- Conteúdo da mensagem -->
+                            <!-- Botão para fechar o alerta -->
                             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                         </div>
                     {% endfor %}
                 {% endif %}
             {% endwith %}
 
-            <!-- Page Content -->
+            <!-- ===== CONTEÚDO ESPECÍFICO DE CADA PÁGINA ===== -->
             {% block content %}{% endblock %}
         </main>
     </div>
 
-    <!-- Bootstrap JS -->
+    <!-- ===== SCRIPTS EXTERNOS ===== -->
+    <!-- Bootstrap JavaScript - Funcionalidades interativas -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- jQuery -->
+    
+    <!-- jQuery - Biblioteca JavaScript para manipulação do DOM -->
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     
+    <!-- Bloco para JavaScript adicional específico de cada página -->
     {% block extra_js %}{% endblock %}
 </body>
 </html>

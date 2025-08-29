@@ -3,530 +3,619 @@
 {% block title %}Dashboard - Pharm-Assist{% endblock %}
 
 {% block extra_css %}
+<!-- Chart.js - Biblioteca para criação de gráficos interativos -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<!-- CSS específico do dashboard -->
 <style>
+    /* ===== SEÇÃO HERO (CABEÇALHO PRINCIPAL) ===== */
     .hero-section {
+        /* Fundo gradiente azul para destaque visual */
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        padding: 3rem 2rem;
-        border-radius: 1.5rem;
-        margin-bottom: 2rem;
-        text-align: center;
-        position: relative;
-        overflow: hidden;
+        color: white;                        /* Texto branco para contraste */
+        padding: 3rem 2rem;                  /* Padding interno generoso */
+        border-radius: 1.5rem;               /* Bordas arredondadas */
+        margin-bottom: 2rem;                 /* Margem inferior */
+        text-align: center;                  /* Texto centralizado */
+        position: relative;                  /* Posição relativa para pseudo-elementos */
+        overflow: hidden;                    /* Esconder overflow */
     }
 
+    /* Padrão de grãos sutil no fundo do hero */
     .hero-section::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
+        content: '';                         /* Conteúdo vazio */
+        position: absolute;                  /* Posição absoluta */
+        top: 0;                              /* Topo */
+        left: 0;                             /* Esquerda */
+        right: 0;                            /* Direita */
+        bottom: 0;                           /* Baixo */
+        /* SVG inline para padrão de grãos */
         background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="white" opacity="0.1"/><circle cx="75" cy="75" r="1" fill="white" opacity="0.1"/><circle cx="50" cy="10" r="0.5" fill="white" opacity="0.1"/><circle cx="10" cy="60" r="0.5" fill="white" opacity="0.1"/><circle cx="90" cy="40" r="0.5" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
-        opacity: 0.3;
+        opacity: 0.3;                        /* Transparência sutil */
     }
 
+    /* Título principal do hero */
     .hero-title {
-        font-size: 2.5rem;
-        font-weight: 700;
-        margin-bottom: 1rem;
-        position: relative;
-        z-index: 1;
+        font-size: 2.5rem;                  /* Tamanho da fonte grande */
+        font-weight: 700;                    /* Peso da fonte em negrito */
+        margin-bottom: 1rem;                 /* Margem inferior */
+        position: relative;                  /* Posição relativa */
+        z-index: 1;                          /* Z-index para ficar sobre o padrão */
     }
 
+    /* Subtítulo do hero */
     .hero-subtitle {
-        font-size: 1.2rem;
-        opacity: 0.9;
-        margin-bottom: 2rem;
-        position: relative;
-        z-index: 1;
+        font-size: 1.2rem;                  /* Tamanho da fonte médio */
+        opacity: 0.9;                        /* Transparência sutil */
+        margin-bottom: 2rem;                 /* Margem inferior */
+        position: relative;                  /* Posição relativa */
+        z-index: 1;                          /* Z-index para ficar sobre o padrão */
     }
 
+    /* ===== CARDS DE ESTATÍSTICAS ===== */
     .stat-card {
-        background: white;
-        border-radius: 1.5rem;
-        padding: 2rem;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
-        transition: all 0.3s ease;
-        border: none;
-        position: relative;
-        overflow: hidden;
+        background: white;                   /* Fundo branco */
+        border-radius: 1.5rem;               /* Bordas arredondadas */
+        padding: 2rem;                       /* Padding interno */
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1); /* Sombra sutil */
+        transition: all 0.3s ease;          /* Transição suave */
+        border: none;                        /* Sem bordas */
+        position: relative;                  /* Posição relativa para pseudo-elementos */
+        overflow: hidden;                    /* Esconder overflow */
     }
 
+    /* Linha colorida no topo dos cards */
     .stat-card::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 4px;
+        content: '';                         /* Conteúdo vazio */
+        position: absolute;                  /* Posição absoluta */
+        top: 0;                              /* Topo */
+        left: 0;                             /* Esquerda */
+        width: 100%;                         /* Largura total */
+        height: 4px;                         /* Altura da linha */
+        /* Gradiente azul padrão */
         background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
     }
 
+    /* Efeito hover nos cards de estatísticas */
     .stat-card:hover {
-        transform: translateY(-8px);
-        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        transform: translateY(-8px);         /* Movimento para cima */
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); /* Sombra maior */
     }
 
+    /* Linha azul para card de pacientes */
     .stat-card.patients::before {
-        background: linear-gradient(90deg, #3b82f6, #1d4ed8);
+        background: linear-gradient(90deg, #3b82f6, #1d4ed8); /* Azul específico */
     }
 
+    /* Linha verde para card de consultas */
     .stat-card.consultations::before {
-        background: linear-gradient(90deg, #10b981, #059669);
+        background: linear-gradient(90deg, #10b981, #059669); /* Verde específico */
     }
 
+    /* Linha azul claro para card de medicamentos */
     .stat-card.medicines::before {
-        background: linear-gradient(90deg, #06b6d4, #0891b2);
+        background: linear-gradient(90deg, #06b6d4, #0891b2); /* Azul claro específico */
     }
 
+    /* Linha amarela para card de encaminhamentos */
     .stat-card.referrals::before {
-        background: linear-gradient(90deg, #f59e0b, #d97706);
+        background: linear-gradient(90deg, #f59e0b, #d97706); /* Amarelo específico */
     }
 
+    /* ===== ÍCONES DAS ESTATÍSTICAS ===== */
     .stat-icon {
-        width: 60px;
-        height: 60px;
-        border-radius: 1rem;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin-bottom: 1rem;
-        font-size: 1.5rem;
-        color: white;
+        width: 60px;                         /* Largura fixa */
+        height: 60px;                        /* Altura fixa */
+        border-radius: 1rem;                 /* Bordas arredondadas */
+        display: flex;                       /* Layout flexbox */
+        align-items: center;                 /* Alinhamento vertical centralizado */
+        justify-content: center;             /* Alinhamento horizontal centralizado */
+        margin-bottom: 1rem;                 /* Margem inferior */
+        font-size: 1.5rem;                  /* Tamanho do ícone */
+        color: white;                        /* Cor branca */
     }
 
+    /* Ícone azul para pacientes */
     .stat-icon.patients {
-        background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+        background: linear-gradient(135deg, #3b82f6, #1d4ed8); /* Gradiente azul */
     }
 
+    /* Ícone verde para consultas */
     .stat-icon.consultations {
-        background: linear-gradient(135deg, #10b981, #059669);
+        background: linear-gradient(135deg, #10b981, #059669); /* Gradiente verde */
     }
 
+    /* Ícone azul claro para medicamentos */
     .stat-icon.medicines {
-        background: linear-gradient(135deg, #06b6d4, #0891b2);
+        background: linear-gradient(135deg, #06b6d4, #0891b2); /* Gradiente azul claro */
     }
 
+    /* Ícone amarelo para encaminhamentos */
     .stat-icon.referrals {
-        background: linear-gradient(135deg, #f59e0b, #d97706);
+        background: linear-gradient(135deg, #f59e0b, #d97706); /* Gradiente amarelo */
     }
 
+    /* ===== VALORES DAS ESTATÍSTICAS ===== */
     .stat-value {
-        font-size: 2.5rem;
-        font-weight: 700;
-        color: var(--text-primary);
-        margin-bottom: 0.5rem;
-        line-height: 1;
+        font-size: 2.5rem;                  /* Tamanho da fonte grande */
+        font-weight: 700;                    /* Peso da fonte em negrito */
+        color: var(--text-primary);          /* Cor do texto principal */
+        margin-bottom: 0.5rem;               /* Margem inferior */
+        line-height: 1;                      /* Altura da linha */
     }
 
+    /* ===== LABELS DAS ESTATÍSTICAS ===== */
     .stat-label {
-        font-size: 0.875rem;
-        color: var(--text-secondary);
-        font-weight: 500;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
+        font-size: 0.875rem;                /* Tamanho da fonte pequeno */
+        color: var(--text-secondary);        /* Cor do texto secundário */
+        font-weight: 500;                    /* Peso da fonte médio */
+        text-transform: uppercase;           /* Texto em maiúsculas */
+        letter-spacing: 0.05em;             /* Espaçamento entre letras */
     }
 
+    /* ===== SEÇÃO DE AÇÕES RÁPIDAS ===== */
     .quick-actions {
-        background: white;
-        border-radius: 1.5rem;
-        padding: 2rem;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
-        margin-bottom: 2rem;
+        background: white;                   /* Fundo branco */
+        border-radius: 1.5rem;               /* Bordas arredondadas */
+        padding: 2rem;                       /* Padding interno */
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1); /* Sombra sutil */
+        margin-bottom: 2rem;                 /* Margem inferior */
     }
 
+    /* ===== BOTÕES DE AÇÃO RÁPIDA ===== */
     .action-btn {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        padding: 2rem 1rem;
-        border-radius: 1rem;
-        text-decoration: none;
-        color: white;
-        font-weight: 600;
-        transition: all 0.3s ease;
-        position: relative;
-        overflow: hidden;
-        min-height: 120px;
+        display: flex;                       /* Layout flexbox */
+        flex-direction: column;              /* Direção vertical */
+        align-items: center;                 /* Alinhamento horizontal centralizado */
+        justify-content: center;             /* Alinhamento vertical centralizado */
+        padding: 2rem 1rem;                 /* Padding interno */
+        border-radius: 1rem;                 /* Bordas arredondadas */
+        text-decoration: none;               /* Sem decoração de texto */
+        color: white;                        /* Texto branco */
+        font-weight: 600;                    /* Peso da fonte semi-negrito */
+        transition: all 0.3s ease;          /* Transição suave */
+        position: relative;                  /* Posição relativa para pseudo-elementos */
+        overflow: hidden;                    /* Esconder overflow */
+        min-height: 120px;                  /* Altura mínima */
     }
 
+    /* Efeito de brilho nos botões de ação */
     .action-btn::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: -100%;
-        width: 100%;
-        height: 100%;
+        content: '';                         /* Conteúdo vazio */
+        position: absolute;                  /* Posição absoluta */
+        top: 0;                              /* Topo */
+        left: -100%;                         /* Iniciar fora da área visível */
+        width: 100%;                         /* Largura total */
+        height: 100%;                        /* Altura total */
+        /* Gradiente de brilho */
         background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-        transition: left 0.5s;
+        transition: left 0.5s;               /* Transição da posição */
     }
 
+    /* Efeito de brilho no hover */
     .action-btn:hover::before {
-        left: 100%;
+        left: 100%;                          /* Mover para direita */
     }
 
+    /* Efeito hover nos botões de ação */
     .action-btn:hover {
-        transform: translateY(-5px);
-        text-decoration: none;
-        color: white;
+        transform: translateY(-5px);         /* Movimento para cima */
+        text-decoration: none;               /* Sem decoração */
+        color: white;                        /* Manter texto branco */
     }
 
+    /* Ícones nos botões de ação */
     .action-btn i {
-        font-size: 2rem;
-        margin-bottom: 0.5rem;
+        font-size: 2rem;                    /* Tamanho do ícone */
+        margin-bottom: 0.5rem;              /* Margem inferior */
     }
 
+    /* Botão azul para triagem */
     .action-btn.triagem {
-        background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+        background: linear-gradient(135deg, var(--primary-color), var(--primary-dark)); /* Gradiente azul */
     }
 
+    /* Botão verde para novo paciente */
     .action-btn.paciente {
-        background: linear-gradient(135deg, var(--success-color), #059669);
+        background: linear-gradient(135deg, var(--success-color), #059669); /* Gradiente verde */
     }
 
+    /* Botão azul claro para novo medicamento */
     .action-btn.medicamento {
-        background: linear-gradient(135deg, var(--info-color), #0891b2);
+        background: linear-gradient(135deg, var(--info-color), #0891b2); /* Gradiente azul claro */
     }
 
+    /* Botão roxo para buscar */
     .action-btn.buscar {
-        background: linear-gradient(135deg, var(--secondary-color), #7c3aed);
+        background: linear-gradient(135deg, var(--secondary-color), #7c3aed); /* Gradiente roxo */
     }
 
+    /* ===== CARDS DE MÉTRICAS ===== */
     .metric-card {
+        /* Fundo gradiente azul para destaque */
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        border-radius: 1.5rem;
-        padding: 2rem;
-        margin-bottom: 2rem;
-        position: relative;
-        overflow: hidden;
+        color: white;                        /* Texto branco */
+        border-radius: 1.5rem;               /* Bordas arredondadas */
+        padding: 2rem;                       /* Padding interno */
+        margin-bottom: 2rem;                 /* Margem inferior */
+        position: relative;                  /* Posição relativa para pseudo-elementos */
+        overflow: hidden;                    /* Esconder overflow */
     }
 
+    /* Padrão de grãos sutil no fundo */
     .metric-card::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
+        content: '';                         /* Conteúdo vazio */
+        position: absolute;                  /* Posição absoluta */
+        top: 0;                              /* Topo */
+        left: 0;                             /* Esquerda */
+        right: 0;                            /* Direita */
+        bottom: 0;                           /* Baixo */
+        /* SVG inline para padrão de grãos */
         background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain2" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="white" opacity="0.1"/><circle cx="75" cy="75" r="1" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain2)"/></svg>');
-        opacity: 0.2;
+        opacity: 0.2;                        /* Transparência sutil */
     }
 
+    /* Valor da métrica */
     .metric-value {
-        font-size: 3rem;
-        font-weight: 700;
-        margin-bottom: 0.5rem;
-        position: relative;
-        z-index: 1;
+        font-size: 3rem;                    /* Tamanho da fonte muito grande */
+        font-weight: 700;                    /* Peso da fonte em negrito */
+        margin-bottom: 0.5rem;               /* Margem inferior */
+        position: relative;                  /* Posição relativa */
+        z-index: 1;                          /* Z-index para ficar sobre o padrão */
     }
 
+    /* Label da métrica */
     .metric-label {
-        font-size: 1.1rem;
-        opacity: 0.9;
-        position: relative;
-        z-index: 1;
+        font-size: 1.1rem;                  /* Tamanho da fonte médio */
+        opacity: 0.9;                        /* Transparência sutil */
+        position: relative;                  /* Posição relativa */
+        z-index: 1;                          /* Z-index para ficar sobre o padrão */
     }
 
+    /* ===== CONTAINERS DOS GRÁFICOS ===== */
     .chart-container {
-        position: relative;
-        height: 350px;
-        margin: 1.5rem 0;
+        position: relative;                  /* Posição relativa */
+        height: 350px;                       /* Altura fixa */
+        margin: 1.5rem 0;                    /* Margens vertical e horizontal */
     }
 
+    /* ===== TABELA DE CONSULTAS RECENTES ===== */
     .recent-consultations {
-        background: white;
-        border-radius: 1.5rem;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
-        overflow: hidden;
+        background: white;                   /* Fundo branco */
+        border-radius: 1.5rem;               /* Bordas arredondadas */
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1); /* Sombra sutil */
+        overflow: hidden;                    /* Esconder overflow */
     }
 
+    /* Linhas da tabela de consultas */
     .consultation-row {
-        transition: all 0.2s ease;
+        transition: all 0.2s ease;          /* Transição rápida */
     }
 
+    /* Efeito hover nas linhas da tabela */
     .consultation-row:hover {
-        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-        transform: scale(1.01);
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); /* Fundo gradiente sutil */
+        transform: scale(1.01);              /* Escala sutil */
     }
 
+    /* ===== ESTADO VAZIO ===== */
     .empty-state {
-        text-align: center;
-        padding: 4rem 2rem;
-        color: var(--text-secondary);
+        text-align: center;                  /* Texto centralizado */
+        padding: 4rem 2rem;                  /* Padding interno generoso */
+        color: var(--text-secondary);        /* Cor do texto secundário */
     }
 
+    /* Ícone do estado vazio */
     .empty-state i {
-        font-size: 4rem;
-        margin-bottom: 1rem;
-        opacity: 0.5;
+        font-size: 4rem;                    /* Tamanho do ícone grande */
+        margin-bottom: 1rem;                 /* Margem inferior */
+        opacity: 0.5;                        /* Transparência */
     }
 
+    /* ===== INFORMAÇÕES DO SISTEMA ===== */
     .system-info {
-        background: white;
-        border-radius: 1.5rem;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+        background: white;                   /* Fundo branco */
+        border-radius: 1.5rem;               /* Bordas arredondadas */
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1); /* Sombra sutil */
     }
 
+    /* Lista de funcionalidades */
     .feature-list {
-        list-style: none;
-        padding: 0;
+        list-style: none;                    /* Sem marcadores */
+        padding: 0;                          /* Sem padding */
     }
 
+    /* Itens da lista de funcionalidades */
     .feature-list li {
-        padding: 0.5rem 0;
-        display: flex;
-        align-items: center;
+        padding: 0.5rem 0;                   /* Padding vertical */
+        display: flex;                       /* Layout flexbox */
+        align-items: center;                 /* Alinhamento vertical centralizado */
     }
 
+    /* Ícones da lista de funcionalidades */
     .feature-list li i {
-        color: var(--success-color);
-        margin-right: 0.75rem;
-        font-size: 1.1rem;
+        color: var(--success-color);         /* Cor verde */
+        margin-right: 0.75rem;               /* Margem à direita */
+        font-size: 1.1rem;                  /* Tamanho do ícone */
     }
 
+    /* Seção de como usar */
     .how-to-use ol {
-        padding-left: 1.5rem;
+        padding-left: 1.5rem;                /* Padding à esquerda para numeração */
     }
 
+    /* Itens da lista de como usar */
     .how-to-use li {
-        padding: 0.5rem 0;
-        color: var(--text-secondary);
+        padding: 0.5rem 0;                   /* Padding vertical */
+        color: var(--text-secondary);        /* Cor do texto secundário */
     }
 
+    /* ===== RESPONSIVIDADE ===== */
     @media (max-width: 768px) {
+        /* Título menor em telas pequenas */
         .hero-title {
-            font-size: 2rem;
+            font-size: 2rem;                 /* Tamanho menor */
         }
         
+        /* Valores das estatísticas menores em telas pequenas */
         .stat-value {
-            font-size: 2rem;
+            font-size: 2rem;                 /* Tamanho menor */
         }
         
+        /* Botões de ação menores em telas pequenas */
         .action-btn {
-            min-height: 100px;
-            padding: 1.5rem 1rem;
+            min-height: 100px;               /* Altura menor */
+            padding: 1.5rem 1rem;            /* Padding menor */
         }
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<!-- Hero Section -->
+<!-- ===== SEÇÃO HERO (CABEÇALHO PRINCIPAL) ===== -->
 <div class="hero-section">
     <h1 class="hero-title">
-        <i class="bi bi-heart-pulse-fill me-3"></i>
+        <i class="bi bi-heart-pulse-fill me-3"></i> <!-- Ícone de coração com pulso -->
         Bem-vindo ao Pharm-Assist
     </h1>
     <p class="hero-subtitle">
         Sistema inteligente de triagem farmacêutica para atendimento personalizado
     </p>
+    <!-- Botão de call-to-action principal -->
     <a href="{{ url_for('triagem') }}" class="btn btn-light btn-lg">
-        <i class="bi bi-plus-circle me-2"></i>
+        <i class="bi bi-plus-circle me-2"></i> <!-- Ícone de mais -->
         Iniciar Nova Triagem
     </a>
 </div>
 
-<!-- Cards de Estatísticas -->
+<!-- ===== CARDS DE ESTATÍSTICAS ===== -->
 <div class="row mb-4">
+    <!-- Card de Total de Pacientes -->
     <div class="col-xl-3 col-md-6 mb-4">
         <div class="stat-card patients">
             <div class="stat-icon patients">
-                <i class="bi bi-people-fill"></i>
+                <i class="bi bi-people-fill"></i> <!-- Ícone de pessoas -->
             </div>
-            <div class="stat-value">{{ total_pacientes|default(0) }}</div>
+            <div class="stat-value">{{ total_pacientes|default(0) }}</div> <!-- Valor dinâmico -->
             <div class="stat-label">Total de Pacientes</div>
         </div>
     </div>
 
+    <!-- Card de Consultas Hoje -->
     <div class="col-xl-3 col-md-6 mb-4">
         <div class="stat-card consultations">
             <div class="stat-icon consultations">
-                <i class="bi bi-clipboard-pulse"></i>
+                <i class="bi bi-clipboard-pulse"></i> <!-- Ícone de prancheta com pulso -->
             </div>
-            <div class="stat-value">{{ consultas_hoje|default(0) }}</div>
+            <div class="stat-value">{{ consultas_hoje|default(0) }}</div> <!-- Valor dinâmico -->
             <div class="stat-label">Consultas Hoje</div>
         </div>
     </div>
 
+    <!-- Card de Medicamentos Ativos -->
     <div class="col-xl-3 col-md-6 mb-4">
         <div class="stat-card medicines">
             <div class="stat-icon medicines">
-                <i class="bi bi-capsule"></i>
+                <i class="bi bi-capsule"></i> <!-- Ícone de cápsula -->
             </div>
-            <div class="stat-value">{{ total_medicamentos|default(0) }}</div>
+            <div class="stat-value">{{ total_medicamentos|default(0) }}</div> <!-- Valor dinâmico -->
             <div class="stat-label">Medicamentos Ativos</div>
         </div>
     </div>
 
+    <!-- Card de Encaminhamentos -->
     <div class="col-xl-3 col-md-6 mb-4">
         <div class="stat-card referrals">
             <div class="stat-icon referrals">
-                <i class="bi bi-exclamation-triangle"></i>
+                <i class="bi bi-exclamation-triangle"></i> <!-- Ícone de triângulo de aviso -->
             </div>
-            <div class="stat-value">{{ encaminhamentos|default(0) }}</div>
+            <div class="stat-value">{{ encaminhamentos|default(0) }}</div> <!-- Valor dinâmico -->
             <div class="stat-label">Encaminhamentos</div>
         </div>
     </div>
 </div>
 
-<!-- Ações Rápidas -->
+<!-- ===== SEÇÃO DE AÇÕES RÁPIDAS ===== -->
 <div class="quick-actions">
     <h4 class="mb-4">
-        <i class="bi bi-lightning-charge text-warning me-2"></i>
+        <i class="bi bi-lightning-charge text-warning me-2"></i> <!-- Ícone de raio -->
         Ações Rápidas
     </h4>
     <div class="row">
+        <!-- Botão de Nova Triagem -->
         <div class="col-md-3 mb-3">
             <a href="{{ url_for('triagem') }}" class="action-btn triagem">
-                <i class="bi bi-clipboard-pulse"></i>
+                <i class="bi bi-clipboard-pulse"></i> <!-- Ícone de prancheta com pulso -->
                 Nova Triagem
             </a>
         </div>
+        
+        <!-- Botão de Novo Paciente -->
         <div class="col-md-3 mb-3">
             <a href="{{ url_for('novo_paciente') }}" class="action-btn paciente">
-                <i class="bi bi-person-plus"></i>
+                <i class="bi bi-person-plus"></i> <!-- Ícone de pessoa com mais -->
                 Novo Paciente
             </a>
         </div>
+        
+        <!-- Botão de Novo Medicamento -->
         <div class="col-md-3 mb-3">
             <a href="{{ url_for('novo_medicamento') }}" class="action-btn medicamento">
-                <i class="bi bi-capsule"></i>
+                <i class="bi bi-capsule"></i> <!-- Ícone de cápsula -->
                 Novo Medicamento
             </a>
         </div>
+        
+        <!-- Botão de Buscar Paciente -->
         <div class="col-md-3 mb-3">
             <a href="{{ url_for('pacientes') }}" class="action-btn buscar">
-                <i class="bi bi-search"></i>
+                <i class="bi bi-search"></i> <!-- Ícone de busca -->
                 Buscar Paciente
             </a>
         </div>
     </div>
 </div>
 
-<!-- Métricas de Performance -->
+<!-- ===== MÉTRICAS DE PERFORMANCE ===== -->
 <div class="row mb-4">
+    <!-- Taxa de Encaminhamentos -->
     <div class="col-md-6">
         <div class="metric-card">
-            <div class="metric-value">{{ "%.1f"|format(taxa_encaminhamento) }}%</div>
+            <div class="metric-value">{{ "%.1f"|format(taxa_encaminhamento) }}%</div> <!-- Valor formatado -->
             <div class="metric-label">Taxa de Encaminhamentos</div>
-            <small>Pacientes encaminhados para médico</small>
+            <small>Pacientes encaminhados para médico</small> <!-- Descrição adicional -->
         </div>
     </div>
     
+    <!-- Consultas dos Últimos 30 Dias -->
     <div class="col-md-6">
         <div class="metric-card">
-            <div class="metric-value">{{ consultas_30_dias }}</div>
+            <div class="metric-value">{{ consultas_30_dias }}</div> <!-- Valor dinâmico -->
             <div class="metric-label">Consultas (Últimos 30 dias)</div>
-            <small>Atividade recente do sistema</small>
+            <small>Atividade recente do sistema</small> <!-- Descrição adicional -->
         </div>
     </div>
 </div>
 
-<!-- Gráficos -->
+<!-- ===== GRÁFICOS ===== -->
 <div class="row mb-4">
-    <!-- Consultas por Dia -->
+    <!-- Gráfico de Consultas por Dia -->
     <div class="col-lg-6 mb-4">
         <div class="card">
             <div class="card-header">
                 <h5 class="card-title mb-0">
-                    <i class="bi bi-calendar-week text-primary me-2"></i>
+                    <i class="bi bi-calendar-week text-primary me-2"></i> <!-- Ícone de calendário -->
                     Consultas por Dia (Últimos 7 dias)
                 </h5>
             </div>
             <div class="card-body">
+                <!-- Container do gráfico de linha -->
                 <div class="chart-container">
-                    <canvas id="consultasChart"></canvas>
+                    <canvas id="consultasChart"></canvas> <!-- Canvas para o gráfico -->
                 </div>
             </div>
         </div>
     </div>
     
-    <!-- Pacientes por Faixa Etária -->
+    <!-- Gráfico de Pacientes por Faixa Etária -->
     <div class="col-lg-6 mb-4">
         <div class="card">
             <div class="card-header">
                 <h5 class="card-title mb-0">
-                    <i class="bi bi-people-fill text-success me-2"></i>
+                    <i class="bi bi-people-fill text-success me-2"></i> <!-- Ícone de pessoas -->
                     Pacientes por Faixa Etária
                 </h5>
             </div>
             <div class="card-body">
+                <!-- Container do gráfico de rosca -->
                 <div class="chart-container">
-                    <canvas id="faixaEtariaChart"></canvas>
+                    <canvas id="faixaEtariaChart"></canvas> <!-- Canvas para o gráfico -->
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Últimas Consultas -->
+<!-- ===== TABELA DE CONSULTAS RECENTES ===== -->
 <div class="row">
     <div class="col-12">
         <div class="recent-consultations">
             <div class="card-header">
                 <h5 class="card-title mb-0">
-                    <i class="bi bi-clock-history text-info me-2"></i>
+                    <i class="bi bi-clock-history text-info me-2"></i> <!-- Ícone de relógio -->
                     Últimas Consultas
                 </h5>
             </div>
             <div class="card-body">
+                <!-- Verificar se há consultas para exibir -->
                 {% if consultas_recentes %}
                 <div class="table-responsive">
                     <table class="table table-hover mb-0">
                         <thead>
                             <tr>
-                                <th>Data</th>
-                                <th>Paciente</th>
-                                <th>Idade</th>
-                                <th>Status</th>
-                                <th>Ações</th>
+                                <th>Data</th>                    <!-- Cabeçalho da coluna de data -->
+                                <th>Paciente</th>                <!-- Cabeçalho da coluna de paciente -->
+                                <th>Idade</th>                   <!-- Cabeçalho da coluna de idade -->
+                                <th>Status</th>                  <!-- Cabeçalho da coluna de status -->
+                                <th>Ações</th>                   <!-- Cabeçalho da coluna de ações -->
                             </tr>
                         </thead>
                         <tbody>
+                            <!-- Loop através das consultas recentes -->
                             {% for consulta in consultas_recentes %}
                             <tr class="consultation-row">
+                                <!-- Coluna de Data -->
                                 <td>
-                                    <i class="bi bi-calendar3 text-muted me-2"></i>
-                                    {{ consulta.data.strftime('%d/%m/%Y %H:%M') if consulta.data else 'N/A' }}
+                                    <i class="bi bi-calendar3 text-muted me-2"></i> <!-- Ícone de calendário -->
+                                    {{ consulta.data.strftime('%d/%m/%Y %H:%M') if consulta.data else 'N/A' }} <!-- Data formatada -->
                                 </td>
+                                
+                                <!-- Coluna de Paciente -->
                                 <td>
+                                    <!-- Link para visualizar o paciente -->
                                     <a href="{{ url_for('visualizar_paciente', id=consulta.paciente.id) }}" 
                                        class="text-decoration-none fw-medium">
-                                        <i class="bi bi-person text-primary me-2"></i>
-                                        {{ consulta.paciente.nome }}
+                                        <i class="bi bi-person text-primary me-2"></i> <!-- Ícone de pessoa -->
+                                        {{ consulta.paciente.nome }} <!-- Nome do paciente -->
                                     </a>
                                 </td>
+                                
+                                <!-- Coluna de Idade -->
                                 <td>
                                     <span class="badge bg-light text-dark">
-                                        {{ consulta.paciente.idade }} anos
+                                        {{ consulta.paciente.idade }} anos <!-- Idade do paciente -->
                                     </span>
                                 </td>
+                                
+                                <!-- Coluna de Status -->
                                 <td>
                                     {% if consulta.encaminhamento %}
+                                        <!-- Badge vermelho para encaminhamento -->
                                         <span class="badge bg-danger">
-                                            <i class="bi bi-exclamation-triangle me-1"></i>
+                                            <i class="bi bi-exclamation-triangle me-1"></i> <!-- Ícone de aviso -->
                                             Encaminhado
                                         </span>
                                     {% else %}
+                                        <!-- Badge verde para atendido -->
                                         <span class="badge bg-success">
-                                            <i class="bi bi-check-circle me-1"></i>
+                                            <i class="bi bi-check-circle me-1"></i> <!-- Ícone de check -->
                                             Atendido
                                         </span>
                                     {% endif %}
                                 </td>
+                                
+                                <!-- Coluna de Ações -->
                                 <td>
                                     <div class="btn-group" role="group">
+                                        <!-- Botão para visualizar resultado da triagem -->
                                         <a href="{{ url_for('resultado_triagem', consulta_id=consulta.id) }}" 
                                            class="btn btn-sm btn-outline-primary">
-                                            <i class="bi bi-eye"></i>
+                                            <i class="bi bi-eye"></i> <!-- Ícone de olho -->
                                         </a>
+                                        <!-- Botão para gerar relatório -->
                                         <a href="{{ url_for('gerar_relatorio', consulta_id=consulta.id) }}" 
                                            class="btn btn-sm btn-outline-secondary">
-                                            <i class="bi bi-download"></i>
+                                            <i class="bi bi-download"></i> <!-- Ícone de download -->
                                         </a>
                                     </div>
                                 </td>
@@ -536,12 +625,14 @@
                     </table>
                 </div>
                 {% else %}
+                <!-- Estado vazio quando não há consultas -->
                 <div class="empty-state">
-                    <i class="bi bi-inbox"></i>
+                    <i class="bi bi-inbox"></i> <!-- Ícone de caixa de entrada -->
                     <h5 class="text-muted">Nenhuma consulta realizada ainda</h5>
                     <p class="text-muted">Comece criando sua primeira triagem farmacêutica</p>
+                    <!-- Botão para iniciar primeira triagem -->
                     <a href="{{ url_for('triagem') }}" class="btn btn-primary">
-                        <i class="bi bi-plus-circle me-2"></i>
+                        <i class="bi bi-plus-circle me-2"></i> <!-- Ícone de mais -->
                         Iniciar Primeira Triagem
                     </a>
                 </div>
@@ -551,18 +642,19 @@
     </div>
 </div>
 
-<!-- Informações do Sistema -->
+<!-- ===== INFORMAÇÕES DO SISTEMA ===== -->
 <div class="row mt-4">
     <div class="col-12">
         <div class="system-info">
             <div class="card-header">
                 <h5 class="card-title mb-0">
-                    <i class="bi bi-info-circle text-primary me-2"></i>
+                    <i class="bi bi-info-circle text-primary me-2"></i> <!-- Ícone de informação -->
                     Sobre o Sistema
                 </h5>
             </div>
             <div class="card-body">
                 <div class="row">
+                    <!-- Lista de Funcionalidades Principais -->
                     <div class="col-md-6">
                         <h6 class="fw-bold mb-3">Funcionalidades Principais</h6>
                         <ul class="feature-list">
@@ -573,6 +665,8 @@
                             <li><i class="bi bi-check-circle"></i> Histórico de consultas</li>
                         </ul>
                     </div>
+                    
+                    <!-- Lista de Como Usar -->
                     <div class="col-md-6">
                         <h6 class="fw-bold mb-3">Como Usar</h6>
                         <ol class="how-to-use">
@@ -592,62 +686,63 @@
 
 {% block extra_js %}
 <script>
-// Dados para os gráficos
-const consultasData = {{ consultas_por_dia | tojson }};
-const faixaEtariaData = {{ pacientes_por_faixa | tojson }};
+// ===== CONFIGURAÇÃO DOS GRÁFICOS =====
+// Dados para os gráficos (passados do backend via Jinja2)
+const consultasData = {{ consultas_por_dia | tojson }};        // Dados de consultas por dia
+const faixaEtariaData = {{ pacientes_por_faixa | tojson }};    // Dados de pacientes por faixa etária
 
-// Configuração dos gráficos
-Chart.defaults.font.family = 'Inter, sans-serif';
-Chart.defaults.color = '#64748b';
+// Configurações padrão do Chart.js
+Chart.defaults.font.family = 'Inter, sans-serif';              // Fonte padrão
+Chart.defaults.color = '#64748b';                              // Cor padrão do texto
 
-// Gráfico de Consultas por Dia
+// ===== GRÁFICO DE CONSULTAS POR DIA =====
 const consultasCtx = document.getElementById('consultasChart').getContext('2d');
 new Chart(consultasCtx, {
-    type: 'line',
+    type: 'line',                                              // Tipo: gráfico de linha
     data: {
-        labels: consultasData.map(item => item.data),
+        labels: consultasData.map(item => item.data),          // Labels do eixo X (datas)
         datasets: [{
-            label: 'Consultas',
-            data: consultasData.map(item => item.count),
-            borderColor: '#6366f1',
-            backgroundColor: 'rgba(99, 102, 241, 0.1)',
-            tension: 0.4,
-            fill: true,
-            pointBackgroundColor: '#6366f1',
-            pointBorderColor: '#ffffff',
-            pointBorderWidth: 2,
-            pointRadius: 6,
-            pointHoverRadius: 8
+            label: 'Consultas',                                // Nome do dataset
+            data: consultasData.map(item => item.count),       // Dados do eixo Y (contagem)
+            borderColor: '#6366f1',                            // Cor da linha
+            backgroundColor: 'rgba(99, 102, 241, 0.1)',       // Cor de fundo com transparência
+            tension: 0.4,                                      // Curvatura da linha
+            fill: true,                                        // Preencher área abaixo da linha
+            pointBackgroundColor: '#6366f1',                   // Cor dos pontos
+            pointBorderColor: '#ffffff',                       // Cor da borda dos pontos
+            pointBorderWidth: 2,                               // Largura da borda dos pontos
+            pointRadius: 6,                                    // Raio dos pontos
+            pointHoverRadius: 8                                // Raio dos pontos no hover
         }]
     },
     options: {
-        responsive: true,
-        maintainAspectRatio: false,
+        responsive: true,                                      // Responsivo
+        maintainAspectRatio: false,                           // Não manter proporção
         plugins: {
             legend: {
-                display: false
+                display: false                                 // Ocultar legenda
             }
         },
         scales: {
             y: {
-                beginAtZero: true,
+                beginAtZero: true,                             // Eixo Y começa em 0
                 ticks: {
-                    stepSize: 1,
+                    stepSize: 1,                               // Passo de 1 em 1
                     font: {
-                        size: 12
+                        size: 12                               // Tamanho da fonte
                     }
                 },
                 grid: {
-                    color: 'rgba(0, 0, 0, 0.05)'
+                    color: 'rgba(0, 0, 0, 0.05)'             // Cor da grade
                 }
             },
             x: {
                 grid: {
-                    color: 'rgba(0, 0, 0, 0.05)'
+                    color: 'rgba(0, 0, 0, 0.05)'             // Cor da grade
                 },
                 ticks: {
                     font: {
-                        size: 12
+                        size: 12                               // Tamanho da fonte
                     }
                 }
             }
@@ -655,37 +750,37 @@ new Chart(consultasCtx, {
     }
 });
 
-// Gráfico de Faixa Etária
+// ===== GRÁFICO DE FAIXA ETÁRIA =====
 const faixaEtariaCtx = document.getElementById('faixaEtariaChart').getContext('2d');
 new Chart(faixaEtariaCtx, {
-    type: 'doughnut',
+    type: 'doughnut',                                          // Tipo: gráfico de rosca
     data: {
-        labels: faixaEtariaData.map(item => item.faixa + ' anos'),
+        labels: faixaEtariaData.map(item => item.faixa + ' anos'), // Labels (faixas etárias)
         datasets: [{
-            data: faixaEtariaData.map(item => item.count),
-            backgroundColor: [
+            data: faixaEtariaData.map(item => item.count),     // Dados (contagem de pacientes)
+            backgroundColor: [                                  // Cores para cada faixa
                 '#6366f1', '#8b5cf6', '#06b6d4', '#10b981', '#f59e0b'
             ],
-            borderWidth: 0,
-            hoverOffset: 4
+            borderWidth: 0,                                    // Sem bordas
+            hoverOffset: 4                                     // Offset no hover
         }]
     },
     options: {
-        responsive: true,
-        maintainAspectRatio: false,
+        responsive: true,                                      // Responsivo
+        maintainAspectRatio: false,                           // Não manter proporção
         plugins: {
             legend: {
-                position: 'bottom',
+                position: 'bottom',                            // Legenda na parte inferior
                 labels: {
-                    padding: 20,
-                    usePointStyle: true,
+                    padding: 20,                               // Padding dos labels
+                    usePointStyle: true,                       // Usar estilo de ponto
                     font: {
-                        size: 12
+                        size: 12                               // Tamanho da fonte
                     }
                 }
             }
         },
-        cutout: '60%'
+        cutout: '60%'                                          // Tamanho do buraco central
     }
 });
 </script>
