@@ -33,7 +33,9 @@
 
 ## 🎯 Sobre o Projeto
 
-O **Pharm-Assist** é um sistema completo de triagem farmacêutica desenvolvido para modernizar e otimizar o processo de atendimento em farmácias e consultórios farmacêuticos. O sistema utiliza inteligência artificial e regras clínicas para fornecer triagem precisa e recomendações personalizadas.
+O **Pharm-Assist** é um sistema completo de triagem farmacêutica desenvolvido como **Projeto Integrador** da matéria de **Inteligência Artificial** do **Segundo Semestre** do curso de **IA da Faculdade Donaduzzi**, em parceria com a **Prefeitura de Toledo - Paraná**.
+
+O sistema foi desenvolvido para modernizar e otimizar o processo de atendimento na rede pública de saúde do município, utilizando inteligência artificial e regras clínicas para fornecer triagem precisa e recomendações personalizadas aos cidadãos de Toledo.
 
 ### 🎯 **Objetivos Principais**
 - **Automatizar** o processo de triagem farmacêutica
@@ -386,19 +388,29 @@ SOFTWARE.
 
 ## 🙏 Agradecimentos
 
-- 🏥 **Comunidade farmacêutica** por feedback e sugestões
-- 🐍 **Comunidade Python** por ferramentas incríveis
-- 🎨 **Comunidade de design** por inspiração e recursos
-- 🌟 **Contribuidores** que tornaram este projeto possível
+- 🏛️ **Faculdade Donaduzzi** pela oportunidade de desenvolver este projeto integrador
+- 🏢 **Prefeitura de Toledo - Paraná** pela parceria e confiança no projeto
+- 👨‍🏫 **Professores e orientadores** da matéria de Inteligência Artificial
+- 🏥 **Profissionais de saúde** de Toledo que contribuíram com feedback
+- 🐍 **Comunidade Python** pelas ferramentas e bibliotecas utilizadas
+- 🎨 **Comunidade de design** por inspiração e recursos visuais
+- 🌟 **Colegas de curso** que colaboraram no desenvolvimento
 
 ---
 
-## 📞 Suporte
+## 🎓 Sobre o Projeto Acadêmico
 
-- 📧 **Email**: suporte@pharm-assist.com
-- 💬 **Discord**: [Pharm-Assist Community](https://discord.gg/pharm-assist)
-- 📱 **Telegram**: [@pharm_assist_support](https://t.me/pharm_assist_support)
-- 🐛 **Issues**: [GitHub Issues](https://github.com/seu-usuario/pharm-assist/issues)
+### **🏛️ Instituição**
+Este projeto foi desenvolvido como parte do **Projeto Integrador** da matéria de **Inteligência Artificial** do **Segundo Semestre** do curso de **Inteligência Artificial** da **Faculdade Donaduzzi**.
+
+### **🏢 Parceiro Institucional**
+O **Pharm-Assist** foi desenvolvido em parceria com a **Prefeitura de Toledo - Paraná**, visando modernizar e otimizar o sistema de triagem farmacêutica da rede pública de saúde do município.
+
+### **🎯 Objetivos Acadêmicos**
+- **Integração de conhecimentos** das disciplinas do semestre
+- **Aplicação prática** de conceitos de IA e Machine Learning
+- **Desenvolvimento de solução real** para problema da comunidade
+- **Experiência profissional** em projeto com parceiro institucional
 
 ---
 
