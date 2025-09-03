@@ -256,6 +256,13 @@ def medicamentos():
     
     return render_template('medicamentos.html', medicamentos=medicamentos)
 
+@app.route('/medicamentos/inativos')
+def medicamentos_inativos():
+    """Lista de medicamentos inativos"""
+    medicamentos = Medicamento.query.filter_by(ativo=False).all()
+    
+    return render_template('medicamentos_inativos.html', medicamentos=medicamentos)
+
 @app.route('/medicamentos/novo', methods=['GET', 'POST'])
 def novo_medicamento():
     """Cadastro de novo medicamento"""
@@ -282,6 +289,69 @@ def novo_medicamento():
             flash(f'Erro ao cadastrar medicamento: {str(e)}', 'error')
     
     return render_template('novo_medicamento.html')
+
+@app.route('/medicamentos/<int:id>/excluir', methods=['POST'])
+def excluir_medicamento(id):
+    """Exclusão de medicamento"""
+    try:
+        medicamento = Medicamento.query.get_or_404(id)
+        
+        # Verificar se o medicamento está sendo usado em consultas
+        # Como o modelo ConsultaRecomendacao armazena o nome do medicamento como texto,
+        # vamos verificar se o nome do medicamento aparece nas recomendações
+        from models import ConsultaRecomendacao
+        recomendacoes = ConsultaRecomendacao.query.filter(
+            ConsultaRecomendacao.tipo == 'medicamento',
+            ConsultaRecomendacao.descricao.contains(medicamento.nome_comercial)
+        ).count()
+        
+        if recomendacoes > 0:
+            flash(f'Não é possível excluir este medicamento pois ele está sendo usado em {recomendacoes} consulta(s). Considere desativá-lo ao invés de excluí-lo.', 'warning')
+            return redirect(url_for('medicamentos'))
+        
+        # Excluir o medicamento
+        db.session.delete(medicamento)
+        db.session.commit()
+        
+        flash('Medicamento excluído com sucesso!', 'success')
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro ao excluir medicamento: {str(e)}', 'error')
+    
+    return redirect(url_for('medicamentos'))
+
+@app.route('/medicamentos/<int:id>/desativar', methods=['POST'])
+def desativar_medicamento(id):
+    """Desativação de medicamento (exclusão lógica)"""
+    try:
+        medicamento = Medicamento.query.get_or_404(id)
+        medicamento.ativo = False
+        db.session.commit()
+        
+        flash('Medicamento desativado com sucesso!', 'success')
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro ao desativar medicamento: {str(e)}', 'error')
+    
+    return redirect(url_for('medicamentos'))
+
+@app.route('/medicamentos/<int:id>/reativar', methods=['POST'])
+def reativar_medicamento(id):
+    """Reativação de medicamento"""
+    try:
+        medicamento = Medicamento.query.get_or_404(id)
+        medicamento.ativo = True
+        db.session.commit()
+        
+        flash('Medicamento reativado com sucesso!', 'success')
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro ao reativar medicamento: {str(e)}', 'error')
+    
+    return redirect(url_for('medicamentos_inativos'))
 
 @app.route('/triagem')
 def triagem():
