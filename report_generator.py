@@ -1,8 +1,21 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Pharm-Assist - Gerador de Relatorios
-Gerador de relatorios PDF para consultas de triagem
+Pharm-Assist - Gerador de Relatórios PDF
+Sistema de geração de relatórios profissionais para consultas de triagem
+
+Funcionalidades:
+- Geração de relatórios PDF com layout profissional
+- Inclusão de dados do paciente e histórico
+- Análise de sintomas e recomendações
+- Formatação automática de tabelas e textos
+- Estilos personalizados para diferentes seções
+
+Tecnologias utilizadas:
+- ReportLab: Biblioteca para geração de PDFs
+- Templates personalizados para layout
+- Estilos CSS-like para formatação
+- Tabelas responsivas e organizadas
 """
 
 from reportlab.lib.pagesizes import A4

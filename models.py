@@ -2,32 +2,72 @@
 # -*- coding: utf-8 -*-
 """
 Pharm-Assist - Modelos do Banco de Dados
-Definicao das entidades e relacionamentos
+Definição das entidades e relacionamentos com otimizações de performance
+
+Modelos implementados:
+- Paciente: Dados pessoais e clínicos dos pacientes
+- DoencaCronica: Catálogo de doenças crônicas
+- PacienteDoenca: Relacionamento muitos-para-muitos entre pacientes e doenças
+- Sintoma: Catálogo de sintomas para triagem
+- Pergunta: Perguntas do questionário de triagem
+- Medicamento: Base de medicamentos da ANVISA
+- Consulta: Registro de consultas de triagem
+- ConsultaResposta: Respostas do questionário
+- ConsultaRecomendacao: Recomendações geradas pela triagem
+
+Otimizações implementadas:
+- Índices para consultas frequentes
+- Relacionamentos otimizados
+- Métodos de serialização eficientes
 """
 
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 from sqlalchemy.orm import relationship
+from sqlalchemy import Index
 
+# Inicialização do SQLAlchemy
 db = SQLAlchemy()
 
 class Paciente(db.Model):
+    """
+    Modelo para armazenar dados dos pacientes
+    
+    Campos:
+    - id: Identificador único (chave primária)
+    - nome: Nome completo do paciente (máximo 200 caracteres)
+    - idade: Idade em anos (obrigatório)
+    - peso: Peso em kg (opcional, formato decimal 5,2)
+    - altura: Altura em metros (opcional, formato decimal 3,2)
+    - sexo: Sexo biológico (M/F/O - obrigatório)
+    - fuma: Indica se o paciente fuma (padrão: False)
+    - bebe: Indica se o paciente consome álcool (padrão: False)
+    - created_at: Data de criação do registro
+    - updated_at: Data da última atualização
+    
+    Relacionamentos:
+    - doencas_cronicas: Lista de doenças crônicas do paciente
+    - consultas: Lista de consultas realizadas pelo paciente
+    """
     __tablename__ = 'pacientes'
     
+    # Campos principais
     id = db.Column(db.Integer, primary_key=True)
-    nome = db.Column(db.String(200), nullable=False)
-    idade = db.Column(db.Integer, nullable=False)
+    nome = db.Column(db.String(200), nullable=False, index=True)  # Índice para busca
+    idade = db.Column(db.Integer, nullable=False, index=True)     # Índice para filtros
     peso = db.Column(db.Numeric(5, 2))
     altura = db.Column(db.Numeric(3, 2))
-    sexo = db.Column(db.Enum('M', 'F', 'O'), nullable=False)
+    sexo = db.Column(db.Enum('M', 'F', 'O'), nullable=False, index=True)  # Índice para estatísticas
     fuma = db.Column(db.Boolean, default=False)
     bebe = db.Column(db.Boolean, default=False)
-    created_at = db.Column(db.TIMESTAMP, default=datetime.utcnow)
+    
+    # Timestamps para auditoria
+    created_at = db.Column(db.TIMESTAMP, default=datetime.utcnow, index=True)
     updated_at = db.Column(db.TIMESTAMP, default=datetime.utcnow, onupdate=datetime.utcnow)
     
-    # Relacionamentos
-    doencas_cronicas = relationship('PacienteDoenca', back_populates='paciente')
-    consultas = relationship('Consulta', back_populates='paciente')
+    # Relacionamentos otimizados
+    doencas_cronicas = relationship('PacienteDoenca', back_populates='paciente', lazy='select')
+    consultas = relationship('Consulta', back_populates='paciente', lazy='select')
     
     def to_dict(self):
         return {
@@ -107,17 +147,39 @@ class Pergunta(db.Model):
         }
 
 class Medicamento(db.Model):
+    """
+    Modelo para armazenar medicamentos da base ANVISA
+    
+    Campos:
+    - id: Identificador único (chave primária)
+    - nome_comercial: Nome comercial do medicamento (obrigatório)
+    - nome_generico: Nome genérico/princípio ativo (opcional)
+    - descricao: Descrição do medicamento (opcional)
+    - indicacao: Indicações terapêuticas (opcional)
+    - contraindicacao: Contraindicações (opcional)
+    - tipo: Tipo do medicamento (farmacologico/fitoterapico)
+    - ativo: Status do medicamento (ativo/inativo)
+    - created_at: Data de criação do registro
+    
+    Otimizações:
+    - Índices para busca por nome
+    - Índice para filtro por tipo
+    - Índice para filtro por status ativo
+    """
     __tablename__ = 'medicamentos'
     
+    # Campos principais
     id = db.Column(db.Integer, primary_key=True)
-    nome_comercial = db.Column(db.String(200), nullable=False)
-    nome_generico = db.Column(db.String(200))
+    nome_comercial = db.Column(db.String(200), nullable=False, index=True)  # Índice para busca
+    nome_generico = db.Column(db.String(200), index=True)                   # Índice para busca
     descricao = db.Column(db.Text)
     indicacao = db.Column(db.Text)
     contraindicacao = db.Column(db.Text)
-    tipo = db.Column(db.Enum('farmacologico', 'fitoterapico'), nullable=False)
-    ativo = db.Column(db.Boolean, default=True)
-    created_at = db.Column(db.TIMESTAMP, default=datetime.utcnow)
+    tipo = db.Column(db.Enum('farmacologico', 'fitoterapico'), nullable=False, index=True)  # Índice para filtros
+    ativo = db.Column(db.Boolean, default=True, index=True)                 # Índice para filtros
+    
+    # Timestamp para auditoria
+    created_at = db.Column(db.TIMESTAMP, default=datetime.utcnow, index=True)
     
     def to_dict(self):
         return {

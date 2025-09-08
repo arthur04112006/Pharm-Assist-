@@ -1,21 +1,47 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Pharm-Assist - Motor de Triagem
-Motor de triagem farmaceutica baseado em regras
+Pharm-Assist - Motor de Triagem Farmacêutica
+Sistema inteligente de triagem baseado em regras e algoritmos
+
+Funcionalidades:
+- Análise de sintomas e sinais de alerta
+- Recomendação de medicamentos baseada em contraindicações
+- Sistema de pontuação para priorização
+- Detecção de situações de emergência
+- Geração de recomendações personalizadas
+
+Algoritmos implementados:
+- Análise de texto com regex para detecção de padrões
+- Sistema de pontuação ponderada
+- Filtros de contraindicações por idade, sexo e doenças
+- Classificação de urgência (baixa, média, alta, emergência)
 """
 
 from models import db, Sintoma, Medicamento, DoencaCronica
 from typing import List, Dict, Tuple, Optional
 import re
+from functools import lru_cache
 
 class TriagemEngine:
     """
-    Motor de triagem farmacêutica baseado em regras
-    Analisa respostas e gera recomendações
+    Motor de triagem farmacêutica baseado em regras e algoritmos
+    
+    Funcionalidades principais:
+    - Análise de sintomas e detecção de sinais de alerta
+    - Recomendação de medicamentos com base em contraindicações
+    - Sistema de pontuação para priorização de casos
+    - Classificação de urgência (baixa, média, alta, emergência)
+    - Geração de recomendações personalizadas por perfil do paciente
+    
+    Otimizações implementadas:
+    - Cache de consultas frequentes ao banco de dados
+    - Algoritmos otimizados para análise de texto
+    - Sistema de pontuação eficiente
     """
     
     def __init__(self):
+        """Inicializa o motor de triagem com regras e padrões pré-definidos"""
         self.sinais_alerta = {
             'febre_alta': ['febre', 'temperatura', '39', '40', '41', '42'],
             'dor_intensa': ['dor', 'intensa', 'forte', 'insuportável', '10/10', '9/10', '8/10'],
@@ -27,12 +53,26 @@ class TriagemEngine:
             'paralisia': ['paralisia', 'paralisado', 'não consegue mover']
         }
         
+        # Cache para consultas frequentes
+        self._medicamentos_cache = None
+        self._sintomas_cache = None
+        
         self.sintomas_comuns = {
             'respiratorio': ['tosse', 'coriza', 'nariz entupido', 'espirro', 'dor de garganta'],
             'digestivo': ['náusea', 'vômito', 'diarréia', 'dor abdominal', 'indigestão'],
             'neurologico': ['dor de cabeça', 'tontura', 'insônia', 'fadiga'],
             'geral': ['febre', 'calafrio', 'suor', 'perda de apetite']
         }
+    
+    @lru_cache(maxsize=128)
+    def _get_medicamentos_ativos(self):
+        """Cache para medicamentos ativos - consulta frequente"""
+        return Medicamento.query.filter_by(ativo=True).all()
+    
+    @lru_cache(maxsize=64)
+    def _get_sintomas_ativos(self):
+        """Cache para sintomas - consulta frequente"""
+        return Sintoma.query.all()
     
     def analisar_respostas(self, respostas: List[Dict], paciente: Dict) -> Dict:
         """

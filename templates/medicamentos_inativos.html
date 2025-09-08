@@ -3,7 +3,7 @@
 {% block title %}Medicamentos Inativos{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom page-header">
     <h1 class="h2">
         <i class="bi bi-pause-circle text-warning"></i>
         Medicamentos Inativos
@@ -20,34 +20,52 @@
     </div>
 </div>
 
+<!-- Busca -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <form method="GET" class="d-flex">
+            <input type="text" name="search" class="form-control me-2" 
+                   placeholder="Buscar medicamentos inativos..." value="{{ search or '' }}">
+            <button type="submit" class="btn btn-outline-warning">
+                <i class="bi bi-search"></i>
+            </button>
+            {% if search %}
+            <a href="{{ url_for('medicamentos_inativos') }}" class="btn btn-outline-secondary ms-2">
+                <i class="bi bi-x"></i>
+            </a>
+            {% endif %}
+        </form>
+    </div>
+</div>
+
 <!-- Estatísticas -->
 <div class="row mb-4">
     <div class="col-md-3 mb-3">
-        <div class="card text-center">
+        <div class="card text-center stats-card">
             <div class="card-body">
-                <h5 class="card-title text-warning">{{ medicamentos|length }}</h5>
+                <h5 class="card-title text-warning">{{ medicamentos.total }}</h5>
                 <p class="card-text">Medicamentos Inativos</p>
             </div>
         </div>
     </div>
     <div class="col-md-3 mb-3">
-        <div class="card text-center">
+        <div class="card text-center stats-card">
             <div class="card-body">
-                <h5 class="card-title text-success">{{ medicamentos|selectattr('tipo', 'equalto', 'farmacologico')|list|length }}</h5>
-                <p class="card-text">Farmacológicos</p>
+                <h5 class="card-title text-success">{{ medicamentos.items|selectattr('tipo', 'equalto', 'farmacologico')|list|length }}</h5>
+                <p class="card-text">Farmacológicos (página)</p>
             </div>
         </div>
     </div>
     <div class="col-md-3 mb-3">
-        <div class="card text-center">
+        <div class="card text-center stats-card">
             <div class="card-body">
-                <h5 class="card-title text-info">{{ medicamentos|selectattr('tipo', 'equalto', 'fitoterapico')|list|length }}</h5>
-                <p class="card-text">Fitoterápicos</p>
+                <h5 class="card-title text-info">{{ medicamentos.items|selectattr('tipo', 'equalto', 'fitoterapico')|list|length }}</h5>
+                <p class="card-text">Fitoterápicos (página)</p>
             </div>
         </div>
     </div>
     <div class="col-md-3 mb-3">
-        <div class="card text-center">
+        <div class="card text-center stats-card">
             <div class="card-body">
                 <h5 class="card-title text-primary">
                     <i class="bi bi-info-circle"></i>
@@ -80,7 +98,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for medicamento in medicamentos %}
+                    {% for medicamento in medicamentos.items %}
                     <tr class="table-warning">
                         <td>
                             <strong>{{ medicamento.nome_comercial }}</strong>
@@ -96,10 +114,10 @@
                             {% endif %}
                         </td>
                         <td>
-                            <small>{{ medicamento.indicacao[:100] }}{% if medicamento.indicacao|length > 100 %}...{% endif %}</small>
+                            <small>{% if medicamento.indicacao %}{{ medicamento.indicacao[:100] }}{% if medicamento.indicacao|length > 100 %}...{% endif %}{% else %}-{% endif %}</small>
                         </td>
                         <td>
-                            <small>{{ medicamento.contraindicacao[:100] }}{% if medicamento.contraindicacao|length > 100 %}...{% endif %}</small>
+                            <small>{% if medicamento.contraindicacao %}{{ medicamento.contraindicacao[:100] }}{% if medicamento.contraindicacao|length > 100 %}...{% endif %}{% else %}-{% endif %}</small>
                         </td>
                         <td>
                             <small class="text-muted">
@@ -148,8 +166,49 @@
     </div>
 </div>
 
+<!-- Paginação -->
+{% if medicamentos.pages > 1 %}
+<nav aria-label="Paginação de medicamentos inativos">
+    <ul class="pagination justify-content-center">
+        {% if medicamentos.has_prev %}
+        <li class="page-item">
+            <a class="page-link" href="{{ url_for('medicamentos_inativos', page=medicamentos.prev_num, search=search) }}">
+                <i class="bi bi-chevron-left"></i> Anterior
+            </a>
+        </li>
+        {% endif %}
+        
+        {% for page_num in medicamentos.iter_pages() %}
+            {% if page_num %}
+                {% if page_num != medicamentos.page %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('medicamentos_inativos', page=page_num, search=search) }}">{{ page_num }}</a>
+                </li>
+                {% else %}
+                <li class="page-item active">
+                    <span class="page-link">{{ page_num }}</span>
+                </li>
+                {% endif %}
+            {% else %}
+            <li class="page-item disabled">
+                <span class="page-link">...</span>
+            </li>
+            {% endif %}
+        {% endfor %}
+        
+        {% if medicamentos.has_next %}
+        <li class="page-item">
+            <a class="page-link" href="{{ url_for('medicamentos_inativos', page=medicamentos.next_num, search=search) }}">
+                Próximo <i class="bi bi-chevron-right"></i>
+            </a>
+        </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+
 <!-- Modais para visualizar detalhes -->
-{% for medicamento in medicamentos %}
+{% for medicamento in medicamentos.items %}
 <div class="modal fade" id="medicamentoModal{{ medicamento.id }}" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">

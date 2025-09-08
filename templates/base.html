@@ -62,6 +62,7 @@
             min-height: 100vh;               /* Altura mínima de 100% da viewport */
             color: var(--text-primary);      /* Cor do texto principal */
             margin: 0;                       /* Remover margens padrão */
+            overflow-x: hidden;              /* Evita scroll horizontal */
             padding: 0;                      /* Remover padding padrão */
         }
 
@@ -341,6 +342,106 @@
             border: none;                    /* Sem bordas */
             border-bottom: 1px solid var(--border-color); /* Borda inferior */
             vertical-align: middle;          /* Alinhamento vertical centralizado */
+        }
+        
+        /* Tabelas responsivas */
+        .table-responsive {
+            border-radius: 8px;
+            box-shadow: var(--shadow-sm);
+            margin-bottom: 1rem;
+        }
+        
+        /* Melhorar layout das páginas */
+        .main-content {
+            min-height: calc(100vh - 200px);
+            padding-bottom: 2rem;
+        }
+        
+        /* Container principal responsivo */
+        .container-fluid {
+            max-width: 100%;
+            padding-left: 15px;
+            padding-right: 15px;
+        }
+        
+        /* Header responsivo para evitar cortes */
+        .page-header {
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        
+        .page-header .btn-toolbar {
+            flex-wrap: wrap;
+        }
+        
+        .page-header .btn-group {
+            flex-wrap: wrap;
+        }
+        
+        /* Melhorar responsividade dos botões */
+        @media (max-width: 768px) {
+            .page-header {
+                flex-direction: column;
+                align-items: flex-start !important;
+            }
+            
+            .page-header .btn-toolbar {
+                width: 100%;
+                justify-content: flex-start;
+            }
+            
+            .page-header .btn-group {
+                width: 100%;
+            }
+            
+            .page-header .btn {
+                flex: 1;
+                min-width: 0;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+        }
+        
+        /* Ajustar estatísticas para telas menores */
+        @media (max-width: 576px) {
+            .stats-card {
+                margin-bottom: 1rem;
+            }
+            
+            .stats-card .card-body {
+                padding: 1rem;
+            }
+        }
+        
+        /* Melhorar layout geral para evitar cortes */
+        .main-content {
+            padding-left: 1rem;
+            padding-right: 1rem;
+        }
+        
+        /* Ajustar margens para telas pequenas */
+        @media (max-width: 992px) {
+            .main-content {
+                padding-left: 0.5rem;
+                padding-right: 0.5rem;
+            }
+            
+            .page-header {
+                margin-left: -0.5rem;
+                margin-right: -0.5rem;
+                padding-left: 0.5rem;
+                padding-right: 0.5rem;
+            }
+        }
+        
+        /* Garantir que botões não sejam cortados */
+        .btn-group .btn {
+            margin-right: 0.25rem;
+        }
+        
+        .btn-group .btn:last-child {
+            margin-right: 0;
         }
 
         /* Efeito hover nas linhas da tabela */

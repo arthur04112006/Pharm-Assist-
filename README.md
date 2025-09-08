@@ -67,10 +67,14 @@ O sistema foi desenvolvido para modernizar e otimizar o processo de atendimento 
 - 🚨 **Encaminhamento médico**: Quando necessário
 
 ### 💊 **Gestão de Medicamentos**
-- 📚 **Base de dados**: Catálogo completo de medicamentos
+- 📚 **Base de dados ANVISA**: 17.535+ medicamentos autorizados importados
+- 🔍 **Busca inteligente**: Filtros por nome comercial, genérico e descrição
+- 📄 **Paginação otimizada**: Carregamento rápido com 20 itens por página
 - ⚠️ **Interações**: Verificação de contraindicações
 - 💡 **Alternativas**: Sugestões de medicamentos similares
 - 📋 **Controle de estoque**: Gestão de disponibilidade
+- 🏷️ **Classificação**: Medicamentos farmacológicos e fitoterápicos
+- ✅ **Status ativo/inativo**: Controle de medicamentos disponíveis
 
 ### 📄 **Relatórios Profissionais**
 - 🖨️ **Geração PDF**: Relatórios detalhados das consultas
@@ -138,7 +142,16 @@ cp env.example .env
 # (Banco de dados, chaves secretas, etc.)
 ```
 
-### **5. Execute o Sistema**
+### **5. Importe a Base de Medicamentos ANVISA (Opcional)**
+```bash
+# Execute o script de importação para carregar 17.535+ medicamentos
+python import_medicamentos_anvisa.py
+
+# Ou use o script simplificado
+python -c "from app import app; from import_medicamentos_anvisa import MedicamentoImporter; app.app_context().push(); importer = MedicamentoImporter(); importer.importar_medicamentos('DADOS_ABERTOS_MEDICAMENTOS.csv')"
+```
+
+### **6. Execute o Sistema**
 ```bash
 # Opção 1: Usando run.py
 python run.py
@@ -150,7 +163,7 @@ flask run
 python app.py
 ```
 
-### **6. Acesse o Sistema**
+### **7. Acesse o Sistema**
 🌐 Abra seu navegador e acesse: **http://localhost:5000**
 
 ---
@@ -159,32 +172,36 @@ python app.py
 
 ```
 pharm-assist/
-├── 📁 app.py                 # Aplicação Flask principal
-├── 📁 models.py              # Modelos do banco de dados
-├── 📁 triagem_engine.py      # Motor de triagem inteligente
-├── 📁 report_generator.py    # Gerador de relatórios PDF
-├── 📁 config.py              # Configurações do sistema
-├── 📁 run.py                 # Script de execução
-├── 📁 requirements.txt       # Dependências Python
-├── 📁 install.sh             # Script de instalação (Linux/Mac)
-├── 📁 test_system.py         # Testes do sistema
-├── 📁 README.md              # Este arquivo
-├── 📁 .env.example           # Exemplo de variáveis de ambiente
+├── 📁 app.py                          # Aplicação Flask principal (otimizada)
+├── 📁 models.py                       # Modelos do banco de dados (com índices)
+├── 📁 triagem_engine.py               # Motor de triagem inteligente (com cache)
+├── 📁 report_generator.py             # Gerador de relatórios PDF (comentado)
+├── 📁 config.py                       # Configurações do sistema
+├── 📁 run.py                          # Script de execução
+├── 📁 requirements.txt                # Dependências Python
+├── 📁 install.sh                      # Script de instalação (Linux/Mac)
+├── 📁 test_system.py                  # Testes do sistema
+├── 📁 import_medicamentos_anvisa.py   # Importador de dados ANVISA
+├── 📁 DADOS_ABERTOS_MEDICAMENTOS.csv  # Base de dados ANVISA (17.535+ medicamentos)
+├── 📁 README.md                       # Este arquivo (atualizado)
+├── 📁 .env.example                    # Exemplo de variáveis de ambiente
 │
-├── 📁 database/              # Banco de dados
-│   └── 📄 schema.sql         # Esquema do banco
+├── 📁 database/                       # Banco de dados
+│   └── 📄 schema.sql                  # Esquema do banco
 │
-├── 📁 templates/             # Templates HTML
-│   ├── 📄 base.html          # Template base
-│   ├── 📄 index.html         # Dashboard principal
-│   ├── 📄 pacientes.html     # Lista de pacientes
-│   ├── 📄 triagem.html       # Sistema de triagem
-│   ├── 📄 medicamentos.html  # Gestão de medicamentos
-│   └── ...                   # Outros templates
+├── 📁 templates/                      # Templates HTML (responsivos)
+│   ├── 📄 base.html                   # Template base (otimizado)
+│   ├── 📄 index.html                  # Dashboard principal
+│   ├── 📄 pacientes.html              # Lista de pacientes
+│   ├── 📄 triagem.html                # Sistema de triagem
+│   ├── 📄 medicamentos.html           # Gestão de medicamentos (paginado)
+│   ├── 📄 medicamentos_inativos.html  # Medicamentos inativos (paginado)
+│   └── ...                            # Outros templates
 │
-├── 📁 reports/               # Relatórios gerados
-├── 📁 uploads/               # Arquivos enviados
-└── 📁 instance/              # Dados da instância
+├── 📁 reports/                        # Relatórios gerados
+├── 📁 uploads/                        # Arquivos enviados
+└── 📁 instance/                       # Dados da instância
+    └── 📄 triagem_farmaceutica.db     # Banco SQLite principal
 ```
 
 ---
@@ -264,11 +281,20 @@ class Config:
 
 ## 📈 Funcionalidades Avançadas
 
+### **⚡ Otimizações de Performance**
+- **Cache inteligente**: Sistema LRU para consultas frequentes
+- **Índices de banco**: Otimização de consultas com índices estratégicos
+- **Paginação eficiente**: Carregamento otimizado de grandes datasets
+- **Lazy loading**: Carregamento sob demanda de relacionamentos
+- **API limitada**: Controle de resultados para evitar sobrecarga
+- **Consultas otimizadas**: Redução de queries N+1 e consultas desnecessárias
+
 ### **🧠 Motor de Triagem Inteligente**
 - **Análise de risco**: Score baseado em múltiplos fatores
 - **Detecção de sinais de alerta**: Identificação automática de emergências
 - **Recomendações personalizadas**: Baseadas no perfil do paciente
 - **Histórico de triagens**: Acompanhamento temporal
+- **Cache de medicamentos**: Consultas otimizadas para base ANVISA
 
 ### **📊 Sistema de Relatórios**
 - **Relatórios PDF**: Documentação profissional das consultas

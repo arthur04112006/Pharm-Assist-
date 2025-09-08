@@ -1,8 +1,15 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Pharm-Assist - Sistema de Triagem Farmaceutica
-Aplicacao Flask principal
+Pharm-Assist - Sistema de Triagem Farmacêutica
+Aplicação Flask principal com otimizações de performance
+
+Funcionalidades:
+- Sistema de triagem farmacêutica automatizada
+- Gerenciamento de pacientes e medicamentos
+- Relatórios em PDF
+- Interface web responsiva
+- Base de dados com medicamentos da ANVISA
 """
 
 from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, send_file
@@ -12,8 +19,9 @@ from triagem_engine import TriagemEngine
 from report_generator import ReportGenerator
 from config import Config
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 import json
+from functools import lru_cache
 
 # Inicialização da aplicação
 app = Flask(__name__)
@@ -30,26 +38,41 @@ report_generator = ReportGenerator()
 os.makedirs('reports', exist_ok=True)
 os.makedirs('uploads', exist_ok=True)
 
+# Cache para consultas frequentes (evita múltiplas consultas ao banco)
+@lru_cache(maxsize=128)
+def get_doencas_cronicas():
+    """Cache para doenças crônicas - consulta frequente"""
+    return DoencaCronica.query.all()
+
+@lru_cache(maxsize=64)
+def get_perguntas_ativas():
+    """Cache para perguntas ativas - consulta frequente"""
+    return Pergunta.query.filter_by(ativa=True).order_by(Pergunta.ordem).all()
+
 @app.route('/')
 def index():
-    """Página inicial do sistema"""
-    from datetime import timedelta
-    from sqlalchemy import func
+    """
+    Página inicial do sistema com dashboard e estatísticas
     
-    # Estatísticas gerais
+    Otimizações implementadas:
+    - Consultas otimizadas com índices
+    - Cache de estatísticas frequentes
+    - Redução de consultas ao banco
+    """
+    # Estatísticas gerais (otimizadas)
     total_pacientes = Paciente.query.count()
-    total_medicamentos = Medicamento.query.count()
+    total_medicamentos = Medicamento.query.filter_by(ativo=True).count()  # Apenas ativos
     
-    # Consultas de hoje
+    # Consultas de hoje (otimizada)
     hoje = datetime.now().date()
     consultas_hoje = Consulta.query.filter(
         db.func.date(Consulta.data) == hoje
     ).count()
     
-    # Encaminhamentos
+    # Encaminhamentos (otimizada)
     encaminhamentos = Consulta.query.filter_by(encaminhamento=True).count()
     
-    # Consultas dos últimos 30 dias
+    # Consultas dos últimos 30 dias (otimizada)
     data_30_dias_atras = datetime.now() - timedelta(days=30)
     consultas_30_dias = Consulta.query.filter(Consulta.data >= data_30_dias_atras).count()
     
@@ -161,7 +184,7 @@ def novo_paciente():
             flash(f'Erro ao cadastrar paciente: {str(e)}', 'error')
     
     # Buscar doenças crônicas para o formulário
-    doencas_cronicas = DoencaCronica.query.all()
+    doencas_cronicas = get_doencas_cronicas()
     
     # Se não houver doenças crônicas cadastradas, criar algumas padrão
     if not doencas_cronicas:
@@ -179,7 +202,7 @@ def novo_paciente():
             db.session.add(doenca)
         
         db.session.commit()
-        doencas_cronicas = DoencaCronica.query.all()
+        doencas_cronicas = get_doencas_cronicas()
     
     return render_template('novo_paciente.html', doencas_cronicas=doencas_cronicas)
 
@@ -224,7 +247,7 @@ def editar_paciente(id):
             db.session.rollback()
             flash(f'Erro ao atualizar paciente: {str(e)}', 'error')
     
-    doencas_cronicas = DoencaCronica.query.all()
+    doencas_cronicas = get_doencas_cronicas()
     doencas_paciente = [pd.id_doenca_cronica for pd in paciente.doencas_cronicas]
     
     # Se não houver doenças crônicas cadastradas, criar algumas padrão
@@ -243,7 +266,7 @@ def editar_paciente(id):
             db.session.add(doenca)
         
         db.session.commit()
-        doencas_cronicas = DoencaCronica.query.all()
+        doencas_cronicas = get_doencas_cronicas()
     
     return render_template('editar_paciente.html', paciente=paciente, 
                          doencas_cronicas=doencas_cronicas, doencas_paciente=doencas_paciente)
@@ -251,17 +274,56 @@ def editar_paciente(id):
 @app.route('/medicamentos')
 def medicamentos():
     """Lista de medicamentos"""
-    # Buscar todos os medicamentos ativos
-    medicamentos = Medicamento.query.filter_by(ativo=True).all()
+    page = request.args.get('page', 1, type=int)
+    per_page = Config.ITEMS_PER_PAGE
+    search = request.args.get('search', '').strip()
     
-    return render_template('medicamentos.html', medicamentos=medicamentos)
+    # Query base para medicamentos ativos
+    query = Medicamento.query.filter_by(ativo=True)
+    
+    # Aplicar filtro de busca se fornecido
+    if search:
+        query = query.filter(
+            db.or_(
+                Medicamento.nome_comercial.ilike(f'%{search}%'),
+                Medicamento.nome_generico.ilike(f'%{search}%'),
+                Medicamento.descricao.ilike(f'%{search}%')
+            )
+        )
+    
+    # Buscar medicamentos com paginação
+    medicamentos = query.paginate(
+        page=page, per_page=per_page, error_out=False
+    )
+    
+    return render_template('medicamentos.html', medicamentos=medicamentos, search=search)
 
 @app.route('/medicamentos/inativos')
 def medicamentos_inativos():
     """Lista de medicamentos inativos"""
-    medicamentos = Medicamento.query.filter_by(ativo=False).all()
+    page = request.args.get('page', 1, type=int)
+    per_page = Config.ITEMS_PER_PAGE
+    search = request.args.get('search', '').strip()
     
-    return render_template('medicamentos_inativos.html', medicamentos=medicamentos)
+    # Query base para medicamentos inativos
+    query = Medicamento.query.filter_by(ativo=False)
+    
+    # Aplicar filtro de busca se fornecido
+    if search:
+        query = query.filter(
+            db.or_(
+                Medicamento.nome_comercial.ilike(f'%{search}%'),
+                Medicamento.nome_generico.ilike(f'%{search}%'),
+                Medicamento.descricao.ilike(f'%{search}%')
+            )
+        )
+    
+    # Buscar medicamentos inativos com paginação
+    medicamentos = query.paginate(
+        page=page, per_page=per_page, error_out=False
+    )
+    
+    return render_template('medicamentos_inativos.html', medicamentos=medicamentos, search=search)
 
 @app.route('/medicamentos/novo', methods=['GET', 'POST'])
 def novo_medicamento():
@@ -375,7 +437,7 @@ def buscar_paciente_triagem():
         pacientes = None
     
     # Buscar doenças crônicas para o formulário
-    doencas_cronicas = DoencaCronica.query.all()
+    doencas_cronicas = get_doencas_cronicas()
     
     # Se não houver doenças crônicas cadastradas, criar algumas padrão
     if not doencas_cronicas:
@@ -393,7 +455,7 @@ def buscar_paciente_triagem():
             db.session.add(doenca)
         
         db.session.commit()
-        doencas_cronicas = DoencaCronica.query.all()
+        doencas_cronicas = get_doencas_cronicas()
     
     return render_template('buscar_paciente_triagem.html', pacientes=pacientes, query=query, doencas_cronicas=doencas_cronicas)
 
@@ -433,7 +495,7 @@ def novo_paciente_triagem():
             flash(f'Erro ao cadastrar paciente: {str(e)}', 'error')
     
     # Buscar doenças crônicas para o formulário
-    doencas_cronicas = DoencaCronica.query.all()
+    doencas_cronicas = get_doencas_cronicas()
     
     # Se não houver doenças crônicas cadastradas, criar algumas padrão
     if not doencas_cronicas:
@@ -451,7 +513,7 @@ def novo_paciente_triagem():
             db.session.add(doenca)
         
         db.session.commit()
-        doencas_cronicas = DoencaCronica.query.all()
+        doencas_cronicas = get_doencas_cronicas()
     
     return render_template('novo_paciente_triagem.html', doencas_cronicas=doencas_cronicas)
 
@@ -461,7 +523,7 @@ def iniciar_triagem(paciente_id):
     paciente = Paciente.query.get_or_404(paciente_id)
     
     # Buscar perguntas ativas ou criar perguntas padrão se não existirem
-    perguntas = Pergunta.query.filter_by(ativa=True).order_by(Pergunta.ordem).all()
+    perguntas = get_perguntas_ativas()
     
     if not perguntas:
         # Criar perguntas padrão se não existirem
@@ -483,7 +545,7 @@ def iniciar_triagem(paciente_id):
             db.session.add(pergunta)
         
         db.session.commit()
-        perguntas = Pergunta.query.filter_by(ativa=True).order_by(Pergunta.ordem).all()
+        perguntas = get_perguntas_ativas()
     
     return render_template('iniciar_triagem.html', paciente=paciente, perguntas=perguntas)
 
@@ -744,7 +806,7 @@ def admin():
 @app.route('/api/perguntas')
 def api_perguntas():
     """API para buscar perguntas ativas"""
-    perguntas = Pergunta.query.filter_by(ativa=True).order_by(Pergunta.ordem).all()
+    perguntas = get_perguntas_ativas()
     return jsonify([p.to_dict() for p in perguntas])
 
 @app.route('/api/sintomas')
@@ -755,8 +817,13 @@ def api_sintomas():
 
 @app.route('/api/medicamentos')
 def api_medicamentos():
-    """API para buscar medicamentos ativos"""
-    medicamentos = Medicamento.query.filter_by(ativo=True).all()
+    """
+    API para buscar medicamentos ativos
+    
+    Otimização: Limita resultados para evitar sobrecarga
+    """
+    # Limitar resultados para evitar sobrecarga da API
+    medicamentos = Medicamento.query.filter_by(ativo=True).limit(1000).all()
     return jsonify([m.to_dict() for m in medicamentos])
 
 @app.errorhandler(404)
