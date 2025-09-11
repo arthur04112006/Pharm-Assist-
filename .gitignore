@@ -1,0 +1,446 @@
+# ============================================
+# Pharm-Assist - Sistema de Triagem Farmacêutica
+# Arquivo .gitignore - Proteção de Dados Sensíveis
+# ============================================
+
+# ============================================
+# 🔐 DADOS SENSÍVEIS E CONFIGURAÇÕES
+# ============================================
+
+# Arquivos de configuração com credenciais
+.env
+.env.local
+.env.production
+.env.staging
+.env.development
+config.ini
+secrets.json
+credentials.json
+
+# Chaves de API e tokens
+*.key
+*.pem
+*.p12
+*.pfx
+api_keys.txt
+tokens.txt
+
+# ============================================
+# 🗄️ BANCO DE DADOS E DADOS PERSISTENTES
+# ============================================
+
+# Bancos SQLite
+*.db
+*.sqlite
+*.sqlite3
+instance/
+database/
+*.sql
+
+# Backups de banco
+*.dump
+*.backup
+*.bak
+
+# Dados de produção
+production_data/
+prod_data/
+live_data/
+
+# ============================================
+# 🐍 PYTHON
+# ============================================
+
+# Bytecode Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Distribuição / empacotamento
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+cover/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# IPython
+profile_default/
+ipython_config.py
+
+# pyenv
+.python-version
+
+# pipenv
+Pipfile.lock
+
+# poetry
+poetry.lock
+
+# pdm
+.pdm.toml
+
+# PEP 582
+__pypackages__/
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
+
+# SageMath parsed files
+*.sage.py
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Spyder project settings
+.spyderproject
+.spyproject
+
+# Rope project settings
+.ropeproject
+
+# mkdocs documentation
+/site
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# pytype static type analyzer
+.pytype/
+
+# Cython debug symbols
+cython_debug/
+
+# ============================================
+# 🌐 FLASK E WEB
+# ============================================
+
+# Flask instance folder
+instance/
+
+# Flask-SQLAlchemy
+*.db
+*.sqlite
+
+# Session files
+flask_session/
+
+# Uploads e arquivos temporários
+uploads/
+temp/
+tmp/
+temporary/
+
+# Logs
+*.log
+logs/
+flask.log
+
+# ============================================
+# 📊 RELATÓRIOS E DOCUMENTOS
+# ============================================
+
+# Relatórios gerados
+reports/
+*.pdf
+*.docx
+*.xlsx
+*.csv
+
+# Documentos de produção
+documentos/
+docs_prod/
+
+# ============================================
+# 💻 IDEs E EDITORES
+# ============================================
+
+# VSCode
+.vscode/
+*.code-workspace
+
+# PyCharm
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+*.swp
+*.swo
+*~
+
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+
+# ============================================
+# 🖥️ SISTEMA OPERACIONAL
+# ============================================
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.tmp
+*.temp
+Desktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# ============================================
+# 🔧 FERRAMENTAS DE DESENVOLVIMENTO
+# ============================================
+
+# Docker
+.dockerignore
+Dockerfile.local
+docker-compose.override.yml
+
+# Terraform
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+
+# Ansible
+*.retry
+
+# Vagrant
+.vagrant/
+
+# ============================================
+# 📱 MOBILE E FRONTEND
+# ============================================
+
+# Node.js (se houver frontend)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+
+# Bower
+bower_components/
+
+# ============================================
+# 🧪 TESTES E QUALIDADE
+# ============================================
+
+# Testes
+test_results/
+test_reports/
+*.test
+.pytest_cache/
+
+# Linting
+.flake8
+.pylintrc
+mypy.ini
+
+# ============================================
+# 📦 DEPLOY E PRODUÇÃO
+# ============================================
+
+# Deploy scripts
+deploy/
+deployment/
+
+# Configurações de servidor
+server_config/
+nginx.conf
+apache.conf
+
+# Certificados SSL
+*.crt
+*.csr
+*.pem
+ssl/
+
+# ============================================
+# 🔒 SEGURANÇA ADICIONAL
+# ============================================
+
+# Arquivos de auditoria
+audit_logs/
+security_logs/
+
+# Dados de pacientes (HIPAA/LGPD)
+patient_data/
+dados_pacientes/
+informacoes_sensiveis/
+
+# Backup de dados sensíveis
+backup_sensitive/
+dados_backup/
+
+# ============================================
+# 📋 ARQUIVOS TEMPORÁRIOS DO PROJETO
+# ============================================
+
+# Arquivos de desenvolvimento temporário
+*.tmp
+*.temp
+*.bak
+*.old
+*.orig
+
+# Cache de aplicação
+.cache/
+cache/
+
+# Arquivos de configuração local
+local_config.py
+dev_config.py
+
+# ============================================
+# 📝 NOTAS E DOCUMENTAÇÃO TEMPORÁRIA
+# ============================================
+
+# Notas pessoais
+notes/
+TODO.md
+NOTES.md
+*.note
+
+# Documentação em desenvolvimento
+docs_temp/
+documentation_temp/
+
+# ============================================
+# 🎯 ARQUIVOS ESPECÍFICOS DO PHARM-ASSIST
+# ============================================
+
+# Dados da ANVISA (se contiverem informações sensíveis)
+DADOS_ABERTOS_MEDICAMENTOS.csv
+# Descomente a linha acima se o arquivo CSV contiver dados sensíveis
+
+# Arquivos de configuração específicos
+pharm_config.py
+anvisa_config.py
+
+# Logs específicos da aplicação
+pharm_assist.log
+triagem.log
+medicamentos.log
+
+# Backup específico
+pharm_backup/
+triagem_backup/
+
+# ============================================
+# ⚠️ IMPORTANTE - LEIA ANTES DE COMMITAR
+# ============================================
+
+# Este arquivo .gitignore foi criado para proteger:
+# 1. Dados sensíveis de pacientes (LGPD)
+# 2. Credenciais de banco de dados
+# 3. Chaves de API e tokens
+# 4. Configurações de produção
+# 5. Dados de desenvolvimento local
+# 6. Arquivos temporários e cache
+
+# ANTES DE FAZER COMMIT:
+# - Verifique se não há dados sensíveis nos arquivos
+# - Confirme que as configurações estão usando variáveis de ambiente
+# - Teste se o .env.example contém todas as variáveis necessárias
+# - Certifique-se de que não há credenciais hardcoded no código
+
+# Para mais informações sobre segurança, consulte:
+# - README.md (seção de segurança)
+# - Documentação do projeto
+# - Políticas de privacidade da aplicação

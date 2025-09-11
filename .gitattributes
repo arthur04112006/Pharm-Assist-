@@ -1,0 +1,245 @@
+# ============================================
+# Pharm-Assist - Configurações do Git
+# ============================================
+
+# ============================================
+# 📝 ARQUIVOS DE TEXTO
+# ============================================
+
+# Arquivos Python
+*.py text eol=lf
+
+# Arquivos de configuração
+*.md text eol=lf
+*.txt text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.json text eol=lf
+*.xml text eol=lf
+*.html text eol=lf
+*.css text eol=lf
+*.js text eol=lf
+
+# Arquivos de documentação
+README.md text eol=lf
+SECURITY.md text eol=lf
+CONTRIBUTING.md text eol=lf
+LICENSE text eol=lf
+
+# ============================================
+# 🐍 PYTHON
+# ============================================
+
+# Arquivos Python são texto
+*.py text diff=python
+
+# Arquivos de configuração Python
+requirements.txt text eol=lf
+setup.py text eol=lf
+setup.cfg text eol=lf
+pyproject.toml text eol=lf
+
+# Arquivos de ambiente
+.env.example text eol=lf
+.env text eol=lf
+
+# ============================================
+# 🌐 WEB E FRONTEND
+# ============================================
+
+# Templates HTML
+templates/*.html text eol=lf
+
+# Arquivos CSS
+*.css text eol=lf
+
+# Arquivos JavaScript
+*.js text eol=lf
+
+# ============================================
+# 🗄️ BANCO DE DADOS
+# ============================================
+
+# Arquivos SQL
+*.sql text eol=lf
+
+# Bancos SQLite (binários)
+*.db binary
+*.sqlite binary
+*.sqlite3 binary
+
+# ============================================
+# 📊 DADOS E ARQUIVOS
+# ============================================
+
+# Arquivos CSV
+*.csv text eol=lf
+
+# Arquivos de dados
+DADOS_ABERTOS_MEDICAMENTOS.csv text eol=lf
+
+# ============================================
+# 📄 DOCUMENTOS E RELATÓRIOS
+# ============================================
+
+# PDFs são binários
+*.pdf binary
+
+# Documentos Word
+*.docx binary
+*.doc binary
+
+# Planilhas Excel
+*.xlsx binary
+*.xls binary
+
+# ============================================
+# 🖼️ IMAGENS E MÍDIA
+# ============================================
+
+# Imagens
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.svg binary
+*.ico binary
+*.bmp binary
+*.tiff binary
+*.webp binary
+
+# ============================================
+# 📦 ARQUIVOS COMPACTADOS
+# ============================================
+
+# Arquivos ZIP
+*.zip binary
+*.tar binary
+*.gz binary
+*.rar binary
+*.7z binary
+
+# ============================================
+# 🔧 CONFIGURAÇÕES DO SISTEMA
+# ============================================
+
+# Arquivos de configuração do Git
+.gitignore text eol=lf
+.gitattributes text eol=lf
+
+# Arquivos de configuração do sistema
+*.ini text eol=lf
+*.cfg text eol=lf
+*.conf text eol=lf
+
+# ============================================
+# 🚀 DEPLOY E PRODUÇÃO
+# ============================================
+
+# Docker
+Dockerfile text eol=lf
+docker-compose.yml text eol=lf
+.dockerignore text eol=lf
+
+# Scripts de instalação
+install.sh text eol=lf
+deploy.sh text eol=lf
+
+# ============================================
+# 🧪 TESTES E QUALIDADE
+# ============================================
+
+# Arquivos de teste
+test_*.py text eol=lf
+*_test.py text eol=lf
+tests/*.py text eol=lf
+
+# Configurações de teste
+pytest.ini text eol=lf
+tox.ini text eol=lf
+.coverage text eol=lf
+
+# ============================================
+# 📋 LOGS E TEMPORÁRIOS
+# ============================================
+
+# Arquivos de log (texto, mas podem ser grandes)
+*.log text eol=lf
+
+# Arquivos temporários
+*.tmp text eol=lf
+*.temp text eol=lf
+*.bak text eol=lf
+*.swp text eol=lf
+*.swo text eol=lf
+
+# ============================================
+# 🔒 SEGURANÇA
+# ============================================
+
+# Arquivos de chaves (binários)
+*.key binary
+*.pem binary
+*.p12 binary
+*.pfx binary
+
+# Certificados
+*.crt binary
+*.csr binary
+
+# ============================================
+# 📁 DIRETÓRIOS ESPECIAIS
+# ============================================
+
+# Diretórios que devem ser ignorados
+instance/ export-ignore
+__pycache__/ export-ignore
+*.egg-info/ export-ignore
+.pytest_cache/ export-ignore
+.coverage export-ignore
+
+# Diretórios de desenvolvimento
+venv/ export-ignore
+env/ export-ignore
+.env/ export-ignore
+
+# ============================================
+# 🌍 CONFIGURAÇÕES DE LINGUAGEM
+# ============================================
+
+# Detectar linguagem automaticamente
+*.py linguist-language=Python
+*.html linguist-language=HTML
+*.css linguist-language=CSS
+*.js linguist-language=JavaScript
+*.md linguist-language=Markdown
+*.sql linguist-language=SQL
+
+# Arquivos que não devem ser contados no tamanho do repositório
+*.csv linguist-generated=true
+DADOS_ABERTOS_MEDICAMENTOS.csv linguist-generated=true
+
+# ============================================
+# 📊 MÉTRICAS E ANÁLISE
+# ============================================
+
+# Arquivos grandes que podem impactar performance
+*.csv filter=lfs diff=lfs merge=lfs -text
+*.db filter=lfs diff=lfs merge=lfs -text
+*.sqlite filter=lfs diff=lfs merge=lfs -text
+
+# ============================================
+# ⚠️ NOTAS IMPORTANTES
+# ============================================
+
+# Este arquivo garante que:
+# 1. Arquivos de texto usem LF (Linux/Mac) como quebra de linha
+# 2. Arquivos binários sejam tratados corretamente
+# 3. Linguagens sejam detectadas automaticamente
+# 4. Arquivos grandes usem Git LFS quando necessário
+# 5. Diretórios sensíveis não sejam incluídos em releases
+
+# Para ativar Git LFS (se necessário):
+# git lfs install
+# git lfs track "*.csv"
+# git lfs track "*.db"

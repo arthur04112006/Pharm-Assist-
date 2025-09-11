@@ -1,0 +1,48 @@
+MIT License
+
+Copyright (c) 2024 Pharm-Assist - Sistema de Triagem Farmacêutica
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+---
+
+## 📋 Informações Adicionais
+
+### 🏛️ **Projeto Acadêmico**
+Este software foi desenvolvido como **Projeto Integrador** da matéria de **Inteligência Artificial** do **Segundo Semestre** do curso de **Inteligência Artificial** da **Faculdade Donaduzzi**.
+
+### 🏢 **Parceiro Institucional**
+Desenvolvido em parceria com a **Prefeitura de Toledo - Paraná** para modernizar e otimizar o sistema de triagem farmacêutica da rede pública de saúde do município.
+
+### 🔒 **Aviso de Segurança**
+Este software lida com dados de saúde sensíveis. Ao usar este software, você concorda em:
+- Cumprir todas as leis de proteção de dados aplicáveis (LGPD)
+- Manter a confidencialidade dos dados dos pacientes
+- Implementar medidas de segurança adequadas
+- Não usar este software para fins comerciais sem autorização
+
+### 📞 **Contato**
+Para questões sobre o uso deste software ou solicitações de licenciamento comercial, entre em contato com a equipe de desenvolvimento através do repositório GitHub.
+
+### 🌟 **Reconhecimentos**
+Agradecimentos especiais à **ANVISA** pelos dados abertos de medicamentos utilizados neste projeto, que são disponibilizados sob licenças específicas da ANVISA.
+
+---
+
+**Última atualização**: Dezembro 2024
