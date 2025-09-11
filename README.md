@@ -174,7 +174,21 @@ python app.py
 pharm-assist/
 ├── 📁 app.py                          # Aplicação Flask principal (otimizada)
 ├── 📁 models.py                       # Modelos do banco de dados (com índices)
-├── 📁 triagem_engine.py               # Motor de triagem inteligente (com cache)
+├── 📁 motor_de_perguntas/             # Módulos de perguntas por sintoma (estrutura inicial)
+│   ├── __init__.py
+│   ├── espirro_congestao_nasal.py
+│   ├── dor_lombar.py
+│   ├── dor_garganta.py
+│   ├── dismenorreia.py
+│   ├── febre.py
+│   ├── infeccoes_fungicas.py
+│   ├── dor_cabeca.py
+│   ├── azia_ma_digestao.py
+│   ├── queimadura_solar.py
+│   ├── constipacao.py
+│   ├── hemorroidas.py
+│   ├── diarreia.py
+│   └── tosse.py
 ├── 📁 report_generator.py             # Gerador de relatórios PDF (comentado)
 ├── 📁 config.py                       # Configurações do sistema
 ├── 📁 run.py                          # Script de execução

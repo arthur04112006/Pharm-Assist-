@@ -83,6 +83,36 @@
     </div>
 </div>
 
+<!-- Seleção de Módulo (Sintoma) -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-ui-radios-grid text-primary me-2"></i>
+                    Selecionar Módulo de Perguntas (Sintoma)
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-6">
+                        <label for="moduloSelect" class="form-label">Módulo</label>
+                        <select id="moduloSelect" class="form-select">
+                            <option value="">-- selecione --</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <a id="continuarBtn" href="{{ url_for('buscar_paciente_triagem') }}" class="btn btn-primary disabled" aria-disabled="true">
+                            Continuar para Seleção de Paciente
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+</div>
+
 <!-- Ações Principais -->
 <div class="row mb-4">
     <div class="col-md-6 mb-3">
@@ -641,4 +671,46 @@
         }
     }
 </style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Carregar módulos do backend e habilitar o fluxo
+document.addEventListener('DOMContentLoaded', async function() {
+  try {
+    const res = await fetch('/api/triagem/modulos');
+    const mods = await res.json();
+    const select = document.getElementById('moduloSelect');
+    if (select) {
+      select.innerHTML = '<option value="">-- selecione --</option>' + mods.map(m => `<option value="${m.slug}">${m.nome}</option>`).join('');
+      select.addEventListener('change', function() {
+        const slug = this.value;
+        const btn = document.getElementById('continuarBtn');
+        if (slug) {
+          btn.classList.remove('disabled');
+          btn.setAttribute('aria-disabled', 'false');
+          // Levar o slug como querystring para a próxima etapa
+          btn.href = `{{ url_for('buscar_paciente_triagem') }}?q=&modulo=${encodeURIComponent(slug)}`;
+          // Persistir escolha localmente
+          localStorage.setItem('triagem_modulo_slug', slug);
+        } else {
+          btn.classList.add('disabled');
+          btn.setAttribute('aria-disabled', 'true');
+          btn.href = '{{ url_for('buscar_paciente_triagem') }}';
+          localStorage.removeItem('triagem_modulo_slug');
+        }
+      });
+      // Restaura seleção prévia se existir
+      const saved = localStorage.getItem('triagem_modulo_slug');
+      if (saved) {
+        select.value = saved;
+        const event = new Event('change');
+        select.dispatchEvent(event);
+      }
+    }
+  } catch (e) {
+    console.error('Erro ao carregar módulos', e);
+  }
+});
+</script>
 {% endblock %}

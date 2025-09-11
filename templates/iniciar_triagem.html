@@ -89,6 +89,30 @@
     </div>
 </div>
 
+<!-- Seleção de Módulo (fallback aqui caso usuário venha sem seleção) -->
+<div class="row mb-3">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-6">
+                        <label class="form-label">Módulo (sintoma)</label>
+                        <select id="moduloSelectIniciar" class="form-select">
+                            <option value="">-- selecione --</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <button type="button" id="carregarModuloBtn" class="btn btn-primary">
+                            Carregar Perguntas do Módulo
+                        </button>
+                    </div>
+                </div>
+                <small class="text-muted">Selecione um módulo caso as perguntas oficiais não tenham sido carregadas automaticamente.</small>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Progresso da Triagem -->
 <div class="row mb-4">
     <div class="col-12">
@@ -96,7 +120,7 @@
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center mb-2">
                     <h6 class="card-title mb-0">Progresso da Triagem</h6>
-                    <span class="badge bg-primary" id="progress-text">0 de {{ perguntas|length }}</span>
+                    <span class="badge bg-primary" id="progress-text">0 de 0</span>
                 </div>
                 <div class="progress">
                     <div class="progress-bar progress-bar-striped progress-bar-animated" 
@@ -184,24 +208,65 @@
 <script>
 // Variáveis globais
 let currentQuestionIndex = 0;
-let questions = [
-    {% for pergunta in perguntas %}
-    {
-        id: {{ pergunta.id }},
-        texto: "{{ pergunta.texto|replace('"', '\\"') }}",
-        tipo: "{{ pergunta.tipo }}",
-        ordem: {{ pergunta.ordem }}
-    }{% if not loop.last %},{% endif %}
-    {% endfor %}
-];
+const moduloSlug = "{{ modulo or '' }}";
+let questions = [];
 let answers = {};
 let totalQuestions = questions.length;
 
 // Inicializar triagem
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
+    // Se um módulo (sintoma) foi selecionado, carregar perguntas oficiais via API
+    let slug = moduloSlug;
+    if (!slug) {
+        // fallback: recuperar do localStorage (quando veio direto sem querystring)
+        slug = localStorage.getItem('triagem_modulo_slug') || '';
+    }
+    // Popular lista de módulos no fallback selector
+    try {
+        const resMods = await fetch('/api/triagem/modulos');
+        const mods = await resMods.json();
+        const select = document.getElementById('moduloSelectIniciar');
+        if (select) {
+            select.innerHTML = '<option value="">-- selecione --</option>' + mods.map(m => `<option value="${m.slug}">${m.nome}</option>`).join('');
+            if (slug) select.value = slug;
+        }
+        const btn = document.getElementById('carregarModuloBtn');
+        if (btn && select) {
+            btn.addEventListener('click', async function() {
+                const chosen = select.value;
+                if (chosen) {
+                    localStorage.setItem('triagem_modulo_slug', chosen);
+                    await loadQuestionsFromModule(chosen);
+                    currentQuestionIndex = 0;
+                    loadQuestion(currentQuestionIndex);
+                    updateProgress();
+                }
+            });
+        }
+    } catch (e) {
+        console.error('Erro ao carregar lista de módulos', e);
+    }
+
+    if (slug) {
+        try {
+            await loadQuestionsFromModule(slug);
+        } catch (e) {
+            console.error('Erro ao carregar perguntas do módulo', e);
+        }
+    }
     loadQuestion(currentQuestionIndex);
     updateProgress();
 });
+
+async function loadQuestionsFromModule(slug) {
+    const res = await fetch(`/api/triagem/perguntas?modulo=${encodeURIComponent(slug)}`);
+    const data = await res.json();
+    if (data && data.success) {
+        questions = data.perguntas || [];
+        totalQuestions = questions.length;
+        currentQuestionIndex = 0;
+    }
+}
 
 // Carregar pergunta
 function loadQuestion(index) {
@@ -213,22 +278,11 @@ function loadQuestion(index) {
     let answerOptions = '';
     
     // Gerar opções de resposta baseadas no tipo de pergunta
-    if (question.tipo === 'geral' && question.texto.includes('intensidade')) {
-        // Escala de 1-10 para intensidade
-        for (let i = 1; i <= 10; i++) {
-            const selected = answers[question.id] === i.toString() ? 'selected' : '';
-            answerOptions += `
-                <div class="col-md-2 mb-2">
-                    <div class="answer-option border rounded p-3 text-center ${selected}" 
-                         onclick="selectAnswer(${question.id}, '${i}')">
-                        <strong>${i}</strong>
-                        <br><small>${i <= 3 ? 'Leve' : i <= 6 ? 'Moderado' : i <= 8 ? 'Forte' : 'Muito Forte'}</small>
-                    </div>
-                </div>
-            `;
-        }
-    } else if (question.tipo === 'sintoma' || question.tipo === 'habito') {
-        // Sim/Não para sintomas e hábitos
+    const isBoolean = (question.tipo === 'boolean') || (question.tipo === 'sintoma') || (question.tipo === 'habito');
+    const isNumber = (question.tipo === 'number') || (question.tipo === 'geral' && question.texto.toLowerCase().includes('intensidade'));
+
+    if (isBoolean) {
+        // Sim/Não para boolean/sintomas/hábitos
         const options = [
             { value: 'sim', label: 'Sim', icon: 'bi-check-circle-fill', color: 'success' },
             { value: 'nao', label: 'Não', icon: 'bi-x-circle-fill', color: 'danger' }
@@ -239,20 +293,29 @@ function loadQuestion(index) {
             answerOptions += `
                 <div class="col-md-6">
                     <div class="answer-option border rounded p-4 text-center ${selected}" 
-                         onclick="selectAnswer(${question.id}, '${option.value}')">
+                         onclick="selectAnswer('${question.id}', '${option.value}')">
                         <i class="bi ${option.icon} fs-1 text-${option.color}"></i>
                         <br><strong>${option.label}</strong>
                     </div>
                 </div>
             `;
         });
+    } else if (isNumber) {
+        // Campo numérico genérico
+        const val = (answers[question.id] ?? '');
+        answerOptions = `
+            <div class="col-12">
+                <input type="number" class="form-control" value="${val}"
+                       placeholder="Digite um número" onchange="selectAnswer('${question.id}', this.value)" />
+            </div>
+        `;
     } else {
         // Campo de texto livre
         answerOptions = `
             <div class="col-12">
                 <textarea class="form-control" rows="3" 
                           placeholder="Digite sua resposta aqui..."
-                          onchange="selectAnswer(${question.id}, this.value)"
+                          onchange="selectAnswer('${question.id}', this.value)"
                           >${answers[question.id] || ''}</textarea>
             </div>
         `;
@@ -378,13 +441,7 @@ function confirmFinishTriagem() {
     loadingModal.show();
     
     // Preparar dados para envio
-    const respostas = [];
-    for (let questionId in answers) {
-        respostas.push({
-            pergunta_id: parseInt(questionId),
-            resposta: answers[questionId]
-        });
-    }
+    const respostas = Object.keys(answers).map(qid => ({ pergunta_id: qid, resposta: answers[qid] }));
     
     // Enviar dados para o servidor
     fetch('{{ url_for("processar_triagem") }}', {

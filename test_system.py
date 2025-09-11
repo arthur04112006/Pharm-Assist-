@@ -53,17 +53,30 @@ def test_models():
         print(f"❌ Erro ao importar modelos: {e}")
         return False
 
-def test_triagem_engine():
-    """Testa se o motor de triagem pode ser importado"""
-    print("\n🔍 Testando motor de triagem...")
+def test_motor_de_perguntas():
+    """Testa se o pacote motor_de_perguntas pode ser importado"""
+    print("\n🔍 Testando motor_de_perguntas...")
     
     try:
-        from triagem_engine import TriagemEngine
-        engine = TriagemEngine()
-        print("✅ Motor de triagem criado com sucesso")
+        from motor_de_perguntas import (
+            espirro_congestao_nasal,
+            dor_lombar,
+            dor_garganta,
+            dismenorreia,
+            febre,
+            infeccoes_fungicas,
+            dor_cabeca,
+            azia_ma_digestao,
+            queimadura_solar,
+            constipacao,
+            hemorroidas,
+            diarreia,
+            tosse,
+        )
+        print("✅ Pacote motor_de_perguntas importado com sucesso")
         return True
     except Exception as e:
-        print(f"❌ Erro ao criar motor de triagem: {e}")
+        print(f"❌ Erro ao importar motor_de_perguntas: {e}")
         return False
 
 def test_report_generator():
@@ -124,7 +137,8 @@ def test_files():
     required_files = [
         'app.py',
         'models.py',
-        'triagem_engine.py',
+        'motor_de_perguntas/__init__.py',
+        'motor_de_perguntas/espirro_congestao_nasal.py',
         'report_generator.py',
         'config.py',
         'requirements.txt',
@@ -155,7 +169,7 @@ def main():
     tests = [
         ("Importações", test_imports),
         ("Modelos", test_models),
-        ("Motor de Triagem", test_triagem_engine),
+        ("Motor de Perguntas", test_motor_de_perguntas),
         ("Gerador de Relatórios", test_report_generator),
         ("Configuração", test_config),
         ("Diretórios", test_directories),

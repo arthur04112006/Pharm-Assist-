@@ -15,13 +15,13 @@ Funcionalidades:
 from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, send_file
 from flask_sqlalchemy import SQLAlchemy
 from models import db, Paciente, DoencaCronica, PacienteDoenca, Sintoma, Pergunta, Medicamento, Consulta, ConsultaResposta, ConsultaRecomendacao
-from triagem_engine import TriagemEngine
 from report_generator import ReportGenerator
 from config import Config
 import os
 from datetime import datetime, timedelta
 import json
 from functools import lru_cache
+from perguntas_extractor import list_modules as list_motor_modulos, extract_questions_for_module
 
 # Inicialização da aplicação
 app = Flask(__name__)
@@ -31,7 +31,6 @@ app.config.from_object(Config)
 db.init_app(app)
 
 # Inicializar componentes
-triagem_engine = TriagemEngine()
 report_generator = ReportGenerator()
 
 # Criar diretórios necessários
@@ -521,7 +520,9 @@ def novo_paciente_triagem():
 def iniciar_triagem(paciente_id):
     """Iniciar triagem para um paciente"""
     paciente = Paciente.query.get_or_404(paciente_id)
-    
+    # Capturar módulo selecionado (opcional) via querystring
+    modulo = request.args.get('modulo', '').strip()
+
     # Buscar perguntas ativas ou criar perguntas padrão se não existirem
     perguntas = get_perguntas_ativas()
     
@@ -547,7 +548,7 @@ def iniciar_triagem(paciente_id):
         db.session.commit()
         perguntas = get_perguntas_ativas()
     
-    return render_template('iniciar_triagem.html', paciente=paciente, perguntas=perguntas)
+    return render_template('iniciar_triagem.html', paciente=paciente, perguntas=perguntas, modulo=modulo)
 
 @app.route('/triagem/processar', methods=['POST'])
 def processar_triagem():
@@ -570,16 +571,37 @@ def processar_triagem():
         db.session.commit()
         
         # Salvar respostas
+        # Persistir respostas dinâmicas (id_pergunta pode ser slug string). Armazenar como texto no campo resposta e usar pergunta_texto separado? 
+        # Para compatibilidade, vamos guardar o id (string) junto com a resposta no campo resposta.
         for resposta_data in respostas:
-            resposta = ConsultaResposta(
-                id_consulta=consulta.id,
-                id_pergunta=resposta_data['pergunta_id'],
-                resposta=resposta_data['resposta']
-            )
-            db.session.add(resposta)
+            try:
+                pergunta_id = int(resposta_data['pergunta_id'])
+            except Exception:
+                pergunta_id = None
+
+            resposta_texto = resposta_data['resposta']
+
+            if pergunta_id is not None:
+                resp = ConsultaResposta(
+                    id_consulta=consulta.id,
+                    id_pergunta=pergunta_id,
+                    resposta=resposta_texto
+                )
+                db.session.add(resp)
+            else:
+                # Fallback: quando não há id numérico, apenas registrar como observação agregada
+                if not consulta.observacoes:
+                    consulta.observacoes = ''
+                consulta.observacoes += f"\n{resposta_data['pergunta_id']}: {resposta_texto}"
         
-        # Processar triagem
-        triagem_result = triagem_engine.analisar_respostas(respostas, paciente_data)
+        # Processar triagem (placeholder)
+        triagem_result = {
+            'encaminhamento_medico': False,
+            'motivo_encaminhamento': None,
+            'recomendacoes_medicamentos': [],
+            'recomendacoes_nao_farmacologicas': [],
+            'observacoes': ['Triagem em desenvolvimento.']
+        }
         
         # Atualizar consulta com resultado
         consulta.encaminhamento = triagem_result['encaminhamento_medico']
@@ -808,6 +830,26 @@ def api_perguntas():
     """API para buscar perguntas ativas"""
     perguntas = get_perguntas_ativas()
     return jsonify([p.to_dict() for p in perguntas])
+
+@app.route('/api/triagem/modulos')
+def api_triagem_modulos():
+    """Lista módulos disponíveis no motor_de_perguntas"""
+    mods = list_motor_modulos()
+    return jsonify(mods)
+
+@app.route('/api/triagem/perguntas')
+def api_triagem_perguntas():
+    """Retorna perguntas do módulo informado (slug) extraídas via AST"""
+    slug = request.args.get('modulo', '').strip()
+    if not slug:
+        return jsonify({'success': False, 'error': 'Parâmetro modulo é obrigatório'}), 400
+    try:
+        questions = extract_questions_for_module(slug)
+        return jsonify({'success': True, 'modulo': slug, 'perguntas': questions})
+    except FileNotFoundError:
+        return jsonify({'success': False, 'error': 'Módulo não encontrado'}), 404
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/sintomas')
 def api_sintomas():
