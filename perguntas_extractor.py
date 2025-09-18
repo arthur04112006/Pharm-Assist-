@@ -44,6 +44,28 @@ def list_modules() -> List[Dict[str, str]]:
     return items
 
 
+def get_patient_profile_from_cadastro(paciente_data: dict) -> dict:
+    """Converte dados do cadastro do paciente para o formato usado pelos motores de perguntas."""
+    profile = {
+        'age_years': paciente_data.get('idade', 0),
+        'age_months': paciente_data.get('idade', 0) * 12,  # conversão aproximada
+        'is_pregnant_or_lactating': False,  # será inferido se necessário
+        'is_frail_elderly': paciente_data.get('idade', 0) >= 75,
+        'is_immunocompromised': False,  # não está no cadastro atual
+        'sexo': paciente_data.get('sexo', ''),
+        'peso': paciente_data.get('peso'),
+        'altura': paciente_data.get('altura')
+    }
+    
+    # Inferir gestação/lactação baseado no sexo e idade
+    if paciente_data.get('sexo') == 'F' and 15 <= paciente_data.get('idade', 0) <= 50:
+        # Para mulheres em idade fértil, assumir que não está grávida por padrão
+        # O sistema pode perguntar especificamente se necessário
+        profile['is_pregnant_or_lactating'] = False
+    
+    return profile
+
+
 def _is_call_to(node: ast.AST, func_name: str) -> bool:
     return isinstance(node, ast.Call) and (
         (isinstance(node.func, ast.Name) and node.func.id == func_name) or
@@ -111,7 +133,59 @@ def _attach_parents(node: ast.AST):
         _attach_parents(child)
 
 
-def extract_questions_for_module(slug: str) -> List[Dict[str, object]]:
+def _is_unnecessary_question(texto: str) -> bool:
+    """Verifica se a pergunta é desnecessária pois o dado já está no cadastro do paciente."""
+    texto_lower = texto.lower()
+    
+    # Perguntas sobre idade
+    if any(phrase in texto_lower for phrase in [
+        'idade (anos)', 'idade em anos', 'idade em meses', 'anos', 'meses'
+    ]):
+        return True
+    
+    # Perguntas sobre gestação/lactação (pode ser inferido do sexo e idade)
+    if any(phrase in texto_lower for phrase in [
+        'gestante', 'lactante', 'gestação', 'lactação', 'puérpera'
+    ]):
+        return True
+    
+    # Perguntas sobre idoso frágil (pode ser inferido da idade ≥75)
+    if any(phrase in texto_lower for phrase in [
+        'idoso frágil', 'idoso', 'dependência', 'alta vulnerabilidade'
+    ]):
+        return True
+    
+    return False
+
+
+def _get_question_weight(slug: str, question_text: str, order: int) -> Dict[str, object]:
+    """Obtém informações de peso para uma pergunta específica"""
+    from triagem_scoring import scoring_system
+    
+    question_id = f"{slug}_{order}"
+    
+    # Buscar peso da pergunta no sistema de pontuação
+    if question_id in scoring_system.question_weights:
+        weight_info = scoring_system.question_weights[question_id]
+        return {
+            'peso': weight_info.weight,
+            'categoria': weight_info.category,
+            'critica': weight_info.critical,
+            'indication': 'farmacologico' if weight_info.weight > 1.5 else 'nao_farmacologico'
+        }
+    
+    # Valores padrão baseados no tipo de pergunta
+    if 'duração' in question_text.lower() or 'dias' in question_text.lower():
+        return {'peso': 2.0, 'categoria': 'duracao', 'critica': False, 'indication': 'farmacologico'}
+    elif 'febre' in question_text.lower() or 'sangue' in question_text.lower() or 'dor' in question_text.lower():
+        return {'peso': 2.5, 'categoria': 'gravidade', 'critica': True, 'indication': 'farmacologico'}
+    elif 'histórico' in question_text.lower() or 'uso' in question_text.lower():
+        return {'peso': 1.5, 'categoria': 'historico', 'critica': False, 'indication': 'farmacologico'}
+    else:
+        return {'peso': 1.0, 'categoria': 'sintoma', 'critica': False, 'indication': 'nao_farmacologico'}
+
+
+def extract_questions_for_module(slug: str, filter_unnecessary: bool = True) -> List[Dict[str, object]]:
     """Extrai perguntas em ordem a partir de run_cli() de um módulo."""
     source = _read_module_source(slug)
     tree = ast.parse(source)
@@ -139,17 +213,31 @@ def extract_questions_for_module(slug: str) -> List[Dict[str, object]]:
             texto = _extract_literal_from_call(call)
             if not texto:
                 continue
+            
+            # Filtrar perguntas desnecessárias se solicitado
+            if filter_unnecessary and _is_unnecessary_question(texto):
+                continue
+                
             qtype = _infer_type_from_call(call)
+            order = len(questions) + 1
+            
+            # Obter informações de peso
+            weight_info = _get_question_weight(slug, texto, order)
+            
             questions.append({
-                'id': f"{slug}_{len(questions)+1}",
+                'id': f"{slug}_{order}",
                 'modulo': slug,
-                'ordem': len(questions) + 1,
+                'ordem': order,
                 'texto': texto,
                 'tipo': qtype,
                 'required': True,
                 'placeholder': None,
                 'opcoes': None,
-                'grupo': 'etapa'
+                'grupo': 'etapa',
+                'peso': weight_info['peso'],
+                'categoria': weight_info['categoria'],
+                'critica': weight_info['critica'],
+                'indication': weight_info['indication']
             })
 
     return questions

@@ -42,6 +42,28 @@
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
     }
+    
+    .btn-outline-secondary:hover:not(.disabled) {
+        background-color: #6c757d;
+        border-color: #6c757d;
+        color: white;
+    }
+    
+    .btn-outline-secondary.disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+    
+    .btn-primary:hover {
+        background-color: #0b5ed7;
+        border-color: #0a58ca;
+    }
+    
+    #question-counter {
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-weight: 600;
+    }
 </style>
 {% endblock %}
 
@@ -89,6 +111,13 @@
     </div>
 </div>
 
+<!-- Container para informações do perfil do paciente (preenchido dinamicamente) -->
+<div id="patient-info" class="row mb-3" style="display: none;">
+    <div class="col-12">
+        <!-- Informações do perfil serão inseridas aqui via JavaScript -->
+    </div>
+</div>
+
 <!-- Seleção de Módulo (fallback aqui caso usuário venha sem seleção) -->
 <div class="row mb-3">
     <div class="col-12">
@@ -133,6 +162,45 @@
     </div>
 </div>
 
+<!-- Painel de Pontuação em Tempo Real -->
+<div class="row mb-3" id="scoring-panel" style="display: none;">
+    <div class="col-12">
+        <div class="card border-info">
+            <div class="card-header bg-info text-white">
+                <h6 class="mb-0"><i class="bi bi-graph-up me-2"></i>Análise de Pontuação</h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <h5 class="text-primary mb-1" id="current-score">0.0</h5>
+                            <small class="text-muted">Pontuação Atual</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <h5 class="text-warning mb-1" id="risk-level">Baixo</h5>
+                            <small class="text-muted">Nível de Risco</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <h5 class="text-success mb-1" id="answered-count">0</h5>
+                            <small class="text-muted">Perguntas Respondidas</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <h5 class="text-info mb-1" id="confidence">0%</h5>
+                            <small class="text-muted">Confiança</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Container das Perguntas -->
 <div class="row">
     <div class="col-12">
@@ -144,14 +212,26 @@
                 
                 <!-- Botões de Navegação -->
                 <div class="row mt-4" id="navigation-buttons" style="display: none;">
-                    <div class="col-6">
-                        <button type="button" class="btn btn-secondary w-100" id="prev-btn" onclick="previousQuestion()">
-                            <i class="bi bi-arrow-left"></i> Anterior
+                    <div class="col-4">
+                        <button type="button" class="btn btn-outline-secondary w-100" id="prev-btn" onclick="previousQuestion()">
+                            <i class="bi bi-chevron-left"></i> Anterior
+                            <small class="d-block text-muted">← Seta</small>
                         </button>
                     </div>
-                    <div class="col-6">
+                    <div class="col-4 text-center">
+                        <span class="badge bg-light text-dark fs-6" id="question-counter">
+                            ${currentQuestionIndex + 1} de ${totalQuestions}
+                        </span>
+                        <div class="mt-1">
+                            <small class="text-muted">
+                                <i class="bi bi-keyboard"></i> Use as setas do teclado
+                            </small>
+                        </div>
+                    </div>
+                    <div class="col-4">
                         <button type="button" class="btn btn-primary w-100" id="next-btn" onclick="nextQuestion()">
-                            Próxima <i class="bi bi-arrow-right"></i>
+                            Próxima <i class="bi bi-chevron-right"></i>
+                            <small class="d-block text-white-50">Seta →</small>
                         </button>
                     </div>
                 </div>
@@ -159,8 +239,12 @@
                 <!-- Botão Finalizar -->
                 <div class="row mt-4" id="finish-section" style="display: none;">
                     <div class="col-12 text-center">
-                        <button type="button" class="btn btn-success btn-lg" onclick="finishTriagem()">
-                            <i class="bi bi-check-circle"></i> Finalizar Triagem
+                        <div class="alert alert-info mb-3">
+                            <i class="bi bi-info-circle me-2"></i>
+                            <strong>Última pergunta!</strong> Verifique suas respostas antes de finalizar.
+                        </div>
+                        <button type="button" class="btn btn-success btn-lg px-5" onclick="finishTriagem()">
+                            <i class="bi bi-check-circle-fill me-2"></i> Finalizar Triagem
                         </button>
                     </div>
                 </div>
@@ -215,6 +299,16 @@ let totalQuestions = questions.length;
 
 // Inicializar triagem
 document.addEventListener('DOMContentLoaded', async function() {
+    // Adicionar atalhos de teclado
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'ArrowLeft' && !document.getElementById('prev-btn').disabled) {
+            previousQuestion();
+        } else if (e.key === 'ArrowRight' && document.getElementById('next-btn').style.display !== 'none') {
+            nextQuestion();
+        } else if (e.key === 'Enter' && document.getElementById('finish-section').style.display !== 'none') {
+            finishTriagem();
+        }
+    });
     // Se um módulo (sintoma) foi selecionado, carregar perguntas oficiais via API
     let slug = moduloSlug;
     if (!slug) {
@@ -259,12 +353,49 @@ document.addEventListener('DOMContentLoaded', async function() {
 });
 
 async function loadQuestionsFromModule(slug) {
-    const res = await fetch(`/api/triagem/perguntas?modulo=${encodeURIComponent(slug)}`);
+    const pacienteId = {{ paciente.id }};
+    const res = await fetch(`/api/triagem/perguntas?modulo=${encodeURIComponent(slug)}&paciente_id=${pacienteId}&filter_unnecessary=true`);
     const data = await res.json();
     if (data && data.success) {
         questions = data.perguntas || [];
         totalQuestions = questions.length;
         currentQuestionIndex = 0;
+        
+        // Exibir informações do perfil do paciente se disponível
+        if (data.patient_profile) {
+            console.log('Perfil do paciente:', data.patient_profile);
+            // Aqui você pode exibir informações como idade, sexo, etc. na interface
+            displayPatientInfo(data.patient_profile);
+        }
+        
+        // Exibir mensagem se perguntas foram filtradas
+        if (data.filtered) {
+            console.log('Perguntas desnecessárias foram filtradas baseadas no cadastro do paciente');
+        }
+        
+        // Inicializar painel de pontuação
+        calculateRealTimeScore();
+        
+        // Carregar pergunta inicial
+        loadQuestion(0);
+        updateProgress();
+    }
+}
+
+function displayPatientInfo(profile) {
+    // Exibir informações do perfil do paciente na interface
+    const infoContainer = document.getElementById('patient-info');
+    if (infoContainer) {
+        infoContainer.innerHTML = `
+            <div class="col-12">
+                <div class="alert alert-success">
+                    <h6><i class="bi bi-check-circle me-2"></i>Perguntas Otimizadas</h6>
+                    <p class="mb-1">As perguntas foram filtradas automaticamente baseadas no cadastro do paciente.</p>
+                    <p class="mb-0"><strong>Dados utilizados:</strong> Idade (${profile.age_years} anos), Sexo (${profile.sexo === 'M' ? 'Masculino' : profile.sexo === 'F' ? 'Feminino' : 'Outro'})${profile.is_frail_elderly ? ', Perfil (Idoso frágil)' : ''}</p>
+                </div>
+            </div>
+        `;
+        infoContainer.style.display = 'block';
     }
 }
 
@@ -321,22 +452,34 @@ function loadQuestion(index) {
         `;
     }
     
+    // Verificar se a pergunta foi respondida
+    const isAnswered = answers[question.id] && answers[question.id].trim() !== '';
+    const statusBadge = isAnswered ? 
+        '<span class="badge bg-success ms-2"><i class="bi bi-check-circle"></i> Respondida</span>' : 
+        '<span class="badge bg-warning ms-2"><i class="bi bi-exclamation-circle"></i> Pendente</span>';
+    
+    // Informações de pontuação
+    const scoringInfo = question.scoring_info || {};
+    const weightBadge = scoringInfo.peso ? 
+        `<span class="badge bg-info ms-2" title="Peso da pergunta: ${scoringInfo.peso}">Peso: ${scoringInfo.peso}</span>` : '';
+    const categoryBadge = scoringInfo.categoria ? 
+        `<span class="badge bg-secondary ms-1" title="Categoria: ${scoringInfo.categoria}">${scoringInfo.categoria}</span>` : '';
+    const criticalBadge = scoringInfo.critica ? 
+        '<span class="badge bg-danger ms-1" title="Pergunta crítica - resposta positiva indica encaminhamento"><i class="bi bi-exclamation-triangle"></i> Crítica</span>' : '';
+    
     container.innerHTML = `
         <div class="question-card">
             <h4 class="mb-4">
                 <span class="badge bg-primary me-2">${index + 1}</span>
                 ${question.texto}
+                ${statusBadge}
+                ${weightBadge}
+                ${categoryBadge}
+                ${criticalBadge}
             </h4>
             
             <div class="row">
                 ${answerOptions}
-            </div>
-            
-            <div class="mt-4">
-                <small class="text-muted">
-                    <i class="bi bi-info-circle"></i>
-                    Tipo: ${question.tipo.charAt(0).toUpperCase() + question.tipo.slice(1)}
-                </small>
             </div>
         </div>
     `;
@@ -361,10 +504,23 @@ function selectAnswer(questionId, answer) {
     
     // Salvar resposta
     localStorage.setItem(`triagem_${questionId}`, answer);
+    
+    // Calcular pontuação em tempo real
+    calculateRealTimeScore();
+    
+    // Recarregar a pergunta para atualizar o status visual
+    loadQuestion(currentQuestionIndex);
 }
 
 // Navegar para próxima pergunta
 function nextQuestion() {
+    // Verificar se a pergunta atual foi respondida
+    const currentQuestion = questions[currentQuestionIndex];
+    if (currentQuestion && !answers[currentQuestion.id]) {
+        alert('Por favor, responda a pergunta atual antes de continuar.');
+        return;
+    }
+    
     if (currentQuestionIndex < totalQuestions - 1) {
         currentQuestionIndex++;
         loadQuestion(currentQuestionIndex);
@@ -387,13 +543,23 @@ function updateNavigationButtons() {
     const finishSection = document.getElementById('finish-section');
     const prevBtn = document.getElementById('prev-btn');
     const nextBtn = document.getElementById('next-btn');
+    const questionCounter = document.getElementById('question-counter');
     
-    if (currentQuestionIndex === 0) {
-        prevBtn.disabled = true;
-    } else {
-        prevBtn.disabled = false;
+    // Atualizar contador de perguntas
+    if (questionCounter) {
+        questionCounter.textContent = `${currentQuestionIndex + 1} de ${totalQuestions}`;
     }
     
+    // Configurar botão anterior
+    if (currentQuestionIndex === 0) {
+        prevBtn.disabled = true;
+        prevBtn.classList.add('disabled');
+    } else {
+        prevBtn.disabled = false;
+        prevBtn.classList.remove('disabled');
+    }
+    
+    // Configurar botão próxima/finalizar
     if (currentQuestionIndex === totalQuestions - 1) {
         nextBtn.style.display = 'none';
         finishSection.style.display = 'block';
@@ -414,6 +580,111 @@ function updateProgress() {
     progressBar.style.width = progress + '%';
     progressBar.setAttribute('aria-valuenow', progress);
     progressText.textContent = `${currentQuestionIndex + 1} de ${totalQuestions}`;
+}
+
+// Calcular pontuação em tempo real
+function calculateRealTimeScore() {
+    if (!questions || questions.length === 0) return;
+    
+    let totalScore = 0;
+    let answeredCount = 0;
+    let categoryScores = {
+        sintoma: 0,
+        gravidade: 0,
+        duracao: 0,
+        historico: 0,
+        perfil: 0
+    };
+    
+    // Calcular pontuação baseada nas respostas
+    questions.forEach(question => {
+        const answer = answers[question.id];
+        if (answer && answer.trim() !== '') {
+            answeredCount++;
+            
+            const scoringInfo = question.scoring_info || {};
+            const peso = scoringInfo.peso || 1.0;
+            const categoria = scoringInfo.categoria || 'sintoma';
+            
+            // Calcular peso da resposta
+            let answerWeight = 0.5; // neutro
+            if (answer.toLowerCase() === 'sim' || answer.toLowerCase() === 'yes') {
+                answerWeight = 1.0;
+            } else if (answer.toLowerCase() === 'não' || answer.toLowerCase() === 'no') {
+                answerWeight = 0.0;
+            } else if (!isNaN(answer)) {
+                // Resposta numérica
+                const numAnswer = parseFloat(answer);
+                if (numAnswer > 0) {
+                    answerWeight = Math.min(1.0, numAnswer / 10); // Normalizar para 0-1
+                }
+            }
+            
+            const questionScore = peso * answerWeight;
+            totalScore += questionScore;
+            
+            if (categoryScores[categoria] !== undefined) {
+                categoryScores[categoria] += questionScore;
+            }
+        }
+    });
+    
+    // Determinar nível de risco
+    let riskLevel = 'Baixo';
+    if (totalScore >= 25) {
+        riskLevel = 'Alto';
+    } else if (totalScore >= 15) {
+        riskLevel = 'Médio';
+    }
+    
+    // Calcular confiança
+    const confidence = totalQuestions > 0 ? Math.min(100, (answeredCount / totalQuestions) * 100) : 0;
+    
+    // Atualizar painel de pontuação
+    updateScoringPanel(totalScore, riskLevel, answeredCount, confidence);
+}
+
+// Atualizar painel de pontuação
+function updateScoringPanel(score, riskLevel, answeredCount, confidence) {
+    const scoringPanel = document.getElementById('scoring-panel');
+    const currentScoreEl = document.getElementById('current-score');
+    const riskLevelEl = document.getElementById('risk-level');
+    const answeredCountEl = document.getElementById('answered-count');
+    const confidenceEl = document.getElementById('confidence');
+    
+    if (scoringPanel) {
+        scoringPanel.style.display = 'block';
+    }
+    
+    if (currentScoreEl) {
+        currentScoreEl.textContent = score.toFixed(1);
+        // Mudar cor baseada na pontuação
+        currentScoreEl.className = 'text-primary mb-1';
+        if (score >= 25) {
+            currentScoreEl.className = 'text-danger mb-1';
+        } else if (score >= 15) {
+            currentScoreEl.className = 'text-warning mb-1';
+        }
+    }
+    
+    if (riskLevelEl) {
+        riskLevelEl.textContent = riskLevel;
+        // Mudar cor baseada no nível de risco
+        riskLevelEl.className = 'text-success mb-1';
+        if (riskLevel === 'Alto') {
+            riskLevelEl.className = 'text-danger mb-1';
+        } else if (riskLevel === 'Médio') {
+            riskLevelEl.className = 'text-warning mb-1';
+        }
+    }
+    
+    if (answeredCountEl) {
+        answeredCountEl.textContent = answeredCount;
+    }
+    
+    if (confidenceEl) {
+        confidenceEl.textContent = Math.round(confidence) + '%';
+    }
 }
 
 // Finalizar triagem
