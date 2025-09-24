@@ -124,11 +124,11 @@
                                         title="Visualizar detalhes">
                                     <i class="bi bi-eye"></i>
                                 </button>
-                                <button type="button" class="btn btn-sm btn-outline-warning"
-                                        onclick="alert('Funcionalidade de edição será implementada em breve.')"
-                                        title="Editar medicamento">
+                                <a href="{{ url_for('editar_medicamento', id=medicamento.id) }}" 
+                                   class="btn btn-sm btn-outline-warning"
+                                   title="Editar medicamento">
                                     <i class="bi bi-pencil"></i>
-                                </button>
+                                </a>
                                 <button type="button" class="btn btn-sm btn-outline-secondary"
                                         onclick="confirmarDesativacao({{ medicamento.id }})"
                                         title="Desativar medicamento">
@@ -264,10 +264,10 @@
                 {% endif %}
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-warning"
-                        onclick="alert('Funcionalidade de edição será implementada em breve.')">
+                <a href="{{ url_for('editar_medicamento', id=medicamento.id) }}" 
+                   class="btn btn-warning">
                     <i class="bi bi-pencil"></i> Editar
-                </button>
+                </a>
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
             </div>
         </div>

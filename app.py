@@ -414,6 +414,31 @@ def reativar_medicamento(id):
     
     return redirect(url_for('medicamentos_inativos'))
 
+@app.route('/medicamentos/<int:id>/editar', methods=['GET', 'POST'])
+def editar_medicamento(id):
+    """Editar dados de um medicamento"""
+    medicamento = Medicamento.query.get_or_404(id)
+    
+    if request.method == 'POST':
+        try:
+            # Atualizar dados do medicamento
+            medicamento.nome_comercial = request.form['nome_comercial']
+            medicamento.nome_generico = request.form.get('nome_generico')
+            medicamento.descricao = request.form.get('descricao')
+            medicamento.indicacao = request.form.get('indicacao')
+            medicamento.contraindicacao = request.form.get('contraindicacao')
+            medicamento.tipo = request.form['tipo']
+            
+            db.session.commit()
+            flash('Medicamento atualizado com sucesso!', 'success')
+            return redirect(url_for('medicamentos'))
+            
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Erro ao atualizar medicamento: {str(e)}', 'error')
+    
+    return render_template('editar_medicamento.html', medicamento=medicamento)
+
 @app.route('/triagem')
 def triagem():
     """Página inicial da triagem"""
