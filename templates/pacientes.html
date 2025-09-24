@@ -1,483 +1,338 @@
 {% extends "base.html" %}
 
-{% block title %}Pacientes - Pharm-Assist{% endblock %}
+{% block title %}Pacientes{% endblock %}
 
 {% block content %}
-<!-- Header Section -->
-<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-4">
-    <div>
-        <h1 class="h2 mb-2">
-            <i class="bi bi-people-fill text-primary me-3"></i>
-            Gerenciar Pacientes
-        </h1>
-        <p class="text-muted mb-0">Visualize e gerencie todos os pacientes cadastrados no sistema</p>
-    </div>
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom page-header">
+    <h1 class="h2">
+        <i class="bi bi-people text-primary"></i>
+        Pacientes
+    </h1>
     <div class="btn-toolbar mb-2 mb-md-0">
         <div class="btn-group me-2">
             <a href="{{ url_for('novo_paciente') }}" class="btn btn-primary">
-                <i class="bi bi-person-plus me-2"></i> Novo Paciente
+                <i class="bi bi-plus-circle"></i> Novo Paciente
             </a>
         </div>
     </div>
 </div>
 
-<!-- Estatísticas Rápidas -->
+<!-- Estatísticas -->
 <div class="row mb-4">
     <div class="col-md-3 mb-3">
-        <div class="stat-card patients">
-            <div class="stat-icon patients">
-                <i class="bi bi-people-fill"></i>
+        <div class="card text-center stats-card">
+            <div class="card-body">
+                <h5 class="card-title text-primary">{{ pacientes.total }}</h5>
+                <p class="card-text">Total de Pacientes</p>
             </div>
-            <div class="stat-value">{{ pacientes.total }}</div>
-            <div class="stat-label">Total de Pacientes</div>
         </div>
     </div>
     <div class="col-md-3 mb-3">
-        <div class="stat-card consultations">
-            <div class="stat-icon consultations">
-                <i class="bi bi-gender-male"></i>
+        <div class="card text-center stats-card">
+            <div class="card-body">
+                <h5 class="card-title text-success">{{ pacientes.items|selectattr('sexo', 'equalto', 'M')|list|length }}</h5>
+                <p class="card-text">Masculino</p>
             </div>
-            <div class="stat-value">{{ pacientes.items|selectattr('sexo', 'equalto', 'M')|list|length }}</div>
-            <div class="stat-label">Masculino</div>
         </div>
     </div>
     <div class="col-md-3 mb-3">
-        <div class="stat-card medicines">
-            <div class="stat-icon medicines">
-                <i class="bi bi-gender-female"></i>
+        <div class="card text-center stats-card">
+            <div class="card-body">
+                <h5 class="card-title text-warning">{{ pacientes.items|selectattr('sexo', 'equalto', 'F')|list|length }}</h5>
+                <p class="card-text">Feminino</p>
             </div>
-            <div class="stat-value">{{ pacientes.items|selectattr('sexo', 'equalto', 'F')|list|length }}</div>
-            <div class="stat-label">Feminino</div>
         </div>
     </div>
     <div class="col-md-3 mb-3">
-        <div class="stat-card referrals">
-            <div class="stat-icon referrals">
-                <i class="bi bi-clipboard-pulse"></i>
+        <div class="card text-center stats-card">
+            <div class="card-body">
+                <h5 class="card-title text-info">{{ pacientes.items|selectattr('consultas')|list|length }}</h5>
+                <p class="card-text">Com Consultas</p>
             </div>
-            <div class="stat-value">{{ pacientes.items|selectattr('consultas')|list|length }}</div>
-            <div class="stat-label">Com Consultas</div>
         </div>
     </div>
 </div>
 
-<!-- Filtros e Busca -->
+<!-- Busca -->
 <div class="row mb-4">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
-                    <i class="bi bi-funnel text-primary me-2"></i>
-                    Filtros e Busca
-                </h5>
-            </div>
-            <div class="card-body">
-                <form method="GET" class="row g-3">
-                    <div class="col-md-4">
-                        <label for="search" class="form-label">
-                            <i class="bi bi-search text-muted me-2"></i>Buscar por Nome
-                        </label>
-                        <input type="text" class="form-control" id="search" name="q" 
-                               value="{{ request.args.get('q', '') }}" placeholder="Digite o nome do paciente...">
-                    </div>
-                    <div class="col-md-3">
-                        <label for="age_filter" class="form-label">
-                            <i class="bi bi-calendar-range text-muted me-2"></i>Faixa Etária
-                        </label>
-                        <select class="form-select" id="age_filter" name="age">
-                            <option value="">Todas as idades</option>
-                            <option value="0-18" {% if request.args.get('age') == '0-18' %}selected{% endif %}>0-18 anos</option>
-                            <option value="19-30" {% if request.args.get('age') == '19-30' %}selected{% endif %}>19-30 anos</option>
-                            <option value="31-50" {% if request.args.get('age') == '31-50' %}selected{% endif %}>31-50 anos</option>
-                            <option value="51-65" {% if request.args.get('age') == '51-65' %}selected{% endif %}>51-65 anos</option>
-                            <option value="65+" {% if request.args.get('age') == '65+' %}selected{% endif %}>65+ anos</option>
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                        <label for="sex_filter" class="form-label">
-                            <i class="bi bi-gender-ambiguous text-muted me-2"></i>Sexo
-                        </label>
-                        <select class="form-select" id="sex_filter" name="sex">
-                            <option value="">Todos</option>
-                            <option value="M" {% if request.args.get('sex') == 'M' %}selected{% endif %}>Masculino</option>
-                            <option value="F" {% if request.args.get('sex') == 'F' %}selected{% endif %}>Feminino</option>
-                        </select>
-                    </div>
-                    <div class="col-md-2">
-                        <label class="form-label">&nbsp;</label>
-                        <div>
-                            <button type="submit" class="btn btn-primary w-100">
-                                <i class="bi bi-search me-2"></i> Buscar
-                            </button>
-                        </div>
-                    </div>
-                </form>
-            </div>
-        </div>
+    <div class="col-md-6">
+        <form method="GET" class="d-flex">
+            <input type="text" name="q" class="form-control me-2" 
+                   placeholder="Buscar pacientes..." value="{{ request.args.get('q', '') }}">
+            <button type="submit" class="btn btn-outline-primary">
+                <i class="bi bi-search"></i>
+            </button>
+            {% if request.args.get('q') %}
+            <a href="{{ url_for('pacientes') }}" class="btn btn-outline-secondary ms-2">
+                <i class="bi bi-x"></i>
+            </a>
+            {% endif %}
+        </form>
     </div>
 </div>
 
 <!-- Lista de Pacientes -->
-<div class="row">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="card-title mb-0">
-                    <i class="bi bi-list-ul text-primary me-2"></i> 
-                    Lista de Pacientes
-                </h5>
-                <span class="badge bg-primary fs-6">{{ pacientes.total }} pacientes</span>
-            </div>
-            <div class="card-body">
-                {% if pacientes.items %}
-                <div class="table-responsive">
-                    <table class="table table-hover mb-0">
-                        <thead>
-                            <tr>
-                                <th>Paciente</th>
-                                <th>Informações</th>
-                                <th>Hábitos</th>
-                                <th>Última Consulta</th>
-                                <th>Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for paciente in pacientes.items %}
-                            <tr class="patient-row">
-                                <td>
-                                    <div class="d-flex align-items-center">
-                                        <div class="avatar-circle me-3">
-                                            <i class="bi bi-person-fill"></i>
-                                        </div>
-                                        <div>
-                                            <h6 class="mb-1 fw-bold">{{ paciente.nome }}</h6>
-                                            <small class="text-muted">
-                                                <i class="bi bi-hash text-primary me-1"></i>ID: {{ paciente.id }}
-                                            </small>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td>
-                                    <div class="d-flex flex-column gap-2">
-                                        <div class="d-flex align-items-center">
-                                            <span class="badge bg-info me-2">
-                                                <i class="bi bi-calendar me-1"></i>{{ paciente.idade }} anos
-                                            </span>
-                                            {% if paciente.sexo == 'M' %}
-                                                <span class="badge bg-primary">
-                                                    <i class="bi bi-gender-male me-1"></i>Masculino
-                                                </span>
-                                            {% elif paciente.sexo == 'F' %}
-                                                <span class="badge bg-pink">
-                                                    <i class="bi bi-gender-female me-1"></i>Feminino
-                                                </span>
-                                            {% else %}
-                                                <span class="badge bg-secondary">
-                                                    <i class="bi bi-gender-ambiguous me-1"></i>Outro
-                                                </span>
-                                            {% endif %}
-                                        </div>
-                                        {% if paciente.peso and paciente.altura %}
-                                            <div class="d-flex align-items-center">
-                                                <span class="badge bg-light text-dark me-2">
-                                                    <i class="bi bi-weight me-1"></i>{{ paciente.peso }} kg
-                                                </span>
-                                                <span class="badge bg-light text-dark me-2">
-                                                    <i class="bi bi-arrows-expand me-1"></i>{{ paciente.altura }} m
-                                                </span>
-                                                {% set imc = (paciente.peso / (paciente.altura ** 2)) %}
-                                                <span class="badge {% if imc < 18.5 %}bg-warning{% elif imc < 25 %}bg-success{% elif imc < 30 %}bg-warning{% else %}bg-danger{% endif %}">
-                                                    <i class="bi bi-activity me-1"></i>IMC: {{ "%.1f"|format(imc) }}
-                                                </span>
-                                            </div>
-                                        {% else %}
-                                            <span class="text-muted small">
-                                                <i class="bi bi-dash-circle me-1"></i>Peso/Altura não informados
-                                            </span>
-                                        {% endif %}
-                                    </div>
-                                </td>
-                                <td>
-                                    <div class="d-flex flex-column gap-1">
-                                        {% if paciente.fuma %}
-                                            <span class="badge bg-danger">
-                                                <i class="bi bi-fire me-1"></i>Fumante
-                                            </span>
-                                        {% endif %}
-                                        {% if paciente.bebe %}
-                                            <span class="badge bg-warning">
-                                                <i class="bi bi-cup-straw me-1"></i>Consome álcool
-                                            </span>
-                                        {% endif %}
-                                        {% if not paciente.fuma and not paciente.bebe %}
-                                            <span class="badge bg-success">
-                                                <i class="bi bi-check-circle me-1"></i>Sem hábitos
-                                            </span>
-                                        {% endif %}
-                                    </div>
-                                </td>
-                                <td>
-                                    {% if paciente.consultas %}
-                                        {% set ultima_consulta = paciente.consultas|sort(attribute='data')|last %}
-                                        <div class="d-flex align-items-center">
-                                            <i class="bi bi-calendar-check text-success me-2"></i>
-                                            <div>
-                                                <div class="fw-medium">{{ ultima_consulta.data.strftime('%d/%m/%Y') if ultima_consulta.data else 'N/A' }}</div>
-                                                <small class="text-muted">{{ ultima_consulta.data.strftime('%H:%M') if ultima_consulta.data else '' }}</small>
-                                            </div>
-                                        </div>
-                                    {% else %}
-                                        <div class="d-flex align-items-center">
-                                            <i class="bi bi-calendar-x text-muted me-2"></i>
-                                            <span class="text-muted">Nunca consultou</span>
-                                        </div>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    <div class="btn-group" role="group">
-                                        <a href="{{ url_for('visualizar_paciente', id=paciente.id) }}" 
-                                           class="btn btn-sm btn-outline-primary" title="Visualizar">
-                                            <i class="bi bi-eye"></i>
-                                        </a>
-                                        <a href="{{ url_for('editar_paciente', id=paciente.id) }}" 
-                                           class="btn btn-sm btn-outline-secondary" title="Editar">
-                                            <i class="bi bi-pencil"></i>
-                                        </a>
-                                        <a href="{{ url_for('iniciar_triagem', paciente_id=paciente.id) }}" 
-                                           class="btn btn-sm btn-outline-success" title="Nova Triagem">
-                                            <i class="bi bi-clipboard-pulse"></i>
-                                        </a>
-                                    </div>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                
-                <!-- Paginação -->
-                {% if pacientes.pages > 1 %}
-                <nav aria-label="Navegação de páginas" class="mt-4">
-                    <ul class="pagination justify-content-center">
-                        {% if pacientes.has_prev %}
-                            <li class="page-item">
-                                <a class="page-link" href="{{ url_for('pacientes', page=pacientes.prev_num, **request.args) }}">
-                                    <i class="bi bi-chevron-left me-1"></i> Anterior
-                                </a>
-                            </li>
-                        {% endif %}
-                        
-                        {% for page_num in pacientes.iter_pages() %}
-                            {% if page_num %}
-                                {% if page_num != pacientes.page %}
-                                    <li class="page-item">
-                                        <a class="page-link" href="{{ url_for('pacientes', page=page_num, **request.args) }}">
-                                            {{ page_num }}
-                                        </a>
-                                    </li>
-                                {% else %}
-                                    <li class="page-item active">
-                                        <span class="page-link">{{ page_num }}</span>
-                                    </li>
-                                {% endif %}
+<div class="card">
+    <div class="card-header">
+        <h5 class="card-title mb-0">
+            <i class="bi bi-list-ul"></i> Lista de Pacientes
+        </h5>
+    </div>
+    <div class="card-body">
+        {% if pacientes.items %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Nome</th>
+                        <th>Idade</th>
+                        <th>Sexo</th>
+                        <th>Peso/Altura</th>
+                        <th>Hábitos</th>
+                        <th>Última Consulta</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for paciente in pacientes.items %}
+                    <tr>
+                        <td>
+                            <strong>{{ paciente.nome }}</strong>
+                            <br><small class="text-muted">ID: {{ paciente.id }}</small>
+                        </td>
+                        <td>{{ paciente.idade }} anos</td>
+                        <td>
+                            {% if paciente.sexo == 'M' %}
+                                <span class="badge bg-primary">Masculino</span>
+                            {% elif paciente.sexo == 'F' %}
+                                <span class="badge bg-pink">Feminino</span>
                             {% else %}
-                                <li class="page-item disabled">
-                                    <span class="page-link">...</span>
-                                </li>
+                                <span class="badge bg-secondary">Outro</span>
                             {% endif %}
-                        {% endfor %}
-                        
-                        {% if pacientes.has_next %}
-                            <li class="page-item">
-                                <a class="page-link" href="{{ url_for('pacientes', page=pacientes.next_num, **request.args) }}">
-                                    Próxima <i class="bi bi-chevron-right ms-1"></i>
+                        </td>
+                        <td>
+                            {% if paciente.peso and paciente.altura %}
+                                {{ paciente.peso }} kg / {{ paciente.altura }} m
+                                {% set imc = (paciente.peso / (paciente.altura ** 2)) %}
+                                <br><small class="text-muted">IMC: {{ "%.1f"|format(imc) }}</small>
+                            {% else %}
+                                <span class="text-muted">Não informado</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if paciente.fuma %}
+                                <span class="badge bg-danger">Fumante</span>
+                            {% endif %}
+                            {% if paciente.bebe %}
+                                <span class="badge bg-warning">Consome álcool</span>
+                            {% endif %}
+                            {% if not paciente.fuma and not paciente.bebe %}
+                                <span class="badge bg-success">Sem hábitos</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if paciente.consultas %}
+                                {% set ultima_consulta = paciente.consultas|sort(attribute='data')|last %}
+                                {{ ultima_consulta.data.strftime('%d/%m/%Y') if ultima_consulta.data else 'N/A' }}
+                            {% else %}
+                                <span class="text-muted">Nunca consultou</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="btn-group" role="group">
+                                <a href="{{ url_for('visualizar_paciente', id=paciente.id) }}" 
+                                   class="btn btn-sm btn-outline-primary" title="Visualizar">
+                                    <i class="bi bi-eye"></i>
                                 </a>
-                            </li>
-                        {% endif %}
-                    </ul>
-                </nav>
+                                <a href="{{ url_for('editar_paciente', id=paciente.id) }}" 
+                                   class="btn btn-sm btn-outline-warning" title="Editar">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <a href="{{ url_for('iniciar_triagem', paciente_id=paciente.id) }}" 
+                                   class="btn btn-sm btn-outline-success" title="Nova Triagem">
+                                    <i class="bi bi-clipboard-pulse"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Paginação -->
+        {% if pacientes.pages > 1 %}
+        <nav aria-label="Paginação de pacientes" class="mt-4">
+            <ul class="pagination justify-content-center">
+                {% if pacientes.has_prev %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('pacientes', page=pacientes.prev_num, **request.args) }}">
+                        <i class="bi bi-chevron-left"></i> Anterior
+                    </a>
+                </li>
                 {% endif %}
                 
-                {% else %}
-                <div class="empty-state">
-                    <i class="bi bi-people"></i>
-                    <h5 class="text-muted">Nenhum paciente encontrado</h5>
-                    <p class="text-muted">Comece cadastrando o primeiro paciente do sistema</p>
-                    <a href="{{ url_for('novo_paciente') }}" class="btn btn-primary">
-                        <i class="bi bi-person-plus me-2"></i>
-                        Cadastrar Primeiro Paciente
+                {% for page_num in pacientes.iter_pages() %}
+                    {% if page_num %}
+                        {% if page_num != pacientes.page %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('pacientes', page=page_num, **request.args) }}">{{ page_num }}</a>
+                        </li>
+                        {% else %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ page_num }}</span>
+                        </li>
+                        {% endif %}
+                    {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link">...</span>
+                    </li>
+                    {% endif %}
+                {% endfor %}
+                
+                {% if pacientes.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('pacientes', page=pacientes.next_num, **request.args) }}">
+                        Próximo <i class="bi bi-chevron-right"></i>
                     </a>
-                </div>
+                </li>
                 {% endif %}
-            </div>
+            </ul>
+        </nav>
+        {% endif %}
+        
+        {% else %}
+        <div class="text-center py-5">
+            <i class="bi bi-people fa-3x text-muted"></i>
+            <h5 class="text-muted mt-3">Nenhum paciente encontrado</h5>
+            <p class="text-muted">Comece cadastrando o primeiro paciente do sistema.</p>
+            <a href="{{ url_for('novo_paciente') }}" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> Cadastrar Paciente
+            </a>
         </div>
+        {% endif %}
     </div>
 </div>
 {% endblock %}
 
 {% block extra_css %}
 <style>
-    .stat-card {
-        background: white;
-        border-radius: 1.5rem;
-        padding: 2rem;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
-        transition: all 0.3s ease;
-        border: none;
-        position: relative;
-        overflow: hidden;
-    }
-
-    .stat-card::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 4px;
-        background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
-    }
-
-    .stat-card:hover {
-        transform: translateY(-8px);
-        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-    }
-
-    .stat-card.patients::before {
-        background: linear-gradient(90deg, #3b82f6, #1d4ed8);
-    }
-
-    .stat-card.consultations::before {
-        background: linear-gradient(90deg, #10b981, #059669);
-    }
-
-    .stat-card.medicines::before {
-        background: linear-gradient(90deg, #06b6d4, #0891b2);
-    }
-
-    .stat-card.referrals::before {
-        background: linear-gradient(90deg, #f59e0b, #d97706);
-    }
-
-    .stat-icon {
-        width: 60px;
-        height: 60px;
-        border-radius: 1rem;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin-bottom: 1rem;
-        font-size: 1.5rem;
-        color: white;
-    }
-
-    .stat-icon.patients {
-        background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-    }
-
-    .stat-icon.consultations {
-        background: linear-gradient(135deg, #10b981, #059669);
-    }
-
-    .stat-icon.medicines {
-        background: linear-gradient(135deg, #06b6d4, #0891b2);
-    }
-
-    .stat-icon.referrals {
-        background: linear-gradient(135deg, #f59e0b, #d97706);
-    }
-
-    .stat-value {
-        font-size: 2.5rem;
-        font-weight: 700;
-        color: var(--text-primary);
-        margin-bottom: 0.5rem;
-        line-height: 1;
-    }
-
-    .stat-label {
-        font-size: 0.875rem;
-        color: var(--text-secondary);
-        font-weight: 500;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-    }
-
-    .avatar-circle {
-        width: 50px;
-        height: 50px;
-        border-radius: 50%;
-        background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: white;
-        font-size: 1.5rem;
-    }
-
     .badge.bg-pink {
-        background: linear-gradient(135deg, #ec4899, #be185d) !important;
+        background-color: #e91e63 !important;
     }
-
-    .patient-row {
-        transition: all 0.2s ease;
+    
+    /* Corrigir problemas de overflow horizontal */
+    .main-content {
+        overflow-x: hidden;
+        max-width: 100%;
     }
-
-    .patient-row:hover {
-        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-        transform: scale(1.01);
+    
+    /* Garantir que a tabela seja responsiva */
+    .table-responsive {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
     }
-
-    .empty-state {
-        text-align: center;
-        padding: 4rem 2rem;
-        color: var(--text-secondary);
+    
+    /* Ajustar largura das colunas da tabela */
+    .table th,
+    .table td {
+        white-space: nowrap;
+        min-width: 120px;
     }
-
-    .empty-state i {
-        font-size: 4rem;
-        margin-bottom: 1rem;
-        opacity: 0.5;
+    
+    /* Colunas específicas com largura otimizada */
+    .table th:nth-child(1),
+    .table td:nth-child(1) {
+        min-width: 200px; /* Nome */
     }
-
+    
+    .table th:nth-child(2),
+    .table td:nth-child(2) {
+        min-width: 80px; /* Idade */
+    }
+    
+    .table th:nth-child(3),
+    .table td:nth-child(3) {
+        min-width: 100px; /* Sexo */
+    }
+    
+    .table th:nth-child(4),
+    .table td:nth-child(4) {
+        min-width: 150px; /* Peso/Altura */
+    }
+    
+    .table th:nth-child(5),
+    .table td:nth-child(5) {
+        min-width: 120px; /* Hábitos */
+    }
+    
+    .table th:nth-child(6),
+    .table td:nth-child(6) {
+        min-width: 120px; /* Última Consulta */
+    }
+    
+    .table th:nth-child(7),
+    .table td:nth-child(7) {
+        min-width: 150px; /* Ações */
+    }
+    
+    /* Ajustar botões de ação para não quebrar */
     .btn-group .btn {
-        margin-right: 2px;
-        border-radius: 0.5rem;
+        padding: 0.25rem 0.5rem;
+        font-size: 0.875rem;
     }
-
-    .btn-group .btn:last-child {
-        margin-right: 0;
+    
+    /* Garantir que cards de estatísticas não causem overflow */
+    .stats-card {
+        min-height: auto;
     }
-
-    .pagination .page-link {
-        border-radius: 0.5rem;
-        margin: 0 0.25rem;
-        border: none;
-        color: var(--text-secondary);
-        font-weight: 500;
+    
+    /* Ajustar header da página */
+    .page-header {
+        flex-wrap: wrap;
+        gap: 1rem;
     }
-
-    .pagination .page-link:hover {
-        background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-        color: white;
-        transform: translateY(-1px);
+    
+    .page-header .btn-toolbar {
+        flex-wrap: wrap;
     }
-
-    .pagination .page-item.active .page-link {
-        background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-        border: none;
-        color: white;
-    }
-
+    
+    /* Responsividade para telas pequenas */
     @media (max-width: 768px) {
-        .stat-value {
-            font-size: 2rem;
+        .table th,
+        .table td {
+            min-width: 100px;
+            font-size: 0.875rem;
+            padding: 0.5rem;
         }
         
-        .avatar-circle {
-            width: 40px;
-            height: 40px;
-            font-size: 1.2rem;
+        .btn-group .btn {
+            padding: 0.2rem 0.4rem;
+            font-size: 0.75rem;
+        }
+        
+        .page-header {
+            flex-direction: column;
+            align-items: flex-start !important;
+        }
+        
+        .page-header .btn-toolbar {
+            width: 100%;
+            justify-content: flex-start;
+        }
+    }
+    
+    @media (max-width: 576px) {
+        .table th,
+        .table td {
+            min-width: 80px;
+            font-size: 0.8rem;
+            padding: 0.4rem;
+        }
+        
+        .btn-group .btn {
+            padding: 0.15rem 0.3rem;
+            font-size: 0.7rem;
         }
     }
 </style>

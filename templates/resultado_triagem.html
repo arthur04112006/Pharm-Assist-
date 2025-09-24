@@ -200,28 +200,46 @@
                 </h5>
             </div>
             <div class="card-body">
-                {% if resultado.recomendacoes_farmacologicas %}
-                <ul class="list-group list-group-flush">
-                    {% for rec in resultado.recomendacoes_farmacologicas %}
-                    <li class="list-group-item">
-                        <div class="d-flex justify-content-between align-items-start">
-                            <div>
-                                <strong>{{ rec.medicamento.nome }}</strong>
-                                {% if rec.medicamento.nome_generico %}
-                                <br><small class="text-muted">{{ rec.medicamento.nome_generico }}</small>
-                                {% endif %}
+                {% if resultado.recomendacoes_medicamentos %}
+                <div class="row">
+                    {% for rec in resultado.recomendacoes_medicamentos %}
+                    <div class="col-12 mb-3">
+                        <div class="card border-primary">
+                            <div class="card-header bg-primary text-white">
+                                <h6 class="mb-0">
+                                    <i class="bi bi-capsule"></i> {{ rec.medicamento }}
+                                </h6>
                             </div>
-                            <span class="badge bg-primary">{{ rec.medicamento.tipo|title }}</span>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-8">
+                                        <p class="mb-2"><strong>Indicação:</strong> {{ rec.justificativa }}</p>
+                                        {% if rec.medicamento|length > 50 %}
+                                        <p class="mb-1"><strong>Princípio Ativo:</strong> {{ rec.medicamento.split('(')[1].split(')')[0] if '(' in rec.medicamento and ')' in rec.medicamento else 'Verificar bula' }}</p>
+                                        {% endif %}
+                                    </div>
+                                    <div class="col-md-4 text-end">
+                                        <span class="badge bg-success">Recomendado</span>
+                                    </div>
+                                </div>
+                                <div class="alert alert-info mb-0">
+                                    <small>
+                                        <i class="bi bi-info-circle"></i>
+                                        <strong>Importante:</strong> Consulte sempre um farmacêutico ou médico antes do uso. 
+                                        Leia a bula e siga as orientações de posologia.
+                                    </small>
+                                </div>
+                            </div>
                         </div>
-                        <p class="mb-1 mt-2">{{ rec.medicamento.indicacao }}</p>
-                        <small class="text-muted">
-                            <strong>Posologia:</strong> {{ rec.posologia|default('Consultar bula') }}
-                        </small>
-                    </li>
+                    </div>
                     {% endfor %}
-                </ul>
+                </div>
                 {% else %}
-                <p class="text-muted text-center">Nenhuma recomendação farmacológica.</p>
+                <div class="text-center text-muted">
+                    <i class="bi bi-capsule" style="font-size: 3rem; opacity: 0.3;"></i>
+                    <p class="mt-2">Nenhuma recomendação farmacológica específica.</p>
+                    <small>As medidas não farmacológicas podem ser suficientes para o seu caso.</small>
+                </div>
                 {% endif %}
             </div>
         </div>
@@ -236,21 +254,24 @@
             </div>
             <div class="card-body">
                 {% if resultado.recomendacoes_nao_farmacologicas %}
-                <ul class="list-group list-group-flush">
+                <div class="row">
                     {% for rec in resultado.recomendacoes_nao_farmacologicas %}
-                    <li class="list-group-item">
+                    <div class="col-12 mb-2">
                         <div class="d-flex align-items-start">
-                            <i class="bi bi-check-circle text-success me-2 mt-1"></i>
-                            <div>
-                                <strong>{{ rec.titulo }}</strong>
-                                <p class="mb-0 text-muted">{{ rec.descricao }}</p>
+                            <i class="bi bi-check-circle text-success me-3 mt-1"></i>
+                            <div class="flex-grow-1">
+                                <p class="mb-1 fw-bold">{{ rec.descricao }}</p>
+                                <small class="text-muted">{{ rec.justificativa }}</small>
                             </div>
                         </div>
-                    </li>
+                    </div>
                     {% endfor %}
-                </ul>
+                </div>
                 {% else %}
-                <p class="text-muted text-center">Nenhuma recomendação não-farmacológica.</p>
+                <div class="text-center text-muted">
+                    <i class="bi bi-heart" style="font-size: 3rem; opacity: 0.3;"></i>
+                    <p class="mt-2">Nenhuma recomendação não-farmacológica específica.</p>
+                </div>
                 {% endif %}
             </div>
         </div>

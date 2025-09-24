@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+
+{% block title %}Editar Medicamento{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">
+        <i class="bi bi-pencil-square text-warning"></i>
+        Editar Medicamento
+    </h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <a href="{{ url_for('medicamentos') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Voltar
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-info-circle"></i> Informações do Medicamento
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('editar_medicamento', id=medicamento.id) }}">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="nome_comercial" class="form-label">Nome Comercial *</label>
+                            <input type="text" class="form-control" id="nome_comercial" name="nome_comercial" 
+                                   value="{{ medicamento.nome_comercial }}" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="nome_generico" class="form-label">Nome Genérico</label>
+                            <input type="text" class="form-control" id="nome_generico" name="nome_generico" 
+                                   value="{{ medicamento.nome_generico or '' }}">
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="tipo" class="form-label">Tipo *</label>
+                            <select class="form-select" id="tipo" name="tipo" required>
+                                <option value="">Selecione...</option>
+                                <option value="farmacologico" {% if medicamento.tipo == 'farmacologico' %}selected{% endif %}>Farmacológico</option>
+                                <option value="fitoterapico" {% if medicamento.tipo == 'fitoterapico' %}selected{% endif %}>Fitoterápico</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Status Atual</label>
+                            <div class="form-control-plaintext">
+                                {% if medicamento.ativo %}
+                                    <span class="badge bg-success">Ativo</span>
+                                {% else %}
+                                    <span class="badge bg-danger">Inativo</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="descricao" class="form-label">Descrição</label>
+                        <textarea class="form-control" id="descricao" name="descricao" rows="2"
+                                  placeholder="Descrição geral do medicamento...">{{ medicamento.descricao or '' }}</textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="indicacao" class="form-label">Indicações *</label>
+                        <textarea class="form-control" id="indicacao" name="indicacao" rows="3" required
+                                  placeholder="Descreva as principais indicações do medicamento...">{{ medicamento.indicacao or '' }}</textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="contraindicacao" class="form-label">Contraindicações</label>
+                        <textarea class="form-control" id="contraindicacao" name="contraindicacao" rows="3"
+                                  placeholder="Descreva as principais contraindicações...">{{ medicamento.contraindicacao or '' }}</textarea>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i>
+                        <strong>Informação:</strong> Para alterar o status do medicamento (ativo/inativo), 
+                        use as opções de desativar/reativar na lista de medicamentos.
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{{ url_for('medicamentos') }}" class="btn btn-outline-secondary me-md-2">
+                            <i class="bi bi-x-circle"></i> Cancelar
+                        </a>
+                        <button type="submit" class="btn btn-warning">
+                            <i class="bi bi-check-circle"></i> Atualizar Medicamento
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

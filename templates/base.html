@@ -418,6 +418,8 @@
         .main-content {
             padding-left: 1rem;
             padding-right: 1rem;
+            overflow-x: hidden;
+            max-width: 100%;
         }
         
         /* Ajustar margens para telas pequenas */
@@ -425,14 +427,24 @@
             .main-content {
                 padding-left: 0.5rem;
                 padding-right: 0.5rem;
+                overflow-x: hidden;
             }
             
             .page-header {
-                margin-left: -0.5rem;
-                margin-right: -0.5rem;
-                padding-left: 0.5rem;
-                padding-right: 0.5rem;
+                margin-left: 0;
+                margin-right: 0;
+                padding-left: 0;
+                padding-right: 0;
             }
+        }
+        
+        /* Garantir que não haja overflow horizontal */
+        body {
+            overflow-x: hidden;
+        }
+        
+        .main-container {
+            overflow-x: hidden;
         }
         
         /* Garantir que botões não sejam cortados */

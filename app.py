@@ -414,6 +414,31 @@ def reativar_medicamento(id):
     
     return redirect(url_for('medicamentos_inativos'))
 
+@app.route('/medicamentos/<int:id>/editar', methods=['GET', 'POST'])
+def editar_medicamento(id):
+    """Editar dados de um medicamento"""
+    medicamento = Medicamento.query.get_or_404(id)
+    
+    if request.method == 'POST':
+        try:
+            # Atualizar dados do medicamento
+            medicamento.nome_comercial = request.form['nome_comercial']
+            medicamento.nome_generico = request.form.get('nome_generico')
+            medicamento.descricao = request.form.get('descricao')
+            medicamento.indicacao = request.form.get('indicacao')
+            medicamento.contraindicacao = request.form.get('contraindicacao')
+            medicamento.tipo = request.form['tipo']
+            
+            db.session.commit()
+            flash('Medicamento atualizado com sucesso!', 'success')
+            return redirect(url_for('medicamentos'))
+            
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Erro ao atualizar medicamento: {str(e)}', 'error')
+    
+    return render_template('editar_medicamento.html', medicamento=medicamento)
+
 @app.route('/triagem')
 def triagem():
     """Página inicial da triagem"""
@@ -594,13 +619,46 @@ def processar_triagem():
                     consulta.observacoes = ''
                 consulta.observacoes += f"\n{resposta_data['pergunta_id']}: {resposta_texto}"
         
-        # Processar triagem (placeholder)
+        # Processar triagem usando sistema de pontuação
+        from triagem_scoring import scoring_system
+        from perguntas_extractor import get_patient_profile_from_cadastro
+        
+        # Obter perfil do paciente
+        patient_profile = get_patient_profile_from_cadastro(paciente_data)
+        
+        # Calcular pontuação
+        scoring_result = scoring_system.calculate_score(
+            modulo=data.get('modulo', 'tosse'),
+            respostas=respostas,
+            paciente_profile=patient_profile
+        )
+        
+        # Gerar recomendações baseadas na pontuação e respostas específicas
+        recommendations = scoring_system.generate_recommendations(
+            scoring_result, 
+            data.get('modulo', 'tosse'),
+            respostas,
+            patient_profile
+        )
+        
+        # Preparar resultado da triagem
         triagem_result = {
-            'encaminhamento_medico': False,
-            'motivo_encaminhamento': None,
-            'recomendacoes_medicamentos': [],
-            'recomendacoes_nao_farmacologicas': [],
-            'observacoes': ['Triagem em desenvolvimento.']
+            'encaminhamento_medico': scoring_result.encaminhamento,
+            'motivo_encaminhamento': 'Pontuação alta ou sinais críticos detectados' if scoring_result.encaminhamento else None,
+            'recomendacoes_medicamentos': [{'medicamento': med, 'justificativa': f'Baseado na pontuação: {scoring_result.total_score:.1f}'} for med in recommendations['farmacologicas']],
+            'recomendacoes_nao_farmacologicas': [{'descricao': rec, 'justificativa': f'Recomendação não farmacológica baseada na pontuação'} for rec in recommendations['nao_farmacologicas']],
+            'observacoes': [
+                f'Pontuação total: {scoring_result.total_score:.1f}',
+                f'Nível de risco: {scoring_result.risk_level}',
+                f'Confiança: {scoring_result.confidence:.1%}',
+                f'Categoria principal: {max(scoring_result.category_scores.items(), key=lambda x: x[1])[0]}'
+            ],
+            'scoring_result': {
+                'total_score': scoring_result.total_score,
+                'category_scores': scoring_result.category_scores,
+                'risk_level': scoring_result.risk_level,
+                'confidence': scoring_result.confidence
+            }
         }
         
         # Atualizar consulta com resultado
@@ -841,11 +899,52 @@ def api_triagem_modulos():
 def api_triagem_perguntas():
     """Retorna perguntas do módulo informado (slug) extraídas via AST"""
     slug = request.args.get('modulo', '').strip()
+    paciente_id = request.args.get('paciente_id', type=int)
+    filter_unnecessary = request.args.get('filter_unnecessary', 'true').lower() == 'true'
+    
     if not slug:
         return jsonify({'success': False, 'error': 'Parâmetro modulo é obrigatório'}), 400
+    
     try:
-        questions = extract_questions_for_module(slug)
-        return jsonify({'success': True, 'modulo': slug, 'perguntas': questions})
+        # Se paciente_id foi fornecido e filter_unnecessary é True, filtrar perguntas desnecessárias
+        if paciente_id and filter_unnecessary:
+            # Buscar dados do paciente
+            paciente = Paciente.query.get_or_404(paciente_id)
+            paciente_data = paciente.to_dict()
+            
+            # Extrair perguntas filtradas
+            questions = extract_questions_for_module(slug, filter_unnecessary=True)
+            
+            # Adicionar informações do perfil do paciente para uso no frontend
+            from perguntas_extractor import get_patient_profile_from_cadastro
+            patient_profile = get_patient_profile_from_cadastro(paciente_data)
+            
+            # Adicionar informações de pontuação para cada pergunta
+            for question in questions:
+                question['scoring_info'] = {
+                    'peso': question.get('peso', 1.0),
+                    'categoria': question.get('categoria', 'sintoma'),
+                    'critica': question.get('critica', False),
+                    'indication': question.get('indication', 'nao_farmacologico')
+                }
+            
+            return jsonify({
+                'success': True, 
+                'modulo': slug, 
+                'perguntas': questions,
+                'patient_profile': patient_profile,
+                'filtered': True
+            })
+        else:
+            # Comportamento original - sem filtro
+            questions = extract_questions_for_module(slug, filter_unnecessary=False)
+            return jsonify({
+                'success': True, 
+                'modulo': slug, 
+                'perguntas': questions,
+                'filtered': False
+            })
+            
     except FileNotFoundError:
         return jsonify({'success': False, 'error': 'Módulo não encontrado'}), 404
     except Exception as e:
