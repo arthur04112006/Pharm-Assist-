@@ -752,15 +752,53 @@ def resultado_triagem(consulta_id):
         elif rec.tipo == 'encaminhamento':
             resultado['alert_signs'].append(rec.justificativa or 'Encaminhamento médico necessário')
     
-    # Calcular score e risk_level baseado nas respostas
+    # Calcular score e risk_level usando o sistema de pontuação real
     if respostas_completas:
-        resultado['score'] = len(respostas_completas) * 10  # Score simples baseado no número de respostas
-        if consulta.encaminhamento:
-            resultado['risk_level'] = 'alto'
-        elif resultado['score'] > 50:
-            resultado['risk_level'] = 'medio'
-        else:
-            resultado['risk_level'] = 'baixo'
+        try:
+            # Preparar dados para o sistema de pontuação
+            from triagem_scoring import scoring_system
+            from perguntas_extractor import get_patient_profile_from_cadastro
+            
+            # Obter perfil do paciente
+            paciente_data = paciente.to_dict()
+            patient_profile = get_patient_profile_from_cadastro(paciente_data)
+            
+            # Preparar respostas no formato esperado
+            respostas_formatadas = []
+            for resposta in respostas:
+                respostas_formatadas.append({
+                    'pergunta_id': str(resposta.id_pergunta),
+                    'resposta': resposta.resposta
+                })
+            
+            # Detectar o módulo correto baseado nas perguntas
+            modulo_detectado = _detectar_modulo_das_perguntas(respostas)
+            
+            # Calcular pontuação usando o sistema real
+            scoring_result = scoring_system.calculate_score(
+                modulo=modulo_detectado,
+                respostas=respostas_formatadas,
+                paciente_profile=patient_profile
+            )
+            
+            resultado['score'] = scoring_result.total_score
+            resultado['risk_level'] = scoring_result.risk_level
+            resultado['alert_signs'] = []  # Será preenchido se houver sinais de alerta
+            
+            if scoring_result.encaminhamento:
+                resultado['risk_level'] = 'alto'
+                resultado['alert_signs'].append('Pontuação alta ou sinais críticos detectados')
+                
+        except Exception as e:
+            print(f"Erro ao calcular pontuação: {e}")
+            # Fallback para cálculo simples
+            resultado['score'] = len(respostas_completas) * 10
+            if consulta.encaminhamento:
+                resultado['risk_level'] = 'alto'
+            elif resultado['score'] > 50:
+                resultado['risk_level'] = 'medio'
+            else:
+                resultado['risk_level'] = 'baixo'
     
     return render_template('resultado_triagem.html', 
                          consulta=consulta, 
@@ -975,6 +1013,65 @@ def not_found_error(error):
 def internal_error(error):
     db.session.rollback()
     return render_template('500.html'), 500
+
+def _detectar_modulo_das_perguntas(respostas):
+    """Detecta o módulo correto baseado nas perguntas respondidas"""
+    if not respostas:
+        return 'tosse'  # Módulo padrão
+    
+    # Mapear IDs de perguntas para módulos
+    modulo_por_pergunta = {}
+    
+    # Buscar todas as perguntas no banco e mapear para módulos
+    for resposta in respostas:
+        pergunta = Pergunta.query.get(resposta.id_pergunta)
+        if pergunta and pergunta.texto:
+            # Detectar módulo baseado no texto da pergunta
+            texto_lower = pergunta.texto.lower()
+            
+            # Detectar módulo baseado em palavras-chave específicas dos módulos
+            if any(palavra in texto_lower for palavra in ['tosse', 'tossir', 'expectoração', 'tosse seca', 'tosse produtiva']):
+                modulo_por_pergunta[resposta.id_pergunta] = 'tosse'
+            elif any(palavra in texto_lower for palavra in ['febre', 'temperatura', 'calafrio', 'febril']):
+                modulo_por_pergunta[resposta.id_pergunta] = 'febre'
+            elif any(palavra in texto_lower for palavra in ['dor de cabeça', 'cefaleia', 'enxaqueca', 'dor de cabeça']):
+                modulo_por_pergunta[resposta.id_pergunta] = 'dor_cabeca'
+            elif any(palavra in texto_lower for palavra in ['diarreia', 'evacuação', 'fezes', 'evacuações', 'banheiro']):
+                modulo_por_pergunta[resposta.id_pergunta] = 'diarreia'
+            elif any(palavra in texto_lower for palavra in ['garganta', 'dor de garganta', 'faringite', 'dor garganta']):
+                modulo_por_pergunta[resposta.id_pergunta] = 'dor_garganta'
+            elif any(palavra in texto_lower for palavra in ['azia', 'queimação', 'refluxo', 'digestão', 'estômago']):
+                modulo_por_pergunta[resposta.id_pergunta] = 'azia_ma_digestao'
+            elif any(palavra in texto_lower for palavra in ['constipação', 'prisão de ventre', 'intestino', 'evacuar']):
+                modulo_por_pergunta[resposta.id_pergunta] = 'constipacao'
+            elif any(palavra in texto_lower for palavra in ['hemorroida', 'hemorroidas', 'anal', 'sangramento anal']):
+                modulo_por_pergunta[resposta.id_pergunta] = 'hemorroidas'
+            elif any(palavra in texto_lower for palavra in ['lombar', 'coluna', 'costas', 'dor lombar']):
+                modulo_por_pergunta[resposta.id_pergunta] = 'dor_lombar'
+            elif any(palavra in texto_lower for palavra in ['congestão', 'nasal', 'espirro', 'rinite', 'nariz']):
+                modulo_por_pergunta[resposta.id_pergunta] = 'espirro_congestao_nasal'
+            elif any(palavra in texto_lower for palavra in ['dismenorreia', 'menstruação', 'cólica menstrual']):
+                modulo_por_pergunta[resposta.id_pergunta] = 'dismenorreia'
+            elif any(palavra in texto_lower for palavra in ['fungica', 'micose', 'candidíase', 'fungo']):
+                modulo_por_pergunta[resposta.id_pergunta] = 'infeccoes_fungicas'
+            elif any(palavra in texto_lower for palavra in ['queimadura', 'solar', 'sol', 'pele']):
+                modulo_por_pergunta[resposta.id_pergunta] = 'queimadura_solar'
+            else:
+                # Se não conseguir detectar, usar o módulo mais comum baseado no contexto
+                # Verificar se há perguntas sobre sintomas gerais
+                if any(palavra in texto_lower for palavra in ['dor', 'sintoma', 'problema']):
+                    modulo_por_pergunta[resposta.id_pergunta] = 'tosse'  # Padrão mais comum
+                else:
+                    modulo_por_pergunta[resposta.id_pergunta] = 'tosse'  # Padrão
+    
+    # Retornar o módulo mais frequente
+    if modulo_por_pergunta:
+        from collections import Counter
+        modulos = list(modulo_por_pergunta.values())
+        modulo_mais_frequente = Counter(modulos).most_common(1)[0][0]
+        return modulo_mais_frequente
+    
+    return 'tosse'  # Módulo padrão
 
 if __name__ == '__main__':
     with app.app_context():
