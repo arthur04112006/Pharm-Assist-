@@ -10,6 +10,7 @@
         height: 300px;
         margin: 20px 0;
     }
+    
     .metric-card {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
@@ -17,14 +18,98 @@
         padding: 20px;
         margin-bottom: 20px;
     }
+    
     .metric-value {
         font-size: 2.5rem;
         font-weight: bold;
         margin-bottom: 10px;
     }
+    
     .metric-label {
         font-size: 1.1rem;
         opacity: 0.9;
+    }
+    
+    /* Corrigir classes Bootstrap incorretas */
+    .border-left-primary {
+        border-left: 4px solid #007bff !important;
+    }
+    
+    .border-left-success {
+        border-left: 4px solid #28a745 !important;
+    }
+    
+    .border-left-info {
+        border-left: 4px solid #17a2b8 !important;
+    }
+    
+    .border-left-warning {
+        border-left: 4px solid #ffc107 !important;
+    }
+    
+    .text-gray-800 {
+        color: #5a5c69 !important;
+    }
+    
+    .text-gray-300 {
+        color: #dddfeb !important;
+    }
+    
+    .text-xs {
+        font-size: 0.75rem !important;
+    }
+    
+    .font-weight-bold {
+        font-weight: 700 !important;
+    }
+    
+    .text-uppercase {
+        text-transform: uppercase !important;
+    }
+    
+    .h-100 {
+        height: 100% !important;
+    }
+    
+    .py-2 {
+        padding-top: 0.5rem !important;
+        padding-bottom: 0.5rem !important;
+    }
+    
+    .no-gutters {
+        margin-right: 0;
+        margin-left: 0;
+    }
+    
+    .no-gutters > .col,
+    .no-gutters > [class*="col-"] {
+        padding-right: 0;
+        padding-left: 0;
+    }
+    
+    .mr-2 {
+        margin-right: 0.5rem !important;
+    }
+    
+    .mb-1 {
+        margin-bottom: 0.25rem !important;
+    }
+    
+    .h5 {
+        font-size: 1.25rem;
+    }
+    
+    .mb-0 {
+        margin-bottom: 0 !important;
+    }
+    
+    .col-auto {
+        flex: 0 0 auto;
+        width: auto;
+    }
+    
+    .fa-2x {
+        font-size: 2em;
     }
 </style>
 {% endblock %}
@@ -35,6 +120,17 @@
         <i class="bi bi-gear text-secondary"></i>
         Administração
     </h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <div class="btn-group me-2">
+            <span class="navbar-text me-3">
+                <i class="bi bi-person-circle"></i>
+                Logado como: <strong>{{ session.username }}</strong>
+            </span>
+            <a href="{{ url_for('admin_logout') }}" class="btn btn-outline-danger">
+                <i class="bi bi-box-arrow-right"></i> Logout
+            </a>
+        </div>
+    </div>
 </div>
 
 <!-- Estatísticas Gerais -->
@@ -386,10 +482,10 @@
                     <div class="col-md-6">
                         <h6>Versão e Status</h6>
                         <ul class="list-unstyled">
-                            <li><strong>Versão:</strong> {{ config.APP_VERSION|default('1.0.0') }}</li>
-                            <li><strong>Ambiente:</strong> {{ 'Desenvolvimento' if config.DEBUG else 'Produção' }}</li>
-                            <li><strong>Banco de Dados:</strong> {{ 'SQLite' if 'sqlite' in config.SQLALCHEMY_DATABASE_URI else 'MySQL' }}</li>
-                            <li><strong>Última Atualização:</strong> {{ moment().format('DD/MM/YYYY HH:mm') if moment else 'N/A' }}</li>
+                            <li><strong>Versão:</strong> 1.0.0</li>
+                            <li><strong>Ambiente:</strong> Desenvolvimento</li>
+                            <li><strong>Banco de Dados:</strong> SQLite</li>
+                            <li><strong>Última Atualização:</strong> {{ moment().strftime('%d/%m/%Y %H:%M') if moment else 'N/A' }}</li>
                         </ul>
                     </div>
                     <div class="col-md-6">
@@ -411,89 +507,108 @@
 
 {% block extra_js %}
 <script>
-// Dados para os gráficos
-const sintomasData = {{ sintomas_comuns | tojson }};
-const medicamentosData = {{ medicamentos_recomendados | tojson }};
-const generoData = {
-    masculino: {{ total_pacientes_masculino }},
-    feminino: {{ total_pacientes_feminino }}
-};
-
-// Gráfico de Sintomas
-const sintomasCtx = document.getElementById('sintomasChart').getContext('2d');
-new Chart(sintomasCtx, {
-    type: 'bar',
-    data: {
-        labels: sintomasData.map(item => item.descricao.substring(0, 20) + '...'),
-        datasets: [{
-            label: 'Frequência',
-            data: sintomasData.map(item => item.count),
-            backgroundColor: '#28a745'
-        }]
-    },
-    options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: {
-                display: false
-            }
-        },
-        scales: {
-            y: {
-                beginAtZero: true
-            }
-        }
+// Aguardar o carregamento do Chart.js
+document.addEventListener('DOMContentLoaded', function() {
+    // Verificar se Chart.js está disponível
+    if (typeof Chart === 'undefined') {
+        console.error('Chart.js não foi carregado');
+        return;
     }
-});
 
-// Gráfico de Medicamentos
-const medicamentosCtx = document.getElementById('medicamentosChart').getContext('2d');
-new Chart(medicamentosCtx, {
-    type: 'bar',
-    data: {
-        labels: medicamentosData.map(item => item.descricao.substring(0, 20) + '...'),
-        datasets: [{
-            label: 'Frequência',
-            data: medicamentosData.map(item => item.count),
-            backgroundColor: '#ffc107'
-        }]
-    },
-    options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: {
-                display: false
-            }
-        },
-        scales: {
-            y: {
-                beginAtZero: true
-            }
-        }
-    }
-});
+    try {
+        // Dados para os gráficos com fallbacks
+        const sintomasData = {{ sintomas_comuns | tojson | safe }} || [];
+        const medicamentosData = {{ medicamentos_recomendados | tojson | safe }} || [];
+        const generoData = {
+            masculino: {{ total_pacientes_masculino | default(0) }},
+            feminino: {{ total_pacientes_feminino | default(0) }}
+        };
 
-// Gráfico de Gênero
-const generoCtx = document.getElementById('generoChart').getContext('2d');
-new Chart(generoCtx, {
-    type: 'doughnut',
-    data: {
-        labels: ['Masculino', 'Feminino'],
-        datasets: [{
-            data: [generoData.masculino, generoData.feminino],
-            backgroundColor: ['#007bff', '#28a745']
-        }]
-    },
-    options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: {
-                position: 'bottom'
-            }
+        // Gráfico de Sintomas
+        const sintomasCtx = document.getElementById('sintomasChart');
+        if (sintomasCtx) {
+            new Chart(sintomasCtx.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: sintomasData.map(item => item.descricao ? item.descricao.substring(0, 20) + '...' : 'N/A'),
+                    datasets: [{
+                        label: 'Frequência',
+                        data: sintomasData.map(item => item.count || 0),
+                        backgroundColor: '#28a745'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
         }
+
+        // Gráfico de Medicamentos
+        const medicamentosCtx = document.getElementById('medicamentosChart');
+        if (medicamentosCtx) {
+            new Chart(medicamentosCtx.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: medicamentosData.map(item => item.descricao ? item.descricao.substring(0, 20) + '...' : 'N/A'),
+                    datasets: [{
+                        label: 'Frequência',
+                        data: medicamentosData.map(item => item.count || 0),
+                        backgroundColor: '#ffc107'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        // Gráfico de Gênero
+        const generoCtx = document.getElementById('generoChart');
+        if (generoCtx) {
+            new Chart(generoCtx.getContext('2d'), {
+                type: 'doughnut',
+                data: {
+                    labels: ['Masculino', 'Feminino'],
+                    datasets: [{
+                        data: [generoData.masculino || 0, generoData.feminino || 0],
+                        backgroundColor: ['#007bff', '#28a745']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+    } catch (error) {
+        console.error('Erro ao criar gráficos:', error);
     }
 });
 </script>

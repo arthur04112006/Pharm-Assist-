@@ -19,3 +19,8 @@ class Config:
     APP_NAME = 'Pharm-Assist - Sistema de Triagem Farmaceutica'
     APP_VERSION = '1.0.0'
     ITEMS_PER_PAGE = 20
+    
+    # Configurações de autenticação
+    ADMIN_USERNAME = os.environ.get('ADMIN_USERNAME') or 'admin'
+    ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD') or 'admin123'
+    SESSION_TIMEOUT = 3600  # 1 hora em segundos

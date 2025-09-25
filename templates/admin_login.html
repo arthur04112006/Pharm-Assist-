@@ -1,0 +1,212 @@
+{% extends "base.html" %}
+
+{% block title %}Login Administrativo{% endblock %}
+
+{% block extra_css %}
+<style>
+    .login-container {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    
+    .login-card {
+        background: white;
+        border-radius: 1rem;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        padding: 2rem;
+        width: 100%;
+        max-width: 400px;
+    }
+    
+    .login-header {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+    
+    .login-header h1 {
+        color: #1f2937;
+        font-size: 1.875rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+    }
+    
+    .login-header p {
+        color: #6b7280;
+        font-size: 0.875rem;
+    }
+    
+    .form-floating {
+        position: relative;
+        margin-bottom: 1rem;
+    }
+    
+    .form-floating input {
+        height: 3rem;
+        padding: 1rem 0.75rem;
+        border: 2px solid #e5e7eb;
+        border-radius: 0.5rem;
+        font-size: 1rem;
+        transition: all 0.2s ease;
+    }
+    
+    .form-floating input:focus {
+        border-color: #6366f1;
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        outline: none;
+    }
+    
+    .form-floating label {
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 100%;
+        padding: 1rem 0.75rem;
+        pointer-events: none;
+        border: 1px solid transparent;
+        transform-origin: 0 0;
+        transition: opacity 0.1s ease-in-out, transform 0.1s ease-in-out;
+        color: #6b7280;
+    }
+    
+    .form-floating input:focus ~ label,
+    .form-floating input:not(:placeholder-shown) ~ label {
+        opacity: 0.65;
+        transform: scale(0.85) translateY(-0.5rem) translateX(0.15rem);
+    }
+    
+    .btn-login {
+        width: 100%;
+        height: 3rem;
+        background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+        border: none;
+        border-radius: 0.5rem;
+        color: white;
+        font-size: 1rem;
+        font-weight: 600;
+        transition: all 0.2s ease;
+    }
+    
+    .btn-login:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    }
+    
+    .btn-login:active {
+        transform: translateY(0);
+    }
+    
+    .security-info {
+        background: #f3f4f6;
+        border-radius: 0.5rem;
+        padding: 1rem;
+        margin-top: 1.5rem;
+        font-size: 0.875rem;
+        color: #6b7280;
+    }
+    
+    .security-info h6 {
+        color: #374151;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+    }
+    
+    .security-info ul {
+        margin: 0;
+        padding-left: 1.25rem;
+    }
+    
+    .security-info li {
+        margin-bottom: 0.25rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="login-container">
+    <div class="login-card">
+        <div class="login-header">
+            <h1>
+                <i class="bi bi-shield-lock text-primary"></i>
+                Admin Login
+            </h1>
+            <p>Faça login para acessar o painel administrativo</p>
+        </div>
+        
+        <form method="POST">
+            <div class="form-floating">
+                <input type="text" 
+                       class="form-control" 
+                       id="username" 
+                       name="username" 
+                       placeholder="Usuário"
+                       required
+                       autocomplete="username">
+                <label for="username">
+                    <i class="bi bi-person me-2"></i>Usuário
+                </label>
+            </div>
+            
+            <div class="form-floating">
+                <input type="password" 
+                       class="form-control" 
+                       id="password" 
+                       name="password" 
+                       placeholder="Senha"
+                       required
+                       autocomplete="current-password">
+                <label for="password">
+                    <i class="bi bi-lock me-2"></i>Senha
+                </label>
+            </div>
+            
+            <button type="submit" class="btn btn-login">
+                <i class="bi bi-box-arrow-in-right me-2"></i>
+                Entrar
+            </button>
+        </form>
+        
+        <div class="security-info">
+            <h6>
+                <i class="bi bi-info-circle me-2"></i>
+                Informações de Segurança
+            </h6>
+            <ul>
+                <li>Sessão válida por 1 hora</li>
+                <li>Logout automático por inatividade</li>
+                <li>Senha criptografada com SHA-256</li>
+                <li>Acesso restrito ao painel administrativo</li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Foco automático no campo de usuário
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('username').focus();
+});
+
+// Validação do formulário
+document.querySelector('form').addEventListener('submit', function(e) {
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value.trim();
+    
+    if (!username || !password) {
+        e.preventDefault();
+        alert('Por favor, preencha todos os campos.');
+        return;
+    }
+    
+    if (password.length < 6) {
+        e.preventDefault();
+        alert('A senha deve ter pelo menos 6 caracteres.');
+        return;
+    }
+});
+</script>
+{% endblock %}

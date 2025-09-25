@@ -12,7 +12,7 @@ Funcionalidades:
 - Base de dados com medicamentos da ANVISA
 """
 
-from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, send_file
+from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, send_file, session
 from flask_sqlalchemy import SQLAlchemy
 from models import db, Paciente, DoencaCronica, PacienteDoenca, Sintoma, Pergunta, Medicamento, Consulta, ConsultaResposta, ConsultaRecomendacao
 from report_generator import ReportGenerator
@@ -20,8 +20,9 @@ from config import Config
 import os
 from datetime import datetime, timedelta
 import json
-from functools import lru_cache
+from functools import lru_cache, wraps
 from perguntas_extractor import list_modules as list_motor_modulos, extract_questions_for_module
+import hashlib
 
 # Inicialização da aplicação
 app = Flask(__name__)
@@ -37,6 +38,35 @@ report_generator = ReportGenerator()
 os.makedirs('reports', exist_ok=True)
 os.makedirs('uploads', exist_ok=True)
 
+# ===== SISTEMA DE AUTENTICAÇÃO =====
+
+def hash_password(password):
+    """Criptografa a senha usando SHA-256"""
+    return hashlib.sha256(password.encode()).hexdigest()
+
+def verify_password(password, hashed):
+    """Verifica se a senha está correta"""
+    return hash_password(password) == hashed
+
+def login_required(f):
+    """Decorator para rotas que requerem autenticação"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not session.get('admin_logged_in'):
+            flash('Você precisa fazer login para acessar esta página.', 'warning')
+            return redirect(url_for('admin_login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+def check_session_timeout():
+    """Verifica se a sessão expirou"""
+    if 'last_activity' in session:
+        last_activity = session['last_activity']
+        if datetime.now().timestamp() - last_activity > app.config['SESSION_TIMEOUT']:
+            session.clear()
+            return False
+    return True
+
 # Cache para consultas frequentes (evita múltiplas consultas ao banco)
 @lru_cache(maxsize=128)
 def get_doencas_cronicas():
@@ -47,6 +77,38 @@ def get_doencas_cronicas():
 def get_perguntas_ativas():
     """Cache para perguntas ativas - consulta frequente"""
     return Pergunta.query.filter_by(ativa=True).order_by(Pergunta.ordem).all()
+
+# ===== ROTAS DE AUTENTICAÇÃO =====
+
+@app.route('/admin/login', methods=['GET', 'POST'])
+def admin_login():
+    """Página de login do administrador"""
+    if request.method == 'POST':
+        username = request.form.get('username', '').strip()
+        password = request.form.get('password', '').strip()
+        
+        # Verificar credenciais
+        if (username == app.config['ADMIN_USERNAME'] and 
+            verify_password(password, hash_password(app.config['ADMIN_PASSWORD']))):
+            
+            # Login bem-sucedido
+            session['admin_logged_in'] = True
+            session['last_activity'] = datetime.now().timestamp()
+            session['username'] = username
+            
+            flash('Login realizado com sucesso!', 'success')
+            return redirect(url_for('admin'))
+        else:
+            flash('Usuário ou senha incorretos.', 'error')
+    
+    return render_template('admin_login.html')
+
+@app.route('/admin/logout')
+def admin_logout():
+    """Logout do administrador"""
+    session.clear()
+    flash('Logout realizado com sucesso!', 'info')
+    return redirect(url_for('admin_login'))
 
 @app.route('/')
 def index():
@@ -816,8 +878,16 @@ def gerar_relatorio(consulta_id):
         return redirect(url_for('resultado_triagem', consulta_id=consulta_id))
 
 @app.route('/admin')
+@login_required
 def admin():
     """Painel administrativo"""
+    # Verificar timeout da sessão
+    if not check_session_timeout():
+        flash('Sua sessão expirou. Faça login novamente.', 'warning')
+        return redirect(url_for('admin_login'))
+    
+    # Atualizar última atividade
+    session['last_activity'] = datetime.now().timestamp()
     from datetime import timedelta
     from sqlalchemy import func
     
@@ -843,6 +913,9 @@ def admin():
         func.count(ConsultaRecomendacao.id).desc()
     ).limit(10).all()
     
+    # Converter para dicionários para serialização JSON
+    sintomas_comuns = [{'descricao': item.descricao, 'count': item.count} for item in sintomas_comuns]
+    
     # Medicamentos mais recomendados
     medicamentos_recomendados = db.session.query(
         ConsultaRecomendacao.descricao,
@@ -854,6 +927,9 @@ def admin():
     ).order_by(
         func.count(ConsultaRecomendacao.id).desc()
     ).limit(10).all()
+    
+    # Converter para dicionários para serialização JSON
+    medicamentos_recomendados = [{'descricao': item.descricao, 'count': item.count} for item in medicamentos_recomendados]
     
     # Taxa de encaminhamentos
     taxa_encaminhamento = (total_encaminhamentos / total_consultas * 100) if total_consultas > 0 else 0
