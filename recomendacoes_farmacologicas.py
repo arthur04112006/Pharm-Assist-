@@ -11,6 +11,7 @@ baseado nas respostas da triagem e nas indicações dos medicamentos cadastrados
 from typing import Dict, List, Tuple, Optional
 from dataclasses import dataclass
 import re
+import unicodedata
 from models import Medicamento, db
 
 @dataclass
@@ -78,6 +79,143 @@ class SistemaRecomendacoesFarmacologicas:
             ]
         }
     
+    def _rx_only_terms(self) -> List[str]:
+        """Termos que caracterizam medicamentos sujeitos a prescrição, que não devem ser sugeridos em triagem OTC."""
+        termos = [
+            'antibiotico', 'antibiótico',
+            'amoxicilina', 'azitromicina', 'claritromicina', 'penicilina', 'benzilpenicilina',
+            'ampicilina', 'amoxicilina + clavulanato', 'clavulanato',
+            'cefalexina', 'cefadroxila', 'ceftriaxona', 'cefixima', 'ceft', 'cefalo',
+            'ciprofloxacino', 'levofloxacino', 'norfloxacino', 'ofloxacino',
+            'doxiciclina', 'tetraciclina',
+            'metronidazol',
+            'antineoplasico', 'antineoplásico',
+            'corticosteroide sistemico', 'corticosteroide sistêmico',
+            'benzilpenicilina', 'benzetacil'
+        ]
+        return [self._normalize_text(t) for t in termos]
+
+    def _filtrar_recomendacoes_por_politica(self, recomendacoes: List['RecomendacaoFarmacologica'], modulo: str) -> List['RecomendacaoFarmacologica']:
+        """Remove recomendações que violem políticas (ex.: antibióticos e fármacos de prescrição)."""
+        rx_terms = self._rx_only_terms()
+        proibidos_mod = self._termos_proibidos_por_modulo(modulo)
+        filtradas: List[RecomendacaoFarmacologica] = []
+        for rec in recomendacoes:
+            texto = f"{rec.medicamento} {rec.principio_ativo} {rec.indicacao} {rec.observacoes}"
+            texto_norm = self._normalize_text(texto)
+            # Bloqueio de RX-only
+            if any(t in texto_norm for t in rx_terms):
+                # Ao invés de sugerir antibiótico, omitimos do resultado da triagem OTC
+                continue
+            # Bloqueio adicional por módulo
+            if any(t in texto_norm for t in proibidos_mod):
+                continue
+            filtradas.append(rec)
+        return filtradas
+
+    # =====================
+    # Utilidades de texto
+    # =====================
+    def _normalize_text(self, text: str) -> str:
+        """Normaliza texto: minúsculas, sem acentos e espaços extras."""
+        if not text:
+            return ''
+        text = text.strip().lower()
+        text = unicodedata.normalize('NFD', text)
+        text = ''.join(ch for ch in text if unicodedata.category(ch) != 'Mn')
+        text = re.sub(r'\s+', ' ', text)
+        return text
+
+    def _module_label(self, modulo: str) -> str:
+        """Rótulo legível do módulo para match de frase exata no texto."""
+        mapping = {
+            'dor_garganta': 'dor de garganta',
+            'dor_cabeca': 'dor de cabeca',
+            'azia_ma_digestao': 'azia',
+            'espirro_congestao_nasal': 'congestao nasal',
+        }
+        return mapping.get(modulo, modulo.replace('_', ' '))
+
+    def _extract_route_and_form(self, text_norm: str) -> Tuple[str, str]:
+        """Extrai via de administracao e forma farmacêutica básica a partir do texto normalizado."""
+        via = None
+        forma = None
+        # Via
+        if any(t in text_norm for t in ['oral', 'bucal', 'orofaring', 'pastilha', 'gargarejo', 'spray bucal', 'lozenge']):
+            via = 'bucal_oral'
+        if any(t in text_norm for t in ['topico', 'topica']):
+            via = 'topico'
+        if any(t in text_norm for t in ['retal', 'anal', 'supositorio', 'supositorio']):
+            via = 'retal'
+        if any(t in text_norm for t in ['nasal', 'narina', 'spray nasal']):
+            via = 'nasal'
+        # Forma
+        if 'pastilha' in text_norm or 'lozenge' in text_norm:
+            forma = 'pastilha'
+        elif 'spray' in text_norm:
+            forma = 'spray'
+        elif 'pomada' in text_norm or 'creme' in text_norm or 'unguento' in text_norm:
+            forma = 'pomada'
+        elif 'comprimido' in text_norm or 'capsula' in text_norm:
+            forma = 'comprimido'
+        elif 'xarope' in text_norm:
+            forma = 'xarope'
+        elif 'supositorio' in text_norm:
+            forma = 'supositorio'
+        return via or '', forma or ''
+
+    def _termos_proibidos_por_modulo(self, modulo: str) -> List[str]:
+        """Lista de termos que, se presentes na indicacao/nome, devem excluir o medicamento para o módulo."""
+        proibidos = {
+            'tosse': ['retal', 'hemorroid', 'oftalmico', 'colirio'],
+            'febre': ['retal', 'hemorroid'],
+            'dor_cabeca': ['retal', 'hemorroid', 'oftalmico', 'colirio'],
+            'diarreia': ['bucal', 'garganta', 'amigdalite', 'faringite'],
+            'dor_garganta': ['hemorroida', 'hemorroidas', 'anal', 'retal', 'prurido anal'],
+            'azia_ma_digestao': ['retal', 'hemorroid', 'colirio', 'oftalmico'],
+            'constipacao': ['bucal', 'garganta', 'amigdalite', 'faringite'],
+            'hemorroidas': ['garganta', 'amigdalite', 'faringite', 'nasal', 'spray nasal'],
+            'dor_lombar': ['retal', 'hemorroid', 'colirio', 'oftalmico'],
+            'espirro_congestao_nasal': ['retal', 'hemorroid', 'garganta']
+        }
+        return [self._normalize_text(t) for t in proibidos.get(modulo, [])]
+
+    def _via_forma_permitidas_por_modulo(self, modulo: str) -> Tuple[set, set]:
+        """Conjunto de vias e formas preferidas/permitidas por módulo (lógica branda)."""
+        vias = set()
+        formas = set()
+        if modulo == 'dor_garganta':
+            vias = {'bucal_oral', 'topico'}
+            formas = {'pastilha', 'spray', 'comprimido'}
+        elif modulo == 'hemorroidas':
+            vias = {'retal', 'topico'}
+            formas = {'pomada', 'supositorio'}
+        elif modulo == 'espirro_congestao_nasal':
+            vias = {'nasal'}
+            formas = {'spray'}
+        elif modulo == 'tosse':
+            vias = {'bucal_oral'}
+            formas = {'xarope', 'comprimido'}
+        elif modulo == 'febre':
+            vias = {'bucal_oral'}
+            formas = {'comprimido'}
+        elif modulo == 'dor_cabeca':
+            vias = {'bucal_oral'}
+            formas = {'comprimido'}
+        elif modulo == 'diarreia':
+            vias = {'bucal_oral'}
+            formas = {'comprimido', 'capsula', 'po'}
+        elif modulo == 'azia_ma_digestao':
+            vias = {'bucal_oral'}
+            formas = {'comprimido', 'capsula', 'sache'}
+        elif modulo == 'constipacao':
+            vias = {'bucal_oral', 'retal'}  # laxantes orais e supositórios podem existir
+            formas = {'comprimido', 'xarope', 'supositorio'}
+        elif modulo == 'dor_lombar':
+            vias = {'bucal_oral', 'topico'}
+            formas = {'comprimido', 'pomada'}
+        return vias, formas
+
     def buscar_medicamentos_por_sintoma(self, sintoma: str, modulo: str) -> List[Medicamento]:
         """Busca medicamentos que tenham indicações relacionadas ao sintoma"""
         medicamentos_relevantes = []
@@ -95,12 +233,18 @@ class SistemaRecomendacoesFarmacologicas:
                 indicacao_lower = medicamento.indicacao.lower()
                 nome_lower = medicamento.nome_comercial.lower()
                 generico_lower = (medicamento.nome_generico or "").lower()
+
+                # Normalizados
+                indicacao_norm = self._normalize_text(medicamento.indicacao)
+                nome_norm = self._normalize_text(medicamento.nome_comercial)
+                generico_norm = self._normalize_text(medicamento.nome_generico or '')
                 
                 # Verificar se a indicação contém palavras-chave do sintoma
                 for palavra in palavras_chave:
-                    if (palavra.lower() in indicacao_lower or 
-                        palavra.lower() in nome_lower or 
-                        palavra.lower() in generico_lower):
+                    plow = palavra.lower()
+                    plow_norm = self._normalize_text(plow)
+                    if (plow in indicacao_lower or plow in nome_lower or plow in generico_lower or
+                        plow_norm in indicacao_norm or plow_norm in nome_norm or plow_norm in generico_norm):
                         medicamentos_relevantes.append(medicamento)
                         break
             
@@ -108,8 +252,28 @@ class SistemaRecomendacoesFarmacologicas:
             if not medicamentos_relevantes:
                 medicamentos_relevantes = self._buscar_medicamentos_gerais_por_modulo(modulo, medicamentos_ativos)
             
-            # Ordenar por relevância (medicamentos com indicações mais específicas primeiro)
-            medicamentos_relevantes.sort(key=lambda m: self._calcular_relevancia_medicamento(m, modulo))
+            # Aplicar filtros de contexto leves (via/forma/termos proibidos)
+            proibidos = self._termos_proibidos_por_modulo(modulo)
+            vias_ok, formas_ok = self._via_forma_permitidas_por_modulo(modulo)
+            filtrados = []
+            for m in medicamentos_relevantes:
+                ind_norm = self._normalize_text(m.indicacao)
+                nome_norm = self._normalize_text(m.nome_comercial)
+                gen_norm = self._normalize_text(m.nome_generico or '')
+                if any(t in ind_norm or t in nome_norm or t in gen_norm for t in proibidos):
+                    continue
+                via, forma = self._extract_route_and_form(ind_norm + ' ' + nome_norm + ' ' + gen_norm)
+                if vias_ok and via and via not in vias_ok:
+                    # Preferir descartar vias claramente incompatíveis
+                    continue
+                if formas_ok and forma and forma not in formas_ok:
+                    # Preferir descartar formas claramente incompatíveis
+                    continue
+                filtrados.append(m)
+
+            # Ordenar por relevância (com escore levemente aprimorado)
+            filtrados.sort(key=lambda m: self._calcular_relevancia_medicamento(m, modulo), reverse=False)
+            medicamentos_relevantes = filtrados
             
         except Exception as e:
             print(f"Erro ao buscar medicamentos do banco: {e}")
@@ -124,13 +288,18 @@ class SistemaRecomendacoesFarmacologicas:
             return 0.0
         
         indicacao_lower = medicamento.indicacao.lower()
+        indicacao_norm = self._normalize_text(medicamento.indicacao)
+        nome_norm = self._normalize_text(medicamento.nome_comercial)
+        generico_norm = self._normalize_text(medicamento.nome_generico or '')
         palavras_chave = self.palavras_chave_sintomas.get(modulo, [])
         
         relevancia = 0.0
         
         # Contar quantas palavras-chave estão presentes
         for palavra in palavras_chave:
-            if palavra.lower() in indicacao_lower:
+            plow = palavra.lower()
+            plow_norm = self._normalize_text(plow)
+            if (plow in indicacao_lower) or (plow_norm in indicacao_norm):
                 relevancia += 1.0
         
         # Bonus para medicamentos com indicações mais específicas
@@ -140,6 +309,16 @@ class SistemaRecomendacoesFarmacologicas:
         # Penalidade para medicamentos genéricos demais
         if 'geral' in indicacao_lower or 'sintomático' in indicacao_lower:
             relevancia -= 0.3
+
+        # Bonus por frase exata do rótulo do módulo (ex.: "dor de garganta")
+        rotulo = self._normalize_text(self._module_label(modulo))
+        if rotulo and (rotulo in indicacao_norm or rotulo in nome_norm or rotulo in generico_norm):
+            relevancia += 1.0
+
+        # Penalidade por termos proibidos do módulo
+        for t in self._termos_proibidos_por_modulo(modulo):
+            if t and (t in indicacao_norm or t in nome_norm or t in generico_norm):
+                relevancia -= 2.0
         
         return relevancia
     
@@ -253,8 +432,8 @@ class SistemaRecomendacoesFarmacologicas:
                 'antidiarreico', 'diarreia'
             ],
             'dor_garganta': [
-                'benzocaína', 'lidocaína', 'strepsils', 'anestésico', 'garganta',
-                'faringite', 'amigdalite'
+                'benzocaína', 'strepsils', 'anestésico', 'garganta',
+                'faringite', 'amigdalite', 'amilmetacresol', 'cetylpiridinium', 'flurbiprofeno'
             ],
             'azia_ma_digestao': [
                 'hidróxido', 'antiácido', 'pepsamar', 'azia', 'refluxo',
@@ -292,7 +471,34 @@ class SistemaRecomendacoesFarmacologicas:
                     medicamentos_gerais.append(medicamento)
                     break
         
-        return medicamentos_gerais[:5]  # Retornar até 5 medicamentos gerais
+        # Aplicar filtros de exclusão por módulo para evitar cruzamento indevido (ex.: hemorroidas em dor de garganta)
+        medicamentos_filtrados = self._filtrar_exclusoes_por_modulo(medicamentos_gerais, modulo)
+        return medicamentos_filtrados[:5]  # Retornar até 5 medicamentos gerais
+
+    def _filtrar_exclusoes_por_modulo(self, medicamentos: List[Medicamento], modulo: str) -> List[Medicamento]:
+        """Remove medicamentos claramente pertencentes a outros módulos (regras de exclusão por contexto)."""
+        exclusoes_por_modulo = {
+            # Em dor de garganta não devemos recomendar tópicos anais/retal (hemorroidas)
+            'dor_garganta': ['hemorroida', 'hemorroidas', 'anal', 'retal', 'prurido anal'],
+            # Em hemorroidas, evitar itens exclusivos respiratórios de via oral
+            'hemorroidas': ['garganta', 'faringite', 'amigdalite'],
+        }
+        termos_excluir = [t.lower() for t in exclusoes_por_modulo.get(modulo, [])]
+        if not termos_excluir:
+            return medicamentos
+        medicamentos_filtrados: List[Medicamento] = []
+        for med in medicamentos:
+            indicacao_lower = (med.indicacao or '').lower()
+            nome_lower = med.nome_comercial.lower()
+            generico_lower = (med.nome_generico or '').lower()
+            if any(t in indicacao_lower for t in termos_excluir):
+                continue
+            if any(t in nome_lower for t in termos_excluir):
+                continue
+            if any(t in generico_lower for t in termos_excluir):
+                continue
+            medicamentos_filtrados.append(med)
+        return medicamentos_filtrados
     
     def analisar_respostas_para_sintomas(self, respostas: List[Dict[str, str]], modulo: str) -> Dict[str, bool]:
         """Analisa as respostas para identificar sintomas específicos"""
@@ -455,6 +661,9 @@ class SistemaRecomendacoesFarmacologicas:
         if not recomendacoes:
             recomendacoes = self._gerar_recomendacoes_fixas_por_modulo(modulo)
         
+        # Filtrar por política (ex.: remover antibióticos/RX-only e itens incompatíveis com o módulo)
+        recomendacoes = self._filtrar_recomendacoes_por_politica(recomendacoes, modulo)
+
         # Aplicar modificadores baseados no perfil do paciente
         if paciente_profile:
             recomendacoes = self._aplicar_modificadores_paciente(recomendacoes, paciente_profile)
@@ -1694,7 +1903,8 @@ class SistemaRecomendacoesFarmacologicas:
         if not medicamento.indicacao:
             return False
         indicacao = medicamento.indicacao.lower()
-        return any(palavra in indicacao for palavra in ['analgésico tópico', 'anestésico tópico', 'benzocaína', 'lidocaína'])
+        # Removemos 'lidocaína' para evitar capturar tópicos retais (hemorroidas) em dor de garganta
+        return any(palavra in indicacao for palavra in ['analgésico tópico', 'anestésico tópico', 'benzocaína'])
     
     def _e_antiacido(self, medicamento: Medicamento) -> bool:
         """Verifica se é antiácido"""
