@@ -80,37 +80,159 @@ class SistemaRecomendacoesFarmacologicas:
     
     def buscar_medicamentos_por_sintoma(self, sintoma: str, modulo: str) -> List[Medicamento]:
         """Busca medicamentos que tenham indicações relacionadas ao sintoma"""
-        if self.medicamentos_cache is None:
-            self.medicamentos_cache = Medicamento.query.filter_by(ativo=True).all()
-        
         medicamentos_relevantes = []
-        palavras_chave = self.palavras_chave_sintomas.get(modulo, [])
         
-        for medicamento in self.medicamentos_cache:
-            if not medicamento.indicacao:
-                continue
-                
-            indicacao_lower = medicamento.indicacao.lower()
-            nome_lower = medicamento.nome_comercial.lower()
-            generico_lower = (medicamento.nome_generico or "").lower()
+        try:
+            # Buscar medicamentos do banco de dados
+            medicamentos_ativos = Medicamento.query.filter_by(ativo=True).all()
+            palavras_chave = self.palavras_chave_sintomas.get(modulo, [])
             
-            # Verificar se a indicação contém palavras-chave do sintoma
-            for palavra in palavras_chave:
-                if (palavra.lower() in indicacao_lower or 
-                    palavra.lower() in nome_lower or 
-                    palavra.lower() in generico_lower):
-                    medicamentos_relevantes.append(medicamento)
-                    break
-        
-        # Se não encontrou medicamentos específicos, buscar por módulo geral
-        if not medicamentos_relevantes:
-            medicamentos_relevantes = self._buscar_medicamentos_gerais_por_modulo(modulo)
+            # Buscar medicamentos com indicações específicas
+            for medicamento in medicamentos_ativos:
+                if not medicamento.indicacao:
+                    continue
+                    
+                indicacao_lower = medicamento.indicacao.lower()
+                nome_lower = medicamento.nome_comercial.lower()
+                generico_lower = (medicamento.nome_generico or "").lower()
+                
+                # Verificar se a indicação contém palavras-chave do sintoma
+                for palavra in palavras_chave:
+                    if (palavra.lower() in indicacao_lower or 
+                        palavra.lower() in nome_lower or 
+                        palavra.lower() in generico_lower):
+                        medicamentos_relevantes.append(medicamento)
+                        break
+            
+            # Se não encontrou medicamentos específicos, buscar por módulo geral
+            if not medicamentos_relevantes:
+                medicamentos_relevantes = self._buscar_medicamentos_gerais_por_modulo(modulo, medicamentos_ativos)
+            
+            # Ordenar por relevância (medicamentos com indicações mais específicas primeiro)
+            medicamentos_relevantes.sort(key=lambda m: self._calcular_relevancia_medicamento(m, modulo))
+            
+        except Exception as e:
+            print(f"Erro ao buscar medicamentos do banco: {e}")
+            # Fallback para medicamentos simulados
+            medicamentos_relevantes = self._get_medicamentos_simulados_por_modulo(modulo)
         
         return medicamentos_relevantes
     
-    def _buscar_medicamentos_gerais_por_modulo(self, modulo: str) -> List[Medicamento]:
+    def _calcular_relevancia_medicamento(self, medicamento: Medicamento, modulo: str) -> float:
+        """Calcula a relevância de um medicamento para um módulo específico"""
+        if not medicamento.indicacao:
+            return 0.0
+        
+        indicacao_lower = medicamento.indicacao.lower()
+        palavras_chave = self.palavras_chave_sintomas.get(modulo, [])
+        
+        relevancia = 0.0
+        
+        # Contar quantas palavras-chave estão presentes
+        for palavra in palavras_chave:
+            if palavra.lower() in indicacao_lower:
+                relevancia += 1.0
+        
+        # Bonus para medicamentos com indicações mais específicas
+        if 'específico' in indicacao_lower or 'indicado' in indicacao_lower:
+            relevancia += 0.5
+        
+        # Penalidade para medicamentos genéricos demais
+        if 'geral' in indicacao_lower or 'sintomático' in indicacao_lower:
+            relevancia -= 0.3
+        
+        return relevancia
+    
+    def _get_medicamentos_simulados(self) -> List[Medicamento]:
+        """Retorna medicamentos simulados quando o banco não está disponível"""
+        class MedicamentoSimulado:
+            def __init__(self, nome_comercial, nome_generico, indicacao, contraindicacao=None):
+                self.nome_comercial = nome_comercial
+                self.nome_generico = nome_generico
+                self.indicacao = indicacao
+                self.contraindicacao = contraindicacao
+                self.ativo = True
+        
+        return [
+            # Medicamentos para tosse
+            MedicamentoSimulado("Vick 44", "Dextrometorfano", "Tosse seca e irritativa, antitussígeno"),
+            MedicamentoSimulado("Mucosolvan", "Ambroxol", "Tosse produtiva, expectorante, mucolítico"),
+            MedicamentoSimulado("Claritin", "Loratadina", "Tosse alérgica, antialérgico, antihistamínico"),
+            MedicamentoSimulado("Bisolvon", "Bromexina", "Tosse com secreção, mucolítico, expectorante"),
+            MedicamentoSimulado("Benalet", "Clobutinol", "Antitussígeno para tosse seca"),
+            MedicamentoSimulado("Xarope de Guaifenesina", "Guaifenesina", "Expectorante para tosse"),
+            
+            # Medicamentos para febre
+            MedicamentoSimulado("Tylenol", "Paracetamol", "Febre e dor, antipirético, analgésico"),
+            MedicamentoSimulado("Advil", "Ibuprofeno", "Febre e inflamação, antipirético, anti-inflamatório"),
+            MedicamentoSimulado("Novalgina", "Dipirona", "Febre e dor, antipirético, analgésico"),
+            MedicamentoSimulado("Aspirina", "Ácido Acetilsalicílico", "Febre e dor, antipirético"),
+            
+            # Medicamentos para dor de cabeça
+            MedicamentoSimulado("Dorflex", "Dipirona + Orfenadrina", "Dor de cabeça, analgésico, relaxante muscular"),
+            MedicamentoSimulado("Voltaren", "Diclofenaco", "Dor de cabeça, anti-inflamatório"),
+            
+            # Medicamentos para diarreia
+            MedicamentoSimulado("Imodium", "Loperamida", "Diarreia aguda, antidiarreico"),
+            MedicamentoSimulado("Floratil", "Saccharomyces boulardii", "Diarreia, probiótico"),
+            MedicamentoSimulado("Smecta", "Diosmectita", "Diarreia e cólicas"),
+            
+            # Medicamentos para dor de garganta
+            MedicamentoSimulado("Strepsils", "Benzocaína + Amilmetacresol", "Dor de garganta, analgésico tópico"),
+            MedicamentoSimulado("Cepacol", "Benzocaína + Cetylpiridinium", "Dor de garganta, anestésico tópico"),
+            
+            # Medicamentos para azia
+            MedicamentoSimulado("Pepsamar", "Hidróxido de Alumínio + Magnésio", "Azia e queimação, antiácido"),
+            MedicamentoSimulado("Omeprazol", "Omeprazol", "Inibidor de bomba de prótons"),
+            
+            # Medicamentos para constipação
+            MedicamentoSimulado("Lactulona", "Lactulose", "Constipação, laxante"),
+            MedicamentoSimulado("Bisacodil", "Bisacodil", "Laxante estimulante"),
+            
+            # Medicamentos para hemorroidas
+            MedicamentoSimulado("Proctyl", "Hidrocortisona + Lidocaína", "Hemorroidas, anti-inflamatório tópico"),
+            MedicamentoSimulado("Anusol", "Óxido de Zinco + Bálsamo", "Hemorroidas e fissuras"),
+            
+            # Medicamentos para dor lombar
+            MedicamentoSimulado("Ciclobenzaprina", "Ciclobenzaprina", "Relaxante muscular"),
+            MedicamentoSimulado("Tramadol", "Tramadol", "Analgésico para dor intensa"),
+            
+            # Medicamentos para congestão nasal
+            MedicamentoSimulado("Sorine", "Cloridrato de Naftazolina", "Congestão nasal, descongestionante"),
+            MedicamentoSimulado("Allegra", "Fexofenadina", "Congestão nasal alérgica, antihistamínico"),
+            MedicamentoSimulado("Rinosoro", "Soro Fisiológico", "Lavagem nasal")
+        ]
+    
+    def _get_medicamentos_simulados_por_modulo(self, modulo: str) -> List[Medicamento]:
+        """Retorna medicamentos simulados filtrados por módulo"""
+        todos_medicamentos = self._get_medicamentos_simulados()
+        
+        # Filtrar por módulo
+        medicamentos_por_modulo = {
+            'tosse': ['Vick 44', 'Mucosolvan', 'Claritin', 'Bisolvon', 'Benalet', 'Xarope de Guaifenesina'],
+            'febre': ['Tylenol', 'Advil', 'Novalgina', 'Aspirina'],
+            'dor_cabeca': ['Dorflex', 'Voltaren'],
+            'diarreia': ['Imodium', 'Floratil', 'Smecta'],
+            'dor_garganta': ['Strepsils', 'Cepacol'],
+            'azia_ma_digestao': ['Pepsamar', 'Omeprazol'],
+            'constipacao': ['Lactulona', 'Bisacodil'],
+            'hemorroidas': ['Proctyl', 'Anusol'],
+            'dor_lombar': ['Ciclobenzaprina', 'Tramadol'],
+            'espirro_congestao_nasal': ['Sorine', 'Allegra', 'Rinosoro']
+        }
+        
+        nomes_relevantes = medicamentos_por_modulo.get(modulo, [])
+        return [m for m in todos_medicamentos if m.nome_comercial in nomes_relevantes]
+    
+    def _buscar_medicamentos_gerais_por_modulo(self, modulo: str, medicamentos_ativos: List[Medicamento] = None) -> List[Medicamento]:
         """Busca medicamentos gerais para o módulo quando não há correspondência específica"""
         medicamentos_gerais = []
+        
+        if medicamentos_ativos is None:
+            try:
+                medicamentos_ativos = Medicamento.query.filter_by(ativo=True).all()
+            except Exception:
+                return self._get_medicamentos_simulados_por_modulo(modulo)
         
         # Mapeamento de módulos para medicamentos gerais
         medicamentos_por_modulo = {
@@ -187,7 +309,10 @@ class SistemaRecomendacoesFarmacologicas:
             'dor_lombar': False,
             'congestao_nasal': False,
             'inflamacao': False,
-            'alergia': False
+            'alergia': False,
+            'gravidade_alta': False,
+            'duracao_longa': False,
+            'sinais_alerta': False
         }
         
         # Mapear respostas para sintomas baseado no módulo
@@ -206,6 +331,17 @@ class SistemaRecomendacoesFarmacologicas:
                     sintomas_identificados['febre'] = True
                 elif 'tosse_14' in pergunta_id and resposta_valor in ['sim', 'yes']:
                     sintomas_identificados['dor_garganta'] = True
+                elif 'tosse_6' in pergunta_id and resposta_valor in ['sim', 'yes']:
+                    sintomas_identificados['gravidade_alta'] = True
+                elif 'tosse_7' in pergunta_id and resposta_valor in ['sim', 'yes']:
+                    sintomas_identificados['sinais_alerta'] = True
+                elif 'tosse_1' in pergunta_id:
+                    try:
+                        duracao = int(resposta_valor)
+                        if duracao > 7:
+                            sintomas_identificados['duracao_longa'] = True
+                    except ValueError:
+                        pass
         
         elif modulo == 'febre':
             for resposta in respostas:
@@ -295,15 +431,40 @@ class SistemaRecomendacoesFarmacologicas:
     
     def gerar_recomendacoes(self, modulo: str, respostas: List[Dict[str, str]] = None, 
                            scoring_result = None, paciente_profile: Dict = None) -> List[RecomendacaoFarmacologica]:
-        """Gera recomendações farmacológicas baseadas apenas no módulo selecionado"""
-        # Gerar recomendações fixas baseadas no módulo
-        recomendacoes = self._gerar_recomendacoes_fixas_por_modulo(modulo)
+        """Gera recomendações farmacológicas baseadas no módulo, respostas e perfil do paciente"""
         
-        # Aplicar modificadores baseados no perfil do paciente se disponível
+        # Analisar sintomas específicos das respostas
+        sintomas_identificados = {}
+        if respostas:
+            sintomas_identificados = self.analisar_respostas_para_sintomas(respostas, modulo)
+        
+        # Buscar medicamentos do banco de dados
+        medicamentos_relevantes = self.buscar_medicamentos_por_sintoma(modulo, modulo)
+        
+        # Se não encontrou medicamentos, tentar busca mais ampla
+        if not medicamentos_relevantes:
+            print(f"Nenhum medicamento encontrado para módulo {modulo}, tentando busca ampla...")
+            medicamentos_relevantes = self._buscar_medicamentos_gerais_por_modulo(modulo)
+        
+        # Gerar recomendações baseadas nos sintomas identificados
+        recomendacoes = self._gerar_recomendacoes_inteligentes(
+            modulo, sintomas_identificados, medicamentos_relevantes, scoring_result
+        )
+        
+        # Se não houver medicamentos específicos, usar recomendações fixas
+        if not recomendacoes:
+            recomendacoes = self._gerar_recomendacoes_fixas_por_modulo(modulo)
+        
+        # Aplicar modificadores baseados no perfil do paciente
         if paciente_profile:
             recomendacoes = self._aplicar_modificadores_paciente(recomendacoes, paciente_profile)
         
-        return recomendacoes[:6]  # Retornar exatamente 6 medicamentos
+        # Aplicar filtros de contraindicações
+        recomendacoes = self._aplicar_filtros_contraindicacoes(recomendacoes, paciente_profile)
+        
+        # Ordenar por prioridade e retornar até 6 medicamentos
+        recomendacoes.sort(key=lambda x: x.prioridade)
+        return recomendacoes[:6]
     
     def _gerar_recomendacoes_fixas_por_modulo(self, modulo: str) -> List[RecomendacaoFarmacologica]:
         """Gera 6 medicamentos fixos para cada módulo"""
@@ -887,6 +1048,66 @@ class SistemaRecomendacoesFarmacologicas:
         
         return recomendacoes
     
+    def _gerar_recomendacoes_inteligentes(self, modulo: str, sintomas: Dict[str, bool], 
+                                         medicamentos: List[Medicamento], scoring_result) -> List[RecomendacaoFarmacologica]:
+        """Gera recomendações inteligentes baseadas nos sintomas identificados"""
+        recomendacoes = []
+        
+        # Mapear sintomas para medicamentos específicos
+        if modulo == 'tosse':
+            recomendacoes = self._recomendar_para_tosse(sintomas, medicamentos, scoring_result)
+        elif modulo == 'febre':
+            recomendacoes = self._recomendar_para_febre(sintomas, medicamentos, scoring_result)
+        elif modulo == 'dor_cabeca':
+            recomendacoes = self._recomendar_para_dor_cabeca(sintomas, medicamentos, scoring_result)
+        elif modulo == 'diarreia':
+            recomendacoes = self._recomendar_para_diarreia(sintomas, medicamentos, scoring_result)
+        elif modulo == 'dor_garganta':
+            recomendacoes = self._recomendar_para_dor_garganta(sintomas, medicamentos, scoring_result)
+        elif modulo == 'azia_ma_digestao':
+            recomendacoes = self._recomendar_para_azia(sintomas, medicamentos, scoring_result)
+        elif modulo == 'constipacao':
+            recomendacoes = self._recomendar_para_constipacao(sintomas, medicamentos, scoring_result)
+        elif modulo == 'hemorroidas':
+            recomendacoes = self._recomendar_para_hemorroidas(sintomas, medicamentos, scoring_result)
+        elif modulo == 'dor_lombar':
+            recomendacoes = self._recomendar_para_dor_lombar(sintomas, medicamentos, scoring_result)
+        elif modulo == 'espirro_congestao_nasal':
+            recomendacoes = self._recomendar_para_congestao_nasal(sintomas, medicamentos, scoring_result)
+        
+        return recomendacoes
+    
+    def _aplicar_filtros_contraindicacoes(self, recomendacoes: List[RecomendacaoFarmacologica], 
+                                        paciente_profile: Dict) -> List[RecomendacaoFarmacologica]:
+        """Aplica filtros de contraindicações baseados no perfil do paciente"""
+        if not paciente_profile:
+            return recomendacoes
+        
+        recomendacoes_filtradas = []
+        
+        for rec in recomendacoes:
+            # Verificar contraindicações para gestantes/lactantes
+            if paciente_profile.get('is_pregnant_or_lactating', False):
+                if any(termo in rec.medicamento.lower() for termo in ['aspirina', 'ibuprofeno', 'naproxeno']):
+                    rec.observacoes += " | Cautela em gestantes - consultar médico"
+                    rec.prioridade = min(5, rec.prioridade + 1)
+            
+            # Verificar contraindicações para idosos
+            if paciente_profile.get('is_frail_elderly', False):
+                if any(termo in rec.medicamento.lower() for termo in ['dipirona', 'tramadol']):
+                    rec.observacoes += " | Reduzir dose em idosos"
+                    rec.prioridade = min(5, rec.prioridade + 1)
+            
+            # Verificar contraindicações para crianças
+            if paciente_profile.get('age_years', 0) < 12:
+                if any(termo in rec.medicamento.lower() for termo in ['aspirina', 'tramadol']):
+                    rec.observacoes += " | Contraindicado em crianças"
+                    rec.prioridade = min(5, rec.prioridade + 2)
+            
+            recomendacoes_filtradas.append(rec)
+        
+        return recomendacoes_filtradas
+    
     def _gerar_recomendacoes_gerais_por_modulo(self, modulo: str, medicamentos: List[Medicamento]) -> List[RecomendacaoFarmacologica]:
         """Gera recomendações gerais quando não há correspondência específica"""
         recomendacoes = []
@@ -1114,18 +1335,31 @@ class SistemaRecomendacoesFarmacologicas:
         # Buscar medicamentos específicos para tosse
         medicamentos_tosse = [m for m in medicamentos if self._medicamento_para_tosse(m)]
         
+        # Ajustar prioridade baseada na gravidade
+        prioridade_base = 1
+        if sintomas.get('gravidade_alta', False):
+            prioridade_base = 1
+        elif sintomas.get('duracao_longa', False):
+            prioridade_base = 2
+        else:
+            prioridade_base = 3
+        
         if sintomas['tosse_seca']:
             # Antitussígenos
             antitussigenos = [m for m in medicamentos_tosse if self._e_antitussigeno(m)]
             for med in antitussigenos[:2]:  # Máximo 2 antitussígenos
+                observacoes = "Não associar com expectorantes"
+                if sintomas.get('duracao_longa', False):
+                    observacoes += " | Se persistir >7 dias, consultar médico"
+                
                 recomendacoes.append(RecomendacaoFarmacologica(
                     medicamento=med.nome_comercial,
                     principio_ativo=med.nome_generico or med.nome_comercial,
                     indicacao="Tosse seca",
                     posologia=self._gerar_posologia(med, 'antitussigeno'),
                     contraindicacoes=med.contraindicacao or "Verificar bula",
-                    observacoes="Não associar com expectorantes",
-                    prioridade=1,
+                    observacoes=observacoes,
+                    prioridade=prioridade_base,
                     categoria='sintomatico'
                 ))
         
@@ -1133,14 +1367,18 @@ class SistemaRecomendacoesFarmacologicas:
             # Expectorantes e mucolíticos
             expectorantes = [m for m in medicamentos_tosse if self._e_expectorante(m)]
             for med in expectorantes[:2]:
+                observacoes = "Aumentar ingestão de líquidos"
+                if sintomas.get('gravidade_alta', False):
+                    observacoes += " | Monitorar evolução"
+                
                 recomendacoes.append(RecomendacaoFarmacologica(
                     medicamento=med.nome_comercial,
                     principio_ativo=med.nome_generico or med.nome_comercial,
                     indicacao="Tosse produtiva",
                     posologia=self._gerar_posologia(med, 'expectorante'),
                     contraindicacoes=med.contraindicacao or "Verificar bula",
-                    observacoes="Aumentar ingestão de líquidos",
-                    prioridade=1,
+                    observacoes=observacoes,
+                    prioridade=prioridade_base,
                     categoria='sintomatico'
                 ))
         
@@ -1155,9 +1393,15 @@ class SistemaRecomendacoesFarmacologicas:
                     posologia=self._gerar_posologia(med, 'antialergico'),
                     contraindicacoes=med.contraindicacao or "Verificar bula",
                     observacoes="Evitar exposição a alérgenos",
-                    prioridade=2,
+                    prioridade=prioridade_base + 1,
                     categoria='terapeutico'
                 ))
+        
+        # Se há sinais de alerta, adicionar observação especial
+        if sintomas.get('sinais_alerta', False):
+            for rec in recomendacoes:
+                rec.observacoes += " | ATENÇÃO: Sinais de alerta detectados - monitorar evolução"
+                rec.prioridade = 1
         
         return recomendacoes
     

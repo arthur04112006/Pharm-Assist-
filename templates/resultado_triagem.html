@@ -69,23 +69,40 @@
             </div>
             <div class="card-body text-center">
                 <div class="mb-3">
-                    <h2 class="display-4 
-                        {% if resultado.score <= 30 %}text-success
-                        {% elif resultado.score <= 60 %}text-warning
-                        {% else %}text-danger{% endif %}">
-                        {{ resultado.score }}
-                    </h2>
-                    <p class="text-muted">Pontuação</p>
+                    <div class="text-center p-3 rounded" style="background: linear-gradient(135deg, 
+                        {% if resultado.score <= 10 %}#d4edda 0%, #c3e6cb 100%
+                        {% elif resultado.score <= 20 %}#fff3cd 0%, #ffeaa7 100%
+                        {% else %}#f8d7da 0%, #f5c6cb 100%{% endif %});">
+                        <h2 class="display-4 fw-bold mb-2
+                            {% if resultado.score <= 10 %}text-success
+                            {% elif resultado.score <= 20 %}text-warning
+                            {% else %}text-danger{% endif %}">
+                            {{ "%.1f"|format(resultado.score) }}
+                        </h2>
+                        <p class="text-dark fw-semibold mb-0">Pontuação</p>
+                    </div>
                 </div>
                 
                 <div class="mb-3">
-                    <span class="badge 
-                        {% if resultado.risk_level == 'baixo' %}bg-success
-                        {% elif resultado.risk_level == 'medio' %}bg-warning
-                        {% else %}bg-danger{% endif %} fs-6">
-                        {{ resultado.risk_level|title }}
-                    </span>
-                    <p class="text-muted">Nível de Risco</p>
+                    {% set risk_level = resultado.risk_level|default('baixo') %}
+                    {% if risk_level == 'baixo' %}
+                        {% set bg_color = '#d4edda 0%, #c3e6cb 100%' %}
+                        {% set badge_class = 'bg-success' %}
+                    {% elif risk_level == 'medio' %}
+                        {% set bg_color = '#fff3cd 0%, #ffeaa7 100%' %}
+                        {% set badge_class = 'bg-warning' %}
+                    {% else %}
+                        {% set bg_color = '#f8d7da 0%, #f5c6cb 100%' %}
+                        {% set badge_class = 'bg-danger' %}
+                    {% endif %}
+                    
+                    <div class="p-3 rounded" style="background: linear-gradient(135deg, {{ bg_color }});">
+                        <span class="badge fs-5 px-3 py-2 {{ badge_class }}">
+                            <i class="bi bi-shield-check me-1"></i>
+                            {{ risk_level|title }}
+                        </span>
+                        <p class="text-dark fw-semibold mt-2 mb-0">Nível de Risco</p>
+                    </div>
                 </div>
                 
                 {% if resultado.alert_signs %}
@@ -200,34 +217,56 @@
                 </h5>
             </div>
             <div class="card-body">
-                {% if resultado.recomendacoes_medicamentos %}
+                {% if resultado.recomendacoes_farmacologicas %}
                 <div class="row">
-                    {% for rec in resultado.recomendacoes_medicamentos %}
-                    <div class="col-12 mb-3">
-                        <div class="card border-primary">
-                            <div class="card-header bg-primary text-white">
-                                <h6 class="mb-0">
-                                    <i class="bi bi-capsule"></i> {{ rec.medicamento }}
+                    {% for rec in resultado.recomendacoes_farmacologicas %}
+                    <div class="col-12 mb-4">
+                        <div class="card shadow-sm border-0" style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);">
+                            <div class="card-header" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; border: none;">
+                                <h6 class="mb-0 d-flex align-items-center">
+                                    <i class="bi bi-capsule me-2"></i> 
+                                    <span class="fw-bold">{{ rec.medicamento.nome if rec.medicamento else rec.medicamento }}</span>
+                                    <span class="badge bg-light text-dark ms-auto">Recomendado</span>
                                 </h6>
                             </div>
-                            <div class="card-body">
+                            <div class="card-body" style="background: white;">
                                 <div class="row">
                                     <div class="col-md-8">
-                                        <p class="mb-2"><strong>Indicação:</strong> {{ rec.justificativa }}</p>
-                                        {% if rec.medicamento|length > 50 %}
-                                        <p class="mb-1"><strong>Princípio Ativo:</strong> {{ rec.medicamento.split('(')[1].split(')')[0] if '(' in rec.medicamento and ')' in rec.medicamento else 'Verificar bula' }}</p>
+                                        <div class="mb-3">
+                                            <h6 class="text-primary mb-2">
+                                                <i class="bi bi-info-circle me-1"></i> Indicação
+                                            </h6>
+                                            <p class="mb-2 text-dark">{{ rec.posologia if rec.posologia else 'Consultar bula' }}</p>
+                                        </div>
+                                        {% if rec.medicamento and rec.medicamento|length > 50 %}
+                                        <div class="mb-3">
+                                            <h6 class="text-secondary mb-2">
+                                                <i class="bi bi-flask me-1"></i> Princípio Ativo
+                                            </h6>
+                                            <p class="mb-2 text-dark">{{ rec.medicamento.split('(')[1].split(')')[0] if '(' in rec.medicamento and ')' in rec.medicamento else 'Verificar bula' }}</p>
+                                        </div>
                                         {% endif %}
                                     </div>
-                                    <div class="col-md-4 text-end">
-                                        <span class="badge bg-success">Recomendado</span>
+                                    <div class="col-md-4">
+                                        <div class="text-center">
+                                            <div class="mb-3">
+                                                <i class="bi bi-shield-check text-success" style="font-size: 2rem;"></i>
+                                            </div>
+                                            <span class="badge bg-success fs-6 px-3 py-2">Aprovado</span>
+                                        </div>
                                     </div>
                                 </div>
-                                <div class="alert alert-info mb-0">
-                                    <small>
-                                        <i class="bi bi-info-circle"></i>
-                                        <strong>Importante:</strong> Consulte sempre um farmacêutico ou médico antes do uso. 
-                                        Leia a bula e siga as orientações de posologia.
-                                    </small>
+                                <div class="alert alert-warning border-0 mb-0" style="background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);">
+                                    <div class="d-flex align-items-start">
+                                        <i class="bi bi-exclamation-triangle-fill text-warning me-2 mt-1"></i>
+                                        <div>
+                                            <strong class="text-dark">Importante:</strong>
+                                            <p class="mb-0 text-dark">
+                                                Consulte sempre um farmacêutico ou médico antes do uso. 
+                                                Leia a bula e siga as orientações de posologia.
+                                            </p>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -256,12 +295,21 @@
                 {% if resultado.recomendacoes_nao_farmacologicas %}
                 <div class="row">
                     {% for rec in resultado.recomendacoes_nao_farmacologicas %}
-                    <div class="col-12 mb-2">
-                        <div class="d-flex align-items-start">
-                            <i class="bi bi-check-circle text-success me-3 mt-1"></i>
-                            <div class="flex-grow-1">
-                                <p class="mb-1 fw-bold">{{ rec.descricao }}</p>
-                                <small class="text-muted">{{ rec.justificativa }}</small>
+                    <div class="col-12 mb-3">
+                        <div class="card border-0 shadow-sm" style="background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%);">
+                            <div class="card-body">
+                                <div class="d-flex align-items-start">
+                                    <div class="me-3">
+                                        <i class="bi bi-heart-pulse text-primary" style="font-size: 1.5rem;"></i>
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <h6 class="text-primary mb-2 fw-bold">{{ rec.titulo if rec.titulo else rec.descricao }}</h6>
+                                        <p class="text-dark mb-0">{{ rec.descricao if rec.descricao else rec.justificativa }}</p>
+                                    </div>
+                                    <div class="ms-2">
+                                        <span class="badge bg-primary">Recomendado</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>

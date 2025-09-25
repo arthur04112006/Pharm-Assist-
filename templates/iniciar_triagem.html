@@ -714,6 +714,9 @@ function confirmFinishTriagem() {
     // Preparar dados para envio
     const respostas = Object.keys(answers).map(qid => ({ pergunta_id: qid, resposta: answers[qid] }));
     
+    // Obter módulo atual
+    const moduloAtual = localStorage.getItem('triagem_modulo_slug') || moduloSlug || '';
+    
     // Enviar dados para o servidor
     fetch('{{ url_for("processar_triagem") }}', {
         method: 'POST',
@@ -722,7 +725,8 @@ function confirmFinishTriagem() {
         },
         body: JSON.stringify({
             paciente_id: {{ paciente.id }},
-            respostas: respostas
+            respostas: respostas,
+            modulo: moduloAtual
         })
     })
     .then(response => response.json())

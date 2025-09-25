@@ -218,26 +218,31 @@ class TriagemScoring:
             question_id = resposta['pergunta_id']
             answer_value = resposta['resposta'].lower().strip()
             
-            # Buscar peso da pergunta
-            if question_id in self.question_weights:
-                question_weight = self.question_weights[question_id]
-                
-                # Buscar peso da resposta
-                answer_weight = self.answer_weights.get(answer_value, AnswerWeight(answer_value, 0.5, 'neutro', 'nao_farmacologico'))
-                
-                # Calcular pontuação
-                score = question_weight.weight * answer_weight.weight
-                total_score += score
-                category_scores[question_weight.category] += score
-                
-                # Verificar se é crítica
-                if question_weight.critical and answer_value in ['sim', 'yes', '1', 'true']:
-                    encaminhamento = True
-                    critical_answers.append(question_weight.question_text)
-                
-                # Adicionar à categoria de recomendação
-                if answer_weight.indication in recommendations:
-                    recommendations[answer_weight.indication].append(question_weight.question_text)
+            # Buscar peso da pergunta - usar fallback se não encontrar
+            question_weight = self.question_weights.get(question_id, QuestionWeight(
+                question_id=question_id,
+                question_text=f"Pergunta {question_id}",
+                weight=1.0,
+                category='sintoma',
+                critical=False
+            ))
+            
+            # Buscar peso da resposta
+            answer_weight = self.answer_weights.get(answer_value, AnswerWeight(answer_value, 0.5, 'neutro', 'nao_farmacologico'))
+            
+            # Calcular pontuação
+            score = question_weight.weight * answer_weight.weight
+            total_score += score
+            category_scores[question_weight.category] += score
+            
+            # Verificar se é crítica
+            if question_weight.critical and answer_value in ['sim', 'yes', '1', 'true']:
+                encaminhamento = True
+                critical_answers.append(question_weight.question_text)
+            
+            # Adicionar à categoria de recomendação
+            if answer_weight.indication in recommendations:
+                recommendations[answer_weight.indication].append(question_weight.question_text)
         
         # Aplicar modificadores baseados no perfil do paciente
         if paciente_profile.get('is_frail_elderly', False):
