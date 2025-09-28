@@ -61,10 +61,14 @@ O sistema foi desenvolvido para modernizar e otimizar o processo de atendimento 
 - 🏥 **Doenças crônicas**: Registro e monitoramento
 
 ### 🔬 **Sistema de Triagem Inteligente**
-- 🧠 **Motor de IA**: Análise baseada em regras clínicas
+- 🧠 **Motor de IA**: Análise baseada em regras clínicas e sistema de pontuação
 - ⚠️ **Detecção de riscos**: Identificação automática de sinais de alerta
-- 💊 **Recomendações personalizadas**: Medicamentos e tratamentos
-- 🚨 **Encaminhamento médico**: Quando necessário
+- 💊 **Recomendações personalizadas**: Medicamentos e tratamentos baseados em análise inteligente
+- 🚨 **Encaminhamento médico**: Quando necessário baseado em pontuação de risco
+- 📊 **Sistema de pontuação**: Cálculo automático de scores e níveis de risco
+- 🎯 **Módulos especializados**: 14 módulos específicos para diferentes sintomas
+- 🔍 **Análise de sintomas**: Identificação automática de sintomas específicos
+- ⚖️ **Priorização inteligente**: Recomendações baseadas na gravidade do caso
 
 ### 💊 **Gestão de Medicamentos**
 - 📚 **Base de dados ANVISA**: 17.535+ medicamentos autorizados importados
@@ -75,6 +79,10 @@ O sistema foi desenvolvido para modernizar e otimizar o processo de atendimento 
 - 📋 **Controle de estoque**: Gestão de disponibilidade
 - 🏷️ **Classificação**: Medicamentos farmacológicos e fitoterápicos
 - ✅ **Status ativo/inativo**: Controle de medicamentos disponíveis
+- 🧠 **Recomendações inteligentes**: Sistema de relevância baseado em sintomas
+- 🔒 **Filtros de segurança**: Verificação automática de contraindicações
+- 📊 **Análise de prioridade**: Ordenação por relevância clínica
+- 🎯 **Mapeamento de sintomas**: Associação automática com indicações
 
 ### 📄 **Relatórios Profissionais**
 - 🖨️ **Geração PDF**: Relatórios detalhados das consultas
@@ -91,6 +99,8 @@ O sistema foi desenvolvido para modernizar e otimizar o processo de atendimento 
 - ![Flask](https://img.shields.io/badge/Flask-2.3.3-green?style=flat&logo=flask) **Flask 2.3.3** - Framework web
 - ![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-3.0.5-red?style=flat&logo=sqlalchemy) **SQLAlchemy 3.0.5** - ORM para banco de dados
 - ![ReportLab](https://img.shields.io/badge/ReportLab-4.0.4-orange?style=flat&logo=reportlab) **ReportLab 4.0.4** - Geração de PDFs
+- ![Werkzeug](https://img.shields.io/badge/Werkzeug-2.3.7-yellow?style=flat&logo=werkzeug) **Werkzeug 2.3.7** - WSGI toolkit
+- ![python-dotenv](https://img.shields.io/badge/python--dotenv-1.0.0-green?style=flat&logo=python) **python-dotenv 1.0.0** - Gerenciamento de variáveis de ambiente
 
 ### **Frontend**
 - ![Bootstrap](https://img.shields.io/badge/Bootstrap-5.3.2-purple?style=flat&logo=bootstrap) **Bootstrap 5.3.2** - Framework CSS responsivo
@@ -174,31 +184,38 @@ python app.py
 pharm-assist/
 ├── 📁 app.py                          # Aplicação Flask principal (otimizada)
 ├── 📁 models.py                       # Modelos do banco de dados (com índices)
-├── 📁 motor_de_perguntas/             # Módulos de perguntas por sintoma (estrutura inicial)
+├── 📁 triagem_scoring.py              # Sistema de pontuação inteligente
+├── 📁 perguntas_extractor.py          # Extrator de perguntas dos módulos
+├── 📁 recomendacoes_farmacologicas.py  # Sistema de recomendações melhorado
+├── 📁 motor_de_perguntas/             # 14 módulos especializados por sintoma
 │   ├── __init__.py
-│   ├── espirro_congestao_nasal.py
-│   ├── dor_lombar.py
-│   ├── dor_garganta.py
-│   ├── dismenorreia.py
-│   ├── febre.py
-│   ├── infeccoes_fungicas.py
-│   ├── dor_cabeca.py
-│   ├── azia_ma_digestao.py
-│   ├── queimadura_solar.py
-│   ├── constipacao.py
-│   ├── hemorroidas.py
-│   ├── diarreia.py
-│   └── tosse.py
-├── 📁 report_generator.py             # Gerador de relatórios PDF (comentado)
+│   ├── azia_ma_digestao.py           # Módulo para problemas digestivos
+│   ├── constipacao.py                # Módulo para constipação
+│   ├── diarreia.py                   # Módulo para diarreia
+│   ├── dismenorreia.py               # Módulo para cólicas menstruais
+│   ├── dor_cabeca.py                 # Módulo para dores de cabeça
+│   ├── dor_garganta.py               # Módulo para dores de garganta
+│   ├── dor_lombar.py                 # Módulo para dores lombares
+│   ├── espirro_congestao_nasal.py    # Módulo para congestão nasal
+│   ├── febre.py                      # Módulo para febre
+│   ├── hemorroidas.py                # Módulo para hemorroidas
+│   ├── infeccoes_fungicas.py         # Módulo para infecções fúngicas
+│   ├── queimadura_solar.py           # Módulo para queimaduras solares
+│   └── tosse.py                      # Módulo para tosse
+├── 📁 report_generator.py             # Gerador de relatórios PDF profissionais
 ├── 📁 config.py                       # Configurações do sistema
 ├── 📁 run.py                          # Script de execução
 ├── 📁 requirements.txt                # Dependências Python
 ├── 📁 install.sh                      # Script de instalação (Linux/Mac)
-├── 📁 test_system.py                  # Testes do sistema
 ├── 📁 import_medicamentos_anvisa.py   # Importador de dados ANVISA
 ├── 📁 DADOS_ABERTOS_MEDICAMENTOS.csv  # Base de dados ANVISA (17.535+ medicamentos)
 ├── 📁 README.md                       # Este arquivo (atualizado)
 ├── 📁 .env.example                    # Exemplo de variáveis de ambiente
+├── 📁 CHANGELOG.md                    # Histórico de mudanças
+├── 📁 CONTRIBUTING.md                 # Guia de contribuição
+├── 📁 SECURITY.md                     # Políticas de segurança
+├── 📁 LICENSE                         # Licença MIT
+├── 📁 MELHORIAS_SISTEMA_RECOMENDACOES.md # Documentação das melhorias
 │
 ├── 📁 database/                       # Banco de dados
 │   └── 📄 schema.sql                  # Esquema do banco
@@ -210,12 +227,16 @@ pharm-assist/
 │   ├── 📄 triagem.html                # Sistema de triagem
 │   ├── 📄 medicamentos.html           # Gestão de medicamentos (paginado)
 │   ├── 📄 medicamentos_inativos.html  # Medicamentos inativos (paginado)
+│   ├── 📄 resultado_triagem.html      # Resultado da triagem
+│   ├── 📄 admin.html                  # Painel administrativo
 │   └── ...                            # Outros templates
 │
-├── 📁 reports/                        # Relatórios gerados
+├── 📁 reports/                       # Relatórios gerados
 ├── 📁 uploads/                        # Arquivos enviados
-└── 📁 instance/                       # Dados da instância
-    └── 📄 triagem_farmaceutica.db     # Banco SQLite principal
+├── 📁 instance/                       # Dados da instância
+│   └── 📄 triagem_farmaceutica.db     # Banco SQLite principal
+└── 📁 scripts/                        # Scripts auxiliares
+    └── 📄 test_recs.py                # Testes do sistema de recomendações
 ```
 
 ---
@@ -268,6 +289,10 @@ SECRET_KEY=sua_chave_secreta_aqui
 DATABASE_URL=sqlite:///instance/triagem_farmaceutica.db
 UPLOAD_FOLDER=uploads
 REPORTS_FOLDER=reports
+MAX_CONTENT_LENGTH=16777216
+APP_NAME=Pharm-Assist - Sistema de Triagem Farmaceutica
+APP_VERSION=1.0.0
+ITEMS_PER_PAGE=20
 ```
 
 ### **Configurações do Banco de Dados**
@@ -304,11 +329,16 @@ class Config:
 - **Consultas otimizadas**: Redução de queries N+1 e consultas desnecessárias
 
 ### **🧠 Motor de Triagem Inteligente**
-- **Análise de risco**: Score baseado em múltiplos fatores
+- **Análise de risco**: Score baseado em múltiplos fatores e sistema de pontuação
 - **Detecção de sinais de alerta**: Identificação automática de emergências
-- **Recomendações personalizadas**: Baseadas no perfil do paciente
+- **Recomendações personalizadas**: Baseadas no perfil do paciente e análise de sintomas
 - **Histórico de triagens**: Acompanhamento temporal
 - **Cache de medicamentos**: Consultas otimizadas para base ANVISA
+- **Sistema de pontuação**: Cálculo automático de scores e níveis de confiança
+- **Módulos especializados**: 14 módulos específicos para diferentes sintomas
+- **Análise de sintomas**: Identificação automática de sintomas específicos
+- **Priorização inteligente**: Recomendações baseadas na gravidade do caso
+- **Filtros de contraindicações**: Verificação automática de restrições
 
 ### **📊 Sistema de Relatórios**
 - **Relatórios PDF**: Documentação profissional das consultas
@@ -321,6 +351,34 @@ class Config:
 - **Log de atividades**: Registro de todas as ações
 - **Backup automático**: Proteção contra perda de dados
 - **Criptografia**: Dados sensíveis protegidos
+
+---
+
+## 🚀 Melhorias Implementadas
+
+### **🧠 Sistema de Pontuação Inteligente**
+- **Cálculo automático de scores**: Baseado em respostas e perfil do paciente
+- **Níveis de risco**: Baixo, médio e alto com indicadores visuais
+- **Confiança da análise**: Percentual de confiabilidade das recomendações
+- **Categorização de sintomas**: Análise por categorias (sintoma, gravidade, duração)
+
+### **🎯 Módulos Especializados**
+- **14 módulos específicos**: Cada um otimizado para sintomas específicos
+- **Extração automática de perguntas**: Sistema AST para análise de código
+- **Filtros inteligentes**: Perguntas desnecessárias são removidas automaticamente
+- **Mapeamento de sintomas**: Associação automática com medicamentos relevantes
+
+### **💊 Sistema de Recomendações Avançado**
+- **Análise de relevância**: Medicamentos ordenados por relevância clínica
+- **Filtros de contraindicações**: Verificação automática de restrições
+- **Priorização inteligente**: Baseada na gravidade e duração dos sintomas
+- **Observações personalizadas**: Alertas específicos para cada caso
+
+### **📊 Otimizações de Performance**
+- **Cache LRU**: Para consultas frequentes ao banco de dados
+- **Índices estratégicos**: Otimização de consultas mais comuns
+- **Paginação eficiente**: Carregamento otimizado de grandes datasets
+- **API limitada**: Controle de resultados para evitar sobrecarga
 
 ---
 
@@ -358,6 +416,9 @@ CMD ["gunicorn", "-w", "4", "-b", "0.0.0.0:8000", "app:app"]
 # Testes básicos
 python test_system.py
 
+# Testes do sistema de recomendações
+python scripts/test_recs.py
+
 # Testes com cobertura
 pip install pytest-cov
 pytest --cov=app tests/
@@ -368,6 +429,8 @@ pytest --cov=app tests/
 - ✅ **Testes de API**: Endpoints e funcionalidades
 - ✅ **Testes de triagem**: Motor de análise
 - ✅ **Testes de relatórios**: Geração de PDFs
+- ✅ **Testes de pontuação**: Sistema de scoring
+- ✅ **Testes de recomendações**: Sistema de sugestões inteligentes
 
 ---
 
@@ -435,6 +498,9 @@ SOFTWARE.
 - 🐍 **Comunidade Python** pelas ferramentas e bibliotecas utilizadas
 - 🎨 **Comunidade de design** por inspiração e recursos visuais
 - 🌟 **Colegas de curso** que colaboraram no desenvolvimento
+- 🧠 **Comunidade de IA** pelas técnicas de machine learning aplicadas
+- 📊 **ANVISA** pela disponibilização da base de dados de medicamentos
+- 🔬 **Comunidade científica** pelas metodologias de triagem implementadas
 
 ---
 
@@ -458,6 +524,6 @@ O **Pharm-Assist** foi desenvolvido em parceria com a **Prefeitura de Toledo - P
 
 **Pharm-Assist** - Transformando a triagem farmacêutica com tecnologia e design modernos 💊✨
 
-[⭐ **Deixe uma estrela**](https://github.com/seu-usuario/pharm-assist) • [🔄 **Última atualização**: Setembro 2025]
+[⭐ **Deixe uma estrela**](https://github.com/seu-usuario/pharm-assist) • [🔄 **Última atualização**: Dezembro 2024]
 
 </div>
