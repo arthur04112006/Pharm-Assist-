@@ -18,22 +18,49 @@ Tecnologias utilizadas:
 - Tabelas responsivas e organizadas
 """
 
+# ===== IMPORTAÇÕES DO REPORTLAB =====
+# Tamanho de página padrão
 from reportlab.lib.pagesizes import A4
+# Componentes para construção do PDF
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak
+# Estilos para formatação de texto
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+# Unidades de medida
 from reportlab.lib.units import inch
+# Cores para formatação
 from reportlab.lib import colors
+# Alinhamento de texto
 from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_JUSTIFY
+# datetime para timestamps
 from datetime import datetime
+# os para manipulação de arquivos
 import os
 
 class ReportGenerator:
     """
     Gerador de relatórios PDF para consultas de triagem
+    
+    Esta classe implementa um sistema completo de geração de relatórios
+    profissionais em PDF para consultas de triagem farmacêutica.
+    
+    Funcionalidades:
+    - Layout profissional com cabeçalhos e rodapés
+    - Tabelas organizadas para dados do paciente
+    - Seções estruturadas para sintomas e recomendações
+    - Estilos personalizados para diferentes tipos de conteúdo
+    - Formatação automática de texto e dados
     """
     
     def __init__(self):
+        """
+        Inicializa o gerador de relatórios
+        
+        Configura estilos personalizados e prepara o sistema
+        para geração de PDFs profissionais.
+        """
+        # Obter estilos padrão do ReportLab
         self.styles = getSampleStyleSheet()
+        # Configurar estilos personalizados
         self._setup_custom_styles()
     
     def _setup_custom_styles(self):

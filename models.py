@@ -21,17 +21,26 @@ Otimizações implementadas:
 - Métodos de serialização eficientes
 """
 
+# ===== IMPORTAÇÕES NECESSÁRIAS =====
+# SQLAlchemy para gerenciar o banco de dados
 from flask_sqlalchemy import SQLAlchemy
+# datetime para timestamps automáticos
 from datetime import datetime
+# relationship para definir relacionamentos entre tabelas
 from sqlalchemy.orm import relationship
+# Index para criar índices de performance
 from sqlalchemy import Index
 
-# Inicialização do SQLAlchemy
+# ===== INICIALIZAÇÃO DO BANCO DE DADOS =====
+# Criar instância do SQLAlchemy para gerenciar o banco
 db = SQLAlchemy()
 
 class Paciente(db.Model):
     """
     Modelo para armazenar dados dos pacientes
+    
+    Esta é a tabela principal que armazena informações pessoais e clínicas
+    de todos os pacientes cadastrados no sistema.
     
     Campos:
     - id: Identificador único (chave primária)
@@ -51,53 +60,97 @@ class Paciente(db.Model):
     """
     __tablename__ = 'pacientes'
     
-    # Campos principais
+    # ===== CAMPOS PRINCIPAIS =====
+    # Chave primária (ID único)
     id = db.Column(db.Integer, primary_key=True)
-    nome = db.Column(db.String(200), nullable=False, index=True)  # Índice para busca
-    idade = db.Column(db.Integer, nullable=False, index=True)     # Índice para filtros
+    # Nome completo com índice para busca rápida
+    nome = db.Column(db.String(200), nullable=False, index=True)
+    # Idade com índice para filtros por faixa etária
+    idade = db.Column(db.Integer, nullable=False, index=True)
+    # Peso em kg (opcional, formato: 999.99)
     peso = db.Column(db.Numeric(5, 2))
+    # Altura em metros (opcional, formato: 9.99)
     altura = db.Column(db.Numeric(3, 2))
-    sexo = db.Column(db.Enum('M', 'F', 'O'), nullable=False, index=True)  # Índice para estatísticas
+    # Sexo biológico com índice para estatísticas
+    sexo = db.Column(db.Enum('M', 'F', 'O'), nullable=False, index=True)
+    # Hábitos de vida
     fuma = db.Column(db.Boolean, default=False)
     bebe = db.Column(db.Boolean, default=False)
     
-    # Timestamps para auditoria
+    # ===== TIMESTAMPS PARA AUDITORIA =====
+    # Data de criação (automática)
     created_at = db.Column(db.TIMESTAMP, default=datetime.utcnow, index=True)
+    # Data de atualização (automática)
     updated_at = db.Column(db.TIMESTAMP, default=datetime.utcnow, onupdate=datetime.utcnow)
     
-    # Relacionamentos otimizados
+    # ===== RELACIONAMENTOS OTIMIZADOS =====
+    # Lista de doenças crônicas do paciente (relacionamento muitos-para-muitos)
     doencas_cronicas = relationship('PacienteDoenca', back_populates='paciente', lazy='select')
+    # Lista de consultas realizadas pelo paciente
     consultas = relationship('Consulta', back_populates='paciente', lazy='select')
     
     def to_dict(self):
+        """
+        Converte o objeto Paciente para dicionário
+        
+        Este método é usado para:
+        - Serializar dados para JSON (APIs)
+        - Converter para formato usado pelo sistema de pontuação
+        - Facilitar a manipulação de dados no frontend
+        
+        Retorna: Dicionário com todos os dados do paciente
+        """
         return {
-            'id': self.id,
-            'nome': self.nome,
-            'idade': self.idade,
-            'peso': float(self.peso) if self.peso else None,
-            'altura': float(self.altura) if self.altura else None,
-            'sexo': self.sexo,
-            'fuma': self.fuma,
-            'bebe': self.bebe,
-            'created_at': self.created_at.isoformat() if self.created_at else None
+            'id': self.id,                                    # ID único
+            'nome': self.nome,                               # Nome completo
+            'idade': self.idade,                             # Idade em anos
+            'peso': float(self.peso) if self.peso else None, # Peso convertido para float
+            'altura': float(self.altura) if self.altura else None, # Altura convertida para float
+            'sexo': self.sexo,                               # Sexo biológico
+            'fuma': self.fuma,                               # Se fuma
+            'bebe': self.bebe,                              # Se bebe
+            'created_at': self.created_at.isoformat() if self.created_at else None  # Data de criação
         }
 
 class DoencaCronica(db.Model):
+    """
+    Modelo para armazenar doenças crônicas
+    
+    Esta tabela armazena o catálogo de doenças crônicas que podem
+    ser associadas aos pacientes para melhor análise clínica.
+    
+    Campos:
+    - id: Identificador único
+    - nome: Nome da doença (único)
+    - descricao: Descrição detalhada da doença
+    - created_at: Data de criação
+    """
     __tablename__ = 'doencas_cronicas'
     
+    # ===== CAMPOS PRINCIPAIS =====
+    # Chave primária
     id = db.Column(db.Integer, primary_key=True)
+    # Nome da doença (único para evitar duplicatas)
     nome = db.Column(db.String(100), nullable=False, unique=True)
+    # Descrição detalhada (opcional)
     descricao = db.Column(db.Text)
+    # Data de criação
     created_at = db.Column(db.TIMESTAMP, default=datetime.utcnow)
     
-    # Relacionamentos
+    # ===== RELACIONAMENTOS =====
+    # Lista de pacientes que possuem esta doença
     pacientes = relationship('PacienteDoenca', back_populates='doenca_cronica')
     
     def to_dict(self):
+        """
+        Converte o objeto DoencaCronica para dicionário
+        
+        Usado para serialização em APIs e frontend
+        """
         return {
-            'id': self.id,
-            'nome': self.nome,
-            'descricao': self.descricao
+            'id': self.id,           # ID único
+            'nome': self.nome,        # Nome da doença
+            'descricao': self.descricao  # Descrição
         }
 
 class PacienteDoenca(db.Model):
@@ -194,19 +247,36 @@ class Medicamento(db.Model):
         }
 
 class Consulta(db.Model):
+    """
+    Modelo para armazenar consultas de triagem
+    
+    Esta é a tabela central que registra cada consulta de triagem
+    realizada no sistema, incluindo resultados e recomendações.
+    """
     __tablename__ = 'consultas'
     
+    # ===== CAMPOS PRINCIPAIS =====
+    # Chave primária
     id = db.Column(db.Integer, primary_key=True)
+    # ID do paciente (chave estrangeira com CASCADE para exclusão)
     id_paciente = db.Column(db.Integer, db.ForeignKey('pacientes.id', ondelete='CASCADE'), nullable=False)
+    # Data e hora da consulta (padrão: agora)
     data = db.Column(db.DateTime, default=datetime.utcnow)
+    # Se houve encaminhamento médico
     encaminhamento = db.Column(db.Boolean, default=False)
+    # Motivo do encaminhamento (texto livre)
     motivo_encaminhamento = db.Column(db.Text)
+    # Observações adicionais da consulta
     observacoes = db.Column(db.Text)
+    # Data de criação do registro
     created_at = db.Column(db.TIMESTAMP, default=datetime.utcnow)
     
-    # Relacionamentos
+    # ===== RELACIONAMENTOS =====
+    # Dados do paciente (relacionamento um-para-muitos)
     paciente = relationship('Paciente', back_populates='consultas')
+    # Lista de respostas do questionário
     respostas = relationship('ConsultaResposta', back_populates='consulta')
+    # Lista de recomendações geradas
     recomendacoes = relationship('ConsultaRecomendacao', back_populates='consulta')
     
     def to_dict(self):

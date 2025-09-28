@@ -8,15 +8,37 @@ Este módulo implementa um sistema inteligente de recomendações farmacológica
 baseado nas respostas da triagem e nas indicações dos medicamentos cadastrados.
 """
 
+# ===== IMPORTAÇÕES NECESSÁRIAS =====
+# Tipos para anotações de tipo
 from typing import Dict, List, Tuple, Optional
+# dataclass para criar classes de dados
 from dataclasses import dataclass
+# re para expressões regulares (análise de texto)
 import re
+# unicodedata para normalização de texto
 import unicodedata
+# Modelos do banco de dados
 from models import Medicamento, db
 
 @dataclass
 class RecomendacaoFarmacologica:
-    """Estrutura para uma recomendação farmacológica"""
+    """
+    Estrutura para uma recomendação farmacológica
+    
+    Esta classe armazena todas as informações necessárias para
+    uma recomendação de medicamento, incluindo dados do medicamento,
+    posologia, contraindicações e observações.
+    
+    Atributos:
+    - medicamento: Nome comercial do medicamento
+    - principio_ativo: Nome genérico/princípio ativo
+    - indicacao: Indicações terapêuticas
+    - posologia: Como usar o medicamento
+    - contraindicacoes: Contraindicações e cuidados
+    - observacoes: Observações adicionais
+    - prioridade: Prioridade da recomendação (1-5, 1 = alta)
+    - categoria: Categoria da recomendação (sintomático, terapêutico, preventivo)
+    """
     medicamento: str
     principio_ativo: str
     indicacao: str
@@ -27,10 +49,30 @@ class RecomendacaoFarmacologica:
     categoria: str  # 'sintomatico', 'terapeutico', 'preventivo'
 
 class SistemaRecomendacoesFarmacologicas:
-    """Sistema de recomendações farmacológicas baseado em indicações"""
+    """
+    Sistema de recomendações farmacológicas baseado em indicações
+    
+    Esta classe implementa um sistema inteligente que:
+    1. Analisa as respostas da triagem para identificar sintomas
+    2. Busca medicamentos relevantes na base de dados ANVISA
+    3. Calcula relevância baseada em palavras-chave
+    4. Aplica filtros de contraindicações
+    5. Gera recomendações priorizadas e personalizadas
+    
+    O sistema usa análise de texto e algoritmos de relevância para
+    sugerir os medicamentos mais apropriados para cada caso.
+    """
     
     def __init__(self):
+        """
+        Inicializa o sistema de recomendações
+        
+        Carrega palavras-chave para mapeamento de sintomas e
+        inicializa cache de medicamentos para melhor performance.
+        """
+        # Carregar palavras-chave para mapear sintomas com indicações
         self.palavras_chave_sintomas = self._carregar_palavras_chave()
+        # Cache de medicamentos (carregado sob demanda)
         self.medicamentos_cache = None
     
     def _carregar_palavras_chave(self) -> Dict[str, List[str]]:

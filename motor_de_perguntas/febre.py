@@ -11,13 +11,30 @@ não farmacológico e farmacológico (apenas MIPs/OTC).
 Procure um serviço de saúde diante de dúvidas, piora ou sinais de alarme.
 """
 
+# ===== IMPORTAÇÕES NECESSÁRIAS =====
+# dataclass para criar classes de dados de forma simples
 from dataclasses import dataclass
+# Tipos para anotações de tipo
 from typing import Optional, Tuple
 
-# ----------------- Modelos -----------------
+# ===== MODELOS DE DADOS =====
 
 @dataclass
 class PatientProfile:
+    """
+    Perfil do paciente para análise de febre
+    
+    Esta classe armazena informações demográficas e clínicas
+    do paciente que são relevantes para a triagem de febre.
+    
+    Atributos:
+    - age_months: Idade em meses (importante para crianças)
+    - is_pregnant: Se está grávida
+    - is_postpartum: Se está no pós-parto
+    - has_chronic_pulmonary_or_cardiac: Se tem problemas pulmonares/cardíacos crônicos
+    - has_immunosuppression: Se tem comprometimento imunológico
+    - has_htn_or_gi_or_renal: Se tem hipertensão, problemas GI ou renais
+    """
     age_months: int
     is_pregnant: bool = False
     is_postpartum: bool = False

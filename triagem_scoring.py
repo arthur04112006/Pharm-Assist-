@@ -9,13 +9,29 @@ da triagem, permitindo calcular recomendações farmacológicas e não farmacol�
 baseadas nas respostas do paciente.
 """
 
+# ===== IMPORTAÇÕES NECESSÁRIAS =====
+# Tipos para anotações de tipo (melhora a legibilidade do código)
 from typing import Dict, List, Tuple, Optional
+# dataclass para criar classes de dados de forma simples
 from dataclasses import dataclass
+# re para expressões regulares (usado em análises de texto)
 import re
 
 @dataclass
 class QuestionWeight:
-    """Define o peso de uma pergunta específica"""
+    """
+    Define o peso de uma pergunta específica no sistema de pontuação
+    
+    Esta classe armazena informações sobre como cada pergunta
+    deve ser ponderada no cálculo final da pontuação.
+    
+    Atributos:
+    - question_id: Identificador único da pergunta
+    - question_text: Texto da pergunta para referência
+    - weight: Peso numérico da pergunta (maior = mais importante)
+    - category: Categoria da pergunta (sintoma, gravidade, etc.)
+    - critical: Se True, resposta positiva indica encaminhamento médico
+    """
     question_id: str
     question_text: str
     weight: float
@@ -24,7 +40,18 @@ class QuestionWeight:
 
 @dataclass
 class AnswerWeight:
-    """Define o peso de uma resposta específica"""
+    """
+    Define o peso de uma resposta específica
+    
+    Esta classe define como diferentes respostas devem ser
+    ponderadas no cálculo da pontuação.
+    
+    Atributos:
+    - answer_value: Valor da resposta (ex: "sim", "não", "3 dias")
+    - weight: Peso numérico da resposta
+    - category: Categoria da resposta (positivo, negativo, neutro)
+    - indication: Tipo de indicação (farmacológico, não-farmacológico, encaminhamento)
+    """
     answer_value: str
     weight: float
     category: str  # 'positivo', 'negativo', 'neutro'
@@ -32,7 +59,20 @@ class AnswerWeight:
 
 @dataclass
 class ScoringResult:
-    """Resultado do cálculo de pontuação"""
+    """
+    Resultado do cálculo de pontuação
+    
+    Esta classe armazena todos os resultados do sistema de pontuação,
+    incluindo scores, recomendações e níveis de risco.
+    
+    Atributos:
+    - total_score: Pontuação total calculada
+    - category_scores: Pontuações por categoria
+    - recommendations: Recomendações geradas
+    - risk_level: Nível de risco (baixo, médio, alto)
+    - encaminhamento: Se deve ser encaminhado ao médico
+    - confidence: Nível de confiança da análise (0.0 a 1.0)
+    """
     total_score: float
     category_scores: Dict[str, float]
     recommendations: Dict[str, List[str]]
@@ -41,11 +81,34 @@ class ScoringResult:
     confidence: float  # 0.0 a 1.0
 
 class TriagemScoring:
-    """Sistema de pontuação para triagem farmacêutica"""
+    """
+    Sistema de pontuação para triagem farmacêutica
+    
+    Esta é a classe principal que implementa o sistema inteligente de pontuação
+    para análise de triagem farmacêutica. Ela:
+    
+    1. Carrega pesos de perguntas e respostas
+    2. Calcula pontuações baseadas nas respostas
+    3. Determina níveis de risco
+    4. Gera recomendações personalizadas
+    5. Decide sobre encaminhamento médico
+    
+    O sistema usa pesos pré-definidos para diferentes módulos (tosse, febre, etc.)
+    e aplica algoritmos de pontuação para determinar a gravidade e recomendações.
+    """
     
     def __init__(self):
+        """
+        Inicializa o sistema de pontuação
+        
+        Carrega todos os pesos e configurações necessárias para
+        o funcionamento do sistema de pontuação.
+        """
+        # Carregar pesos das perguntas por módulo
         self.question_weights = self._load_question_weights()
+        # Carregar pesos das respostas
         self.answer_weights = self._load_answer_weights()
+        # Carregar thresholds (limites) para classificação
         self.thresholds = self._load_thresholds()
     
     def _load_question_weights(self) -> Dict[str, QuestionWeight]:

@@ -11,13 +11,29 @@ não farmacológico e farmacológico (apenas MIPs/OTC).
 Procure um serviço de saúde diante de dúvidas, piora ou sinais de alarme.
 """
 
+# ===== IMPORTAÇÕES NECESSÁRIAS =====
+# dataclass para criar classes de dados de forma simples
 from dataclasses import dataclass
+# Tipos para anotações de tipo
 from typing import Optional, Tuple
 
-# ----------------- Modelos -----------------
+# ===== MODELOS DE DADOS =====
 
 @dataclass
 class PatientProfile:
+    """
+    Perfil do paciente para análise de tosse
+    
+    Esta classe armazena informações demográficas e clínicas
+    do paciente que são relevantes para a triagem de tosse.
+    
+    Atributos:
+    - age_years: Idade em anos
+    - is_pregnant_or_lactating: Se está grávida ou amamentando
+    - is_frail_elderly: Se é idoso frágil
+    - is_bedridden: Se está acamado
+    - is_immunocompromised: Se tem comprometimento imunológico
+    """
     age_years: int
     is_pregnant_or_lactating: bool = False
     is_frail_elderly: bool = False
@@ -26,6 +42,20 @@ class PatientProfile:
 
 @dataclass
 class Symptoms:
+    """
+    Sintomas relacionados à tosse
+    
+    Esta classe armazena todos os sintomas e características
+    da tosse relatados pelo paciente durante a triagem.
+    
+    Atributos principais:
+    - duration_days: Duração da tosse em dias
+    - productive: Se a tosse é produtiva (com secreção)
+    - dry: Se a tosse é seca
+    - allergic_context: Se há contexto alérgico
+    - worsens_at_night_or_lying: Se piora à noite ou deitado
+    - incapacitates: Se incapacita atividades diárias
+    """
     duration_days: int
     productive: bool
     dry: bool
