@@ -971,68 +971,88 @@ def gerar_relatorio(consulta_id):
 @app.route('/admin')
 def admin():
     """Painel administrativo"""
-    from datetime import timedelta
-    from sqlalchemy import func
+    try:
+        from datetime import timedelta
+        from sqlalchemy import func
+        
+        # Estatísticas gerais
+        total_pacientes = Paciente.query.count()
+        total_consultas = Consulta.query.count()
+        total_medicamentos = Medicamento.query.filter_by(ativo=True).count()
+        total_encaminhamentos = Consulta.query.filter_by(encaminhamento=True).count()
+        
+        # Debug: imprimir valores
+        print(f"DEBUG ADMIN: Pacientes={total_pacientes}, Consultas={total_consultas}, Medicamentos={total_medicamentos}, Encaminhamentos={total_encaminhamentos}")
+        
+        # Pacientes por gênero
+        total_pacientes_masculino = Paciente.query.filter_by(sexo='M').count()
+        total_pacientes_feminino = Paciente.query.filter_by(sexo='F').count()
+        
+        # Sintomas mais comuns
+        sintomas_comuns = db.session.query(
+            ConsultaRecomendacao.descricao,
+            func.count(ConsultaRecomendacao.id).label('count')
+        ).filter(
+            ConsultaRecomendacao.tipo == 'nao_farmacologico'
+        ).group_by(
+            ConsultaRecomendacao.descricao
+        ).order_by(
+            func.count(ConsultaRecomendacao.id).desc()
+        ).limit(10).all()
+        
+        # Medicamentos mais recomendados
+        medicamentos_recomendados = db.session.query(
+            ConsultaRecomendacao.descricao,
+            func.count(ConsultaRecomendacao.id).label('count')
+        ).filter(
+            ConsultaRecomendacao.tipo == 'medicamento'
+        ).group_by(
+            ConsultaRecomendacao.descricao
+        ).order_by(
+            func.count(ConsultaRecomendacao.id).desc()
+        ).limit(10).all()
+        
+        # Taxa de encaminhamentos
+        taxa_encaminhamento = (total_encaminhamentos / total_consultas * 100) if total_consultas > 0 else 0
+        
+        # Eficácia das recomendações (baseado em feedback se implementado)
+        eficacia_recomendacoes = {
+            'muito_eficaz': 75,
+            'eficaz': 20,
+            'pouco_eficaz': 5
+        }
+        
+        # Consultas recentes
+        consultas_recentes = Consulta.query.join(Paciente).order_by(Consulta.data.desc()).limit(5).all()
+        
+        return render_template('admin.html', 
+                             total_pacientes=total_pacientes,
+                             total_consultas=total_consultas,
+                             total_medicamentos=total_medicamentos,
+                             total_encaminhamentos=total_encaminhamentos,
+                             total_pacientes_masculino=total_pacientes_masculino,
+                             total_pacientes_feminino=total_pacientes_feminino,
+                             sintomas_comuns=sintomas_comuns,
+                             medicamentos_recomendados=medicamentos_recomendados,
+                             taxa_encaminhamento=taxa_encaminhamento,
+                             eficacia_recomendacoes=eficacia_recomendacoes,
+                             consultas_recentes=consultas_recentes)
     
-    # Estatísticas gerais
-    total_pacientes = Paciente.query.count()
-    total_consultas = Consulta.query.count()
-    total_medicamentos = Medicamento.query.filter_by(ativo=True).count()
-    total_encaminhamentos = Consulta.query.filter_by(encaminhamento=True).count()
-    
-    # Pacientes por gênero
-    total_pacientes_masculino = Paciente.query.filter_by(sexo='M').count()
-    total_pacientes_feminino = Paciente.query.filter_by(sexo='F').count()
-    
-    # Sintomas mais comuns
-    sintomas_comuns = db.session.query(
-        ConsultaRecomendacao.descricao,
-        func.count(ConsultaRecomendacao.id).label('count')
-    ).filter(
-        ConsultaRecomendacao.tipo == 'nao_farmacologico'
-    ).group_by(
-        ConsultaRecomendacao.descricao
-    ).order_by(
-        func.count(ConsultaRecomendacao.id).desc()
-    ).limit(10).all()
-    
-    # Medicamentos mais recomendados
-    medicamentos_recomendados = db.session.query(
-        ConsultaRecomendacao.descricao,
-        func.count(ConsultaRecomendacao.id).label('count')
-    ).filter(
-        ConsultaRecomendacao.tipo == 'medicamento'
-    ).group_by(
-        ConsultaRecomendacao.descricao
-    ).order_by(
-        func.count(ConsultaRecomendacao.id).desc()
-    ).limit(10).all()
-    
-    # Taxa de encaminhamentos
-    taxa_encaminhamento = (total_encaminhamentos / total_consultas * 100) if total_consultas > 0 else 0
-    
-    # Eficácia das recomendações (baseado em feedback se implementado)
-    eficacia_recomendacoes = {
-        'muito_eficaz': 75,
-        'eficaz': 20,
-        'pouco_eficaz': 5
-    }
-    
-    # Consultas recentes
-    consultas_recentes = Consulta.query.join(Paciente).order_by(Consulta.data.desc()).limit(5).all()
-    
-    return render_template('admin.html', 
-                         total_pacientes=total_pacientes,
-                         total_consultas=total_consultas,
-                         total_medicamentos=total_medicamentos,
-                         total_encaminhamentos=total_encaminhamentos,
-                         total_pacientes_masculino=total_pacientes_masculino,
-                         total_pacientes_feminino=total_pacientes_feminino,
-                         sintomas_comuns=sintomas_comuns,
-                         medicamentos_recomendados=medicamentos_recomendados,
-                         taxa_encaminhamento=taxa_encaminhamento,
-                         eficacia_recomendacoes=eficacia_recomendacoes,
-                         consultas_recentes=consultas_recentes)
+    except Exception as e:
+        # Em caso de erro, retornar dados padrão
+        flash(f'Erro ao carregar estatísticas: {str(e)}', 'error')
+        return render_template('admin.html', 
+                             total_pacientes=0,
+                             total_consultas=0,
+                             total_medicamentos=0,
+                             total_encaminhamentos=0,
+                             total_pacientes_masculino=0,
+                             total_pacientes_feminino=0,
+                             sintomas_comuns=[],
+                             medicamentos_recomendados=[],
+                             taxa_encaminhamento=0,
+                             eficacia_recomendacoes={'muito_eficaz': 0, 'eficaz': 0, 'pouco_eficaz': 0},
+                             consultas_recentes=[])
 
 
 

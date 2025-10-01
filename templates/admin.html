@@ -411,89 +411,151 @@
 
 {% block extra_js %}
 <script>
-// Dados para os gráficos
-const sintomasData = {{ sintomas_comuns | tojson }};
-const medicamentosData = {{ medicamentos_recomendados | tojson }};
+// Dados para os gráficos com tratamento de erros
+const sintomasData = {{ sintomas_comuns | tojson | safe }} || [];
+const medicamentosData = {{ medicamentos_recomendados | tojson | safe }} || [];
 const generoData = {
-    masculino: {{ total_pacientes_masculino }},
-    feminino: {{ total_pacientes_feminino }}
+    masculino: {{ total_pacientes_masculino | default(0) }},
+    feminino: {{ total_pacientes_feminino | default(0) }}
 };
 
-// Gráfico de Sintomas
-const sintomasCtx = document.getElementById('sintomasChart').getContext('2d');
-new Chart(sintomasCtx, {
-    type: 'bar',
-    data: {
-        labels: sintomasData.map(item => item.descricao.substring(0, 20) + '...'),
-        datasets: [{
-            label: 'Frequência',
-            data: sintomasData.map(item => item.count),
-            backgroundColor: '#28a745'
-        }]
-    },
-    options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: {
-                display: false
-            }
-        },
-        scales: {
-            y: {
-                beginAtZero: true
-            }
-        }
+// Função para criar gráfico de sintomas
+function createSintomasChart() {
+    const sintomasCtx = document.getElementById('sintomasChart');
+    if (!sintomasCtx) return;
+    
+    const ctx = sintomasCtx.getContext('2d');
+    
+    // Verificar se há dados
+    if (sintomasData.length === 0) {
+        ctx.fillStyle = '#6c757d';
+        ctx.font = '16px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('Nenhum dado disponível', sintomasCtx.width / 2, sintomasCtx.height / 2);
+        return;
     }
-});
-
-// Gráfico de Medicamentos
-const medicamentosCtx = document.getElementById('medicamentosChart').getContext('2d');
-new Chart(medicamentosCtx, {
-    type: 'bar',
-    data: {
-        labels: medicamentosData.map(item => item.descricao.substring(0, 20) + '...'),
-        datasets: [{
-            label: 'Frequência',
-            data: medicamentosData.map(item => item.count),
-            backgroundColor: '#ffc107'
-        }]
-    },
-    options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: {
-                display: false
-            }
+    
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: sintomasData.map(item => {
+                const desc = item.descricao || 'Sem descrição';
+                return desc.length > 20 ? desc.substring(0, 20) + '...' : desc;
+            }),
+            datasets: [{
+                label: 'Frequência',
+                data: sintomasData.map(item => item.count || 0),
+                backgroundColor: '#28a745'
+            }]
         },
-        scales: {
-            y: {
-                beginAtZero: true
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
             }
         }
-    }
-});
+    });
+}
 
-// Gráfico de Gênero
-const generoCtx = document.getElementById('generoChart').getContext('2d');
-new Chart(generoCtx, {
-    type: 'doughnut',
-    data: {
-        labels: ['Masculino', 'Feminino'],
-        datasets: [{
-            data: [generoData.masculino, generoData.feminino],
-            backgroundColor: ['#007bff', '#28a745']
-        }]
-    },
-    options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: {
-                position: 'bottom'
+// Função para criar gráfico de medicamentos
+function createMedicamentosChart() {
+    const medicamentosCtx = document.getElementById('medicamentosChart');
+    if (!medicamentosCtx) return;
+    
+    const ctx = medicamentosCtx.getContext('2d');
+    
+    // Verificar se há dados
+    if (medicamentosData.length === 0) {
+        ctx.fillStyle = '#6c757d';
+        ctx.font = '16px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('Nenhum dado disponível', medicamentosCtx.width / 2, medicamentosCtx.height / 2);
+        return;
+    }
+    
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: medicamentosData.map(item => {
+                const desc = item.descricao || 'Sem descrição';
+                return desc.length > 20 ? desc.substring(0, 20) + '...' : desc;
+            }),
+            datasets: [{
+                label: 'Frequência',
+                data: medicamentosData.map(item => item.count || 0),
+                backgroundColor: '#ffc107'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
             }
         }
+    });
+}
+
+// Função para criar gráfico de gênero
+function createGeneroChart() {
+    const generoCtx = document.getElementById('generoChart');
+    if (!generoCtx) return;
+    
+    const ctx = generoCtx.getContext('2d');
+    
+    // Verificar se há dados
+    if (generoData.masculino === 0 && generoData.feminino === 0) {
+        ctx.fillStyle = '#6c757d';
+        ctx.font = '16px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('Nenhum dado disponível', generoCtx.width / 2, generoCtx.height / 2);
+        return;
+    }
+    
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Masculino', 'Feminino'],
+            datasets: [{
+                data: [generoData.masculino, generoData.feminino],
+                backgroundColor: ['#007bff', '#28a745']
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+}
+
+// Aguardar o carregamento completo da página
+document.addEventListener('DOMContentLoaded', function() {
+    try {
+        createSintomasChart();
+        createMedicamentosChart();
+        createGeneroChart();
+    } catch (error) {
+        console.error('Erro ao criar gráficos:', error);
     }
 });
 </script>

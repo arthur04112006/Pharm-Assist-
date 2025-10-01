@@ -7,8 +7,9 @@ class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev-secret-key-2024'
     DEBUG = os.environ.get('FLASK_DEBUG', 'True').lower() == 'true'
     
-    # Usar SQLite como alternativa
-    SQLALCHEMY_DATABASE_URI = 'sqlite:///triagem_farmaceutica.db'
+    # Usar SQLite como alternativa - caminho absoluto
+    basedir = os.path.abspath(os.path.dirname(__file__))
+    SQLALCHEMY_DATABASE_URI = f'sqlite:///{os.path.join(basedir, "instance", "triagem_farmaceutica.db")}'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
     UPLOAD_FOLDER = 'uploads'
