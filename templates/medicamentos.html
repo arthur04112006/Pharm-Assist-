@@ -89,6 +89,7 @@
                     <tr>
                         <th>Nome</th>
                         <th>Tipo</th>
+                        <th>Categoria</th>
                         <th>Indicação</th>
                         <th>Contraindicações</th>
                         <th>Ações</th>
@@ -108,6 +109,13 @@
                                 <span class="badge bg-primary">Farmacológico</span>
                             {% elif medicamento.tipo == 'fitoterapico' %}
                                 <span class="badge bg-success">Fitoterápico</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if medicamento.categoria %}
+                                <span class="badge bg-info">{{ medicamento.categoria }}</span>
+                            {% else %}
+                                <small class="text-muted">-</small>
                             {% endif %}
                         </td>
                         <td>

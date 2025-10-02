@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+
+{% block title %}Changelog - Notas de Atualização{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom page-header">
+    <h1 class="h2">
+        <i class="bi bi-journal-text text-primary"></i>
+        Changelog - Notas de Atualização
+    </h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Voltar ao Início
+        </a>
+    </div>
+</div>
+
+<!-- Informações sobre o sistema -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle"></i>
+            <strong>Pharm-Assist</strong> - Sistema de Triagem Farmacêutica<br>
+            <small class="text-muted">Acompanhe as últimas atualizações e melhorias do sistema.</small>
+        </div>
+    </div>
+</div>
+
+<!-- Lista de versões -->
+<div class="row">
+    <div class="col-12">
+        {% for version in changelog %}
+        <div class="card mb-4 changelog-card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center">
+                    <span class="badge 
+                        {% if version.type == 'feature' %}bg-success
+                        {% elif version.type == 'improvement' %}bg-primary
+                        {% elif version.type == 'release' %}bg-warning
+                        {% else %}bg-secondary{% endif %} me-3">
+                        {% if version.type == 'feature' %}<i class="bi bi-plus-circle"></i> Nova Funcionalidade
+                        {% elif version.type == 'improvement' %}<i class="bi bi-arrow-up-circle"></i> Melhoria
+                        {% elif version.type == 'release' %}<i class="bi bi-star"></i> Lançamento
+                        {% else %}<i class="bi bi-gear"></i> Atualização{% endif %}
+                    </span>
+                    <div>
+                        <h5 class="mb-0">{{ version.version }}</h5>
+                        <small class="text-muted">{{ version.title }}</small>
+                    </div>
+                </div>
+                <div class="text-end">
+                    <span class="badge bg-light text-dark">
+                        <i class="bi bi-calendar"></i> {{ version.date }}
+                    </span>
+                </div>
+            </div>
+            <div class="card-body">
+                <h6 class="card-subtitle mb-3 text-muted">
+                    <i class="bi bi-list-ul"></i> Principais mudanças:
+                </h6>
+                <ul class="list-unstyled mb-0">
+                    {% for change in version.changes %}
+                    <li class="mb-2">
+                        <i class="bi bi-check-circle-fill text-success me-2"></i>
+                        {{ change }}
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Rodapé informativo -->
+<div class="row mt-5">
+    <div class="col-12">
+        <div class="card bg-light">
+            <div class="card-body text-center">
+                <h6 class="card-title">
+                    <i class="bi bi-lightbulb"></i> Sugestões e Feedback
+                </h6>
+                <p class="card-text text-muted mb-0">
+                    Tem alguma sugestão de melhoria ou encontrou algum problema? 
+                    Entre em contato com a equipe de desenvolvimento.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.changelog-card {
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    border-left: 4px solid transparent;
+}
+
+.changelog-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.changelog-card .card-header {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-bottom: 1px solid #dee2e6;
+}
+
+.changelog-card:nth-child(1) {
+    border-left-color: #28a745; /* Verde para a versão mais recente */
+}
+
+.changelog-card:nth-child(2) {
+    border-left-color: #007bff; /* Azul para a segunda versão */
+}
+
+.changelog-card:nth-child(3) {
+    border-left-color: #6c757d; /* Cinza para versões mais antigas */
+}
+
+.changelog-card:nth-child(4) {
+    border-left-color: #ffc107; /* Amarelo para a versão inicial */
+}
+
+.badge {
+    font-size: 0.75rem;
+    padding: 0.5rem 0.75rem;
+}
+
+.list-unstyled li {
+    padding-left: 0.5rem;
+}
+
+@media (max-width: 768px) {
+    .changelog-card .card-header {
+        flex-direction: column;
+        align-items: flex-start !important;
+    }
+    
+    .changelog-card .card-header .text-end {
+        text-align: left !important;
+        margin-top: 0.5rem;
+    }
+}
+</style>
+{% endblock %}

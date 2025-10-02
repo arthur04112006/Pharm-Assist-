@@ -12,22 +12,23 @@ Funcionalidades:
 - Base de dados com medicamentos da ANVISA
 """
 
-# Importações principais do Flask para criar a aplicação web
-from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, send_file
-# SQLAlchemy para gerenciar o banco de dados
-from flask_sqlalchemy import SQLAlchemy
-# Importar todos os modelos do banco de dados (tabelas)
-from models import db, Paciente, DoencaCronica, PacienteDoenca, Sintoma, Pergunta, Medicamento, Consulta, ConsultaResposta, ConsultaRecomendacao
-# Gerador de relatórios em PDF
-from report_generator import ReportGenerator
-# Configurações do sistema
-from config import Config
+# ===== IMPORTAÇÕES PADRÃO =====
 import os
-from datetime import datetime, timedelta
 import json
-# Cache para otimizar consultas frequentes
+from datetime import datetime, timedelta
 from functools import lru_cache
-# Utilitários para extrair perguntas dos módulos
+
+# ===== IMPORTAÇÕES FLASK =====
+from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, send_file
+from flask_sqlalchemy import SQLAlchemy
+
+# ===== IMPORTAÇÕES LOCAIS =====
+from config import Config
+from models import (
+    db, Paciente, DoencaCronica, PacienteDoenca, Sintoma, Pergunta, 
+    Medicamento, Consulta, ConsultaResposta, ConsultaRecomendacao
+)
+from report_generator import ReportGenerator
 from perguntas_extractor import list_modules as list_motor_modulos, extract_questions_for_module
 
 # ===== INICIALIZAÇÃO DA APLICAÇÃO =====
@@ -49,135 +50,189 @@ os.makedirs('reports', exist_ok=True)
 os.makedirs('uploads', exist_ok=True)
 
 # ===== SISTEMA DE CACHE PARA OTIMIZAÇÃO =====
-# Cache para consultas frequentes (evita múltiplas consultas ao banco)
 @lru_cache(maxsize=128)
 def get_doencas_cronicas():
-    """
-    Cache para doenças crônicas - consulta frequente
-    Esta função é chamada sempre que precisamos listar as doenças crônicas
-    O cache evita consultar o banco de dados repetidamente
-    """
+    """Cache para doenças crônicas - consulta frequente"""
     return DoencaCronica.query.all()
 
 @lru_cache(maxsize=64)
 def get_perguntas_ativas():
-    """
-    Cache para perguntas ativas - consulta frequente
-    Esta função retorna todas as perguntas que estão ativas no sistema
-    Ordenadas pela ordem definida no banco de dados
-    """
+    """Cache para perguntas ativas - consulta frequente"""
     return Pergunta.query.filter_by(ativa=True).order_by(Pergunta.ordem).all()
 
-# ===== ROTAS PRINCIPAIS DA APLICAÇÃO =====
-@app.route('/')
-def index():
-    """
-    Página inicial do sistema com dashboard e estatísticas
+def _limpar_cache_doencas():
+    """Limpa o cache de doenças crônicas"""
+    get_doencas_cronicas.cache_clear()
+
+def _limpar_cache_perguntas():
+    """Limpa o cache de perguntas ativas"""
+    get_perguntas_ativas.cache_clear()
+
+def _limpar_todos_caches():
+    """Limpa todos os caches do sistema"""
+    _limpar_cache_doencas()
+    _limpar_cache_perguntas()
+
+# ===== TRATAMENTO DE ERROS PADRONIZADO =====
+def _handle_database_error(error, operation="operação"):
+    """Trata erros de banco de dados de forma padronizada"""
+    db.session.rollback()
+    error_msg = f"Erro ao {operation}: {str(error)}"
+    flash(error_msg, 'error')
+    return error_msg
+
+def _handle_validation_error(error, field_name="campo"):
+    """Trata erros de validação de forma padronizada"""
+    error_msg = f"Erro de validação no {field_name}: {str(error)}"
+    flash(error_msg, 'error')
+    return error_msg
+
+def _handle_not_found_error(resource_name="recurso"):
+    """Trata erros de recurso não encontrado"""
+    error_msg = f"{resource_name.title()} não encontrado"
+    flash(error_msg, 'error')
+    return error_msg
+
+def _handle_success_message(operation="operação", resource_name="recurso"):
+    """Gera mensagem de sucesso padronizada"""
+    success_msg = f"{resource_name.title()} {operation} com sucesso!"
+    flash(success_msg, 'success')
+    return success_msg
+
+# ===== FUNÇÕES UTILITÁRIAS =====
+def _criar_doencas_padrao():
+    """Cria doenças crônicas padrão se não existirem"""
+    doencas_padrao = [
+        'Hipertensão', 'Diabetes', 'Asma', 'Doença Cardíaca', 
+        'Obesidade', 'Colesterol Alto'
+    ]
     
-    Esta é a rota principal que mostra o dashboard com:
-    - Estatísticas gerais do sistema
-    - Gráficos de consultas por dia
-    - Taxa de encaminhamentos
-    - Pacientes por faixa etária
-    - Consultas recentes
+    for doenca_nome in doencas_padrao:
+        doenca = DoencaCronica(nome=doenca_nome)
+        db.session.add(doenca)
     
-    Otimizações implementadas:
-    - Consultas otimizadas com índices
-    - Cache de estatísticas frequentes
-    - Redução de consultas ao banco
-    """
-    # ===== ESTATÍSTICAS GERAIS =====
-    # Contar total de pacientes cadastrados no sistema
+    db.session.commit()
+    _limpar_cache_doencas()  # Limpar cache após criar novas doenças
+    return get_doencas_cronicas()
+
+def _obter_doencas_cronicas():
+    """Obtém doenças crônicas, criando padrão se necessário"""
+    doencas = get_doencas_cronicas()
+    if not doencas:
+        doencas = _criar_doencas_padrao()
+    return doencas
+
+def _processar_dados_paciente(form_data):
+    """Processa dados do formulário de paciente"""
+    return {
+        'nome': form_data['nome'],
+        'idade': int(form_data['idade']),
+        'peso': float(form_data['peso']) if form_data['peso'] else None,
+        'altura': float(form_data['altura']) if form_data['altura'] else None,
+        'sexo': form_data['sexo'],
+        'fuma': form_data.get('fuma') == 'on',
+        'bebe': form_data.get('bebe') == 'on'
+    }
+
+def _salvar_doencas_paciente(paciente_id, doencas_ids):
+    """Salva doenças crônicas do paciente"""
+    for doenca_id in doencas_ids:
+        paciente_doenca = PacienteDoenca(
+            id_paciente=paciente_id,
+            id_doenca_cronica=int(doenca_id)
+        )
+        db.session.add(paciente_doenca)
+
+def _calcular_estatisticas_gerais():
+    """Calcula estatísticas gerais do sistema"""
     total_pacientes = Paciente.query.count()
-    # Contar apenas medicamentos ativos (não inativos)
     total_medicamentos = Medicamento.query.filter_by(ativo=True).count()
-    
-    # ===== CONSULTAS DE HOJE =====
-    # Obter a data atual para filtrar consultas de hoje
     hoje = datetime.now().date()
-    # Contar quantas consultas foram feitas hoje
-    consultas_hoje = Consulta.query.filter(
-        db.func.date(Consulta.data) == hoje
-    ).count()
-    
-    # ===== ENCAMINHAMENTOS =====
-    # Contar quantas consultas resultaram em encaminhamento médico
+    consultas_hoje = Consulta.query.filter(db.func.date(Consulta.data) == hoje).count()
     encaminhamentos = Consulta.query.filter_by(encaminhamento=True).count()
     
-    # ===== CONSULTAS DOS ÚLTIMOS 30 DIAS =====
-    # Calcular data de 30 dias atrás
-    data_30_dias_atras = datetime.now() - timedelta(days=30)
-    # Contar consultas dos últimos 30 dias
-    consultas_30_dias = Consulta.query.filter(Consulta.data >= data_30_dias_atras).count()
-    
-    # ===== CONSULTAS POR DIA (ÚLTIMOS 7 DIAS) =====
-    # Criar lista para armazenar dados de consultas por dia
+    return {
+        'total_pacientes': total_pacientes,
+        'total_medicamentos': total_medicamentos,
+        'consultas_hoje': consultas_hoje,
+        'encaminhamentos': encaminhamentos
+    }
+
+def _calcular_consultas_por_dia(dias=7):
+    """Calcula consultas por dia dos últimos N dias"""
     consultas_por_dia = []
-    # Loop para os últimos 7 dias
-    for i in range(7):
-        # Calcular data de i dias atrás
+    for i in range(dias):
         data = datetime.now() - timedelta(days=i)
-        # Definir início do dia (00:00:00)
         inicio_dia = data.replace(hour=0, minute=0, second=0, microsecond=0)
-        # Definir fim do dia (23:59:59)
         fim_dia = data.replace(hour=23, minute=59, second=59, microsecond=999999)
         
-        # Contar consultas neste dia específico
         count = Consulta.query.filter(
             Consulta.data >= inicio_dia,
             Consulta.data <= fim_dia
         ).count()
         
-        # Adicionar dados do dia à lista
         consultas_por_dia.append({
-            'data': data.strftime('%d/%m'),  # Formato DD/MM
+            'data': data.strftime('%d/%m'),
             'count': count
         })
     
-    # Ordenar cronologicamente (do mais antigo para o mais recente)
     consultas_por_dia.reverse()
-    
-    # ===== TAXA DE ENCAMINHAMENTOS =====
-    # Contar total de consultas para calcular percentual
-    total_consultas = Consulta.query.count()
-    # Calcular percentual de encaminhamentos (evitar divisão por zero)
-    taxa_encaminhamento = (encaminhamentos / total_consultas * 100) if total_consultas > 0 else 0
-    
-    # ===== PACIENTES POR FAIXA ETÁRIA =====
-    # Definir faixas etárias para análise demográfica
+    return consultas_por_dia
+
+def _calcular_pacientes_por_faixa_etaria():
+    """Calcula distribuição de pacientes por faixa etária"""
     faixas_etarias = [
-        {'faixa': '0-18', 'min': 0, 'max': 18},      # Crianças e adolescentes
-        {'faixa': '19-30', 'min': 19, 'max': 30},    # Jovens adultos
-        {'faixa': '31-50', 'min': 31, 'max': 50},    # Adultos
-        {'faixa': '51-65', 'min': 51, 'max': 65},    # Meia-idade
-        {'faixa': '65+', 'min': 65, 'max': 120}      # Idosos
+        {'faixa': '0-18', 'min': 0, 'max': 18},
+        {'faixa': '19-30', 'min': 19, 'max': 30},
+        {'faixa': '31-50', 'min': 31, 'max': 50},
+        {'faixa': '51-65', 'min': 51, 'max': 65},
+        {'faixa': '65+', 'min': 65, 'max': 120}
     ]
     
-    # Lista para armazenar contagem por faixa etária
     pacientes_por_faixa = []
-    # Para cada faixa etária, contar quantos pacientes existem
     for faixa in faixas_etarias:
         count = Paciente.query.filter(
             Paciente.idade >= faixa['min'],
             Paciente.idade <= faixa['max']
         ).count()
-        # Adicionar dados da faixa à lista
         pacientes_por_faixa.append({
             'faixa': faixa['faixa'],
             'count': count
         })
     
-    # ===== ÚLTIMAS CONSULTAS =====
-    # Buscar as 5 consultas mais recentes com dados do paciente
+    return pacientes_por_faixa
+
+# ===== ROTAS PRINCIPAIS DA APLICAÇÃO =====
+@app.route('/')
+def index():
+    """Página inicial do sistema com dashboard e estatísticas"""
+    # Calcular estatísticas gerais
+    stats = _calcular_estatisticas_gerais()
+    
+    # Calcular consultas dos últimos 30 dias
+    data_30_dias_atras = datetime.now() - timedelta(days=30)
+    consultas_30_dias = Consulta.query.filter(Consulta.data >= data_30_dias_atras).count()
+    
+    # Calcular consultas por dia
+    consultas_por_dia = _calcular_consultas_por_dia(7)
+    
+    # Calcular taxa de encaminhamentos
+    total_consultas = Consulta.query.count()
+    taxa_encaminhamento = (stats['encaminhamentos'] / total_consultas * 100) if total_consultas > 0 else 0
+    
+    # Calcular pacientes por faixa etária
+    pacientes_por_faixa = _calcular_pacientes_por_faixa_etaria()
+    
+    # Buscar consultas recentes
     consultas_recentes = Consulta.query.join(Paciente).order_by(
-        Consulta.data.desc()  # Ordenar por data decrescente (mais recente primeiro)
-    ).limit(5).all()  # Limitar a 5 consultas
+        Consulta.data.desc()
+    ).limit(5).all()
     
     return render_template('index.html', 
-                         total_pacientes=total_pacientes,
-                         total_medicamentos=total_medicamentos,
-                         consultas_hoje=consultas_hoje,
-                         encaminhamentos=encaminhamentos,
+                         total_pacientes=stats['total_pacientes'],
+                         total_medicamentos=stats['total_medicamentos'],
+                         consultas_hoje=stats['consultas_hoje'],
+                         encaminhamentos=stats['encaminhamentos'],
                          consultas_30_dias=consultas_30_dias,
                          consultas_por_dia=consultas_por_dia,
                          taxa_encaminhamento=taxa_encaminhamento,
@@ -208,82 +263,30 @@ def pacientes():
 
 @app.route('/pacientes/novo', methods=['GET', 'POST'])
 def novo_paciente():
-    """
-    Cadastro de novo paciente
-    
-    GET: Mostra formulário de cadastro
-    POST: Processa dados do formulário e salva no banco
-    """
+    """Cadastro de novo paciente"""
     if request.method == 'POST':
         try:
-            # ===== CRIAR NOVO PACIENTE =====
-            # Obter dados do formulário e criar objeto Paciente
-            paciente = Paciente(
-                nome=request.form['nome'],                    # Nome completo
-                idade=int(request.form['idade']),            # Idade (obrigatório)
-                peso=float(request.form['peso']) if request.form['peso'] else None,  # Peso (opcional)
-                altura=float(request.form['altura']) if request.form['altura'] else None,  # Altura (opcional)
-                sexo=request.form['sexo'],                   # Sexo (M/F/O)
-                fuma=request.form.get('fuma') == 'on',       # Se fuma (checkbox)
-                bebe=request.form.get('bebe') == 'on'        # Se bebe (checkbox)
-            )
+            # Processar dados do formulário
+            dados_paciente = _processar_dados_paciente(request.form)
             
-            # Adicionar paciente ao banco de dados
+            # Criar novo paciente
+            paciente = Paciente(**dados_paciente)
             db.session.add(paciente)
-            db.session.commit()  # Salvar para obter o ID
-            
-            # ===== ADICIONAR DOENÇAS CRÔNICAS =====
-            # Obter lista de doenças crônicas selecionadas
-            doencas_ids = request.form.getlist('doencas_cronicas')
-            # Para cada doença selecionada, criar relacionamento
-            for doenca_id in doencas_ids:
-                paciente_doenca = PacienteDoenca(
-                    id_paciente=paciente.id,                # ID do paciente recém-criado
-                    id_doenca_cronica=int(doenca_id)         # ID da doença crônica
-                )
-                db.session.add(paciente_doenca)
-            
-            # Salvar relacionamentos no banco
             db.session.commit()
-            # Mostrar mensagem de sucesso
-            flash('Paciente cadastrado com sucesso!', 'success')
-            # Redirecionar para lista de pacientes
+            
+            # Adicionar doenças crônicas
+            doencas_ids = request.form.getlist('doencas_cronicas')
+            _salvar_doencas_paciente(paciente.id, doencas_ids)
+            db.session.commit()
+            
+            _handle_success_message("cadastrado", "paciente")
             return redirect(url_for('pacientes'))
             
         except Exception as e:
-            # Em caso de erro, desfazer alterações
-            db.session.rollback()
-            # Mostrar mensagem de erro
-            flash(f'Erro ao cadastrar paciente: {str(e)}', 'error')
+            _handle_database_error(e, "cadastrar paciente")
     
-    # ===== PREPARAR DADOS PARA O FORMULÁRIO =====
-    # Buscar doenças crônicas disponíveis (usando cache)
-    doencas_cronicas = get_doencas_cronicas()
-    
-    # ===== CRIAR DOENÇAS PADRÃO SE NECESSÁRIO =====
-    # Se não houver doenças crônicas cadastradas, criar algumas padrão
-    if not doencas_cronicas:
-        # Lista de doenças crônicas comuns
-        doencas_padrao = [
-            'Hipertensão',      # Pressão alta
-            'Diabetes',         # Diabetes mellitus
-            'Asma',             # Problemas respiratórios
-            'Doença Cardíaca',  # Problemas cardiovasculares
-            'Obesidade',        # Sobrepeso
-            'Colesterol Alto'  # Dislipidemia
-        ]
-        
-        # Criar cada doença no banco de dados
-        for doenca_nome in doencas_padrao:
-            doenca = DoencaCronica(nome=doenca_nome)
-            db.session.add(doenca)
-        
-        # Salvar no banco
-        db.session.commit()
-        # Buscar novamente as doenças criadas
-        doencas_cronicas = get_doencas_cronicas()
-    
-    # Renderizar formulário com dados das doenças crônicas
+    # Obter doenças crônicas para o formulário
+    doencas_cronicas = _obter_doencas_cronicas()
     return render_template('novo_paciente.html', doencas_cronicas=doencas_cronicas)
 
 @app.route('/pacientes/<int:id>')
@@ -312,52 +315,25 @@ def editar_paciente(id):
     
     if request.method == 'POST':
         try:
-            paciente.nome = request.form['nome']
-            paciente.idade = int(request.form['idade'])
-            paciente.peso = float(request.form['peso']) if request.form['peso'] else None
-            paciente.altura = float(request.form['altura']) if request.form['altura'] else None
-            paciente.sexo = request.form['sexo']
-            paciente.fuma = request.form.get('fuma') == 'on'
-            paciente.bebe = request.form.get('bebe') == 'on'
+            # Atualizar dados do paciente
+            dados_paciente = _processar_dados_paciente(request.form)
+            for key, value in dados_paciente.items():
+                setattr(paciente, key, value)
             
             # Atualizar doenças crônicas
             PacienteDoenca.query.filter_by(id_paciente=id).delete()
             doencas_ids = request.form.getlist('doencas_cronicas')
-            for doenca_id in doencas_ids:
-                paciente_doenca = PacienteDoenca(
-                    id_paciente=id,
-                    id_doenca_cronica=int(doenca_id)
-                )
-                db.session.add(paciente_doenca)
+            _salvar_doencas_paciente(id, doencas_ids)
             
             db.session.commit()
             flash('Paciente atualizado com sucesso!', 'success')
             return redirect(url_for('visualizar_paciente', id=id))
             
         except Exception as e:
-            db.session.rollback()
-            flash(f'Erro ao atualizar paciente: {str(e)}', 'error')
+            _handle_database_error(e, "atualizar paciente")
     
-    doencas_cronicas = get_doencas_cronicas()
+    doencas_cronicas = _obter_doencas_cronicas()
     doencas_paciente = [pd.id_doenca_cronica for pd in paciente.doencas_cronicas]
-    
-    # Se não houver doenças crônicas cadastradas, criar algumas padrão
-    if not doencas_cronicas:
-        doencas_padrao = [
-            'Hipertensão',
-            'Diabetes',
-            'Asma',
-            'Doença Cardíaca',
-            'Obesidade',
-            'Colesterol Alto'
-        ]
-        
-        for doenca_nome in doencas_padrao:
-            doenca = DoencaCronica(nome=doenca_nome)
-            db.session.add(doenca)
-        
-        db.session.commit()
-        doencas_cronicas = get_doencas_cronicas()
     
     return render_template('editar_paciente.html', paciente=paciente, 
                          doencas_cronicas=doencas_cronicas, doencas_paciente=doencas_paciente)
@@ -421,12 +397,27 @@ def novo_medicamento():
     """Cadastro de novo medicamento"""
     if request.method == 'POST':
         try:
+            # Validar campos obrigatórios
+            if not request.form.get('nome_comercial'):
+                flash('Nome comercial é obrigatório!', 'error')
+                return render_template('novo_medicamento.html')
+            
+            if not request.form.get('tipo'):
+                flash('Tipo do medicamento é obrigatório!', 'error')
+                return render_template('novo_medicamento.html')
+            
+            if not request.form.get('indicacao'):
+                flash('Indicações são obrigatórias!', 'error')
+                return render_template('novo_medicamento.html')
+            
+            # Criar novo medicamento
             medicamento = Medicamento(
-                nome_comercial=request.form['nome_comercial'],
-                nome_generico=request.form['nome_generico'],
-                descricao=request.form.get('descricao'),
-                indicacao=request.form['indicacao'],
-                contraindicacao=request.form.get('contraindicacao'),
+                nome_comercial=request.form['nome_comercial'].strip(),
+                nome_generico=request.form.get('nome_generico', '').strip() or None,
+                descricao=request.form.get('descricao', '').strip() or None,
+                categoria=request.form.get('categoria', '').strip() or None,
+                indicacao=request.form['indicacao'].strip(),
+                contraindicacao=request.form.get('contraindicacao', '').strip() or None,
                 tipo=request.form['tipo'],
                 ativo=True
             )
@@ -434,7 +425,7 @@ def novo_medicamento():
             db.session.add(medicamento)
             db.session.commit()
             
-            flash('Medicamento cadastrado com sucesso!', 'success')
+            _handle_success_message("cadastrado", "medicamento")
             return redirect(url_for('medicamentos'))
             
         except Exception as e:
@@ -517,6 +508,7 @@ def editar_medicamento(id):
             medicamento.nome_comercial = request.form['nome_comercial']
             medicamento.nome_generico = request.form.get('nome_generico')
             medicamento.descricao = request.form.get('descricao')
+            medicamento.categoria = request.form.get('categoria')
             medicamento.indicacao = request.form.get('indicacao')
             medicamento.contraindicacao = request.form.get('contraindicacao')
             medicamento.tipo = request.form['tipo']
@@ -552,27 +544,7 @@ def buscar_paciente_triagem():
     else:
         pacientes = None
     
-    # Buscar doenças crônicas para o formulário
-    doencas_cronicas = get_doencas_cronicas()
-    
-    # Se não houver doenças crônicas cadastradas, criar algumas padrão
-    if not doencas_cronicas:
-        doencas_padrao = [
-            'Hipertensão',
-            'Diabetes',
-            'Asma',
-            'Doença Cardíaca',
-            'Obesidade',
-            'Colesterol Alto'
-        ]
-        
-        for doenca_nome in doencas_padrao:
-            doenca = DoencaCronica(nome=doenca_nome)
-            db.session.add(doenca)
-        
-        db.session.commit()
-        doencas_cronicas = get_doencas_cronicas()
-    
+    doencas_cronicas = _obter_doencas_cronicas()
     return render_template('buscar_paciente_triagem.html', pacientes=pacientes, query=query, doencas_cronicas=doencas_cronicas)
 
 @app.route('/triagem/novo_paciente', methods=['GET', 'POST'])
@@ -580,57 +552,26 @@ def novo_paciente_triagem():
     """Cadastro rápido de paciente para triagem"""
     if request.method == 'POST':
         try:
-            paciente = Paciente(
-                nome=request.form['nome'],
-                idade=int(request.form['idade']),
-                peso=float(request.form['peso']) if request.form['peso'] else None,
-                altura=float(request.form['altura']) if request.form['altura'] else None,
-                sexo=request.form['sexo'],
-                fuma=request.form.get('fuma') == 'on',
-                bebe=request.form.get('bebe') == 'on'
-            )
+            # Processar dados do formulário
+            dados_paciente = _processar_dados_paciente(request.form)
             
+            # Criar novo paciente
+            paciente = Paciente(**dados_paciente)
             db.session.add(paciente)
             db.session.commit()
             
-            # Adicionar doenças crônicas se selecionadas
+            # Adicionar doenças crônicas
             doencas_ids = request.form.getlist('doencas_cronicas')
-            for doenca_id in doencas_ids:
-                paciente_doenca = PacienteDoenca(
-                    id_paciente=paciente.id,
-                    id_doenca_cronica=int(doenca_id)
-                )
-                db.session.add(paciente_doenca)
-            
+            _salvar_doencas_paciente(paciente.id, doencas_ids)
             db.session.commit()
+            
             flash('Paciente cadastrado! Iniciando triagem...', 'success')
             return redirect(url_for('iniciar_triagem', paciente_id=paciente.id))
             
         except Exception as e:
-            db.session.rollback()
-            flash(f'Erro ao cadastrar paciente: {str(e)}', 'error')
+            _handle_database_error(e, "cadastrar paciente")
     
-    # Buscar doenças crônicas para o formulário
-    doencas_cronicas = get_doencas_cronicas()
-    
-    # Se não houver doenças crônicas cadastradas, criar algumas padrão
-    if not doencas_cronicas:
-        doencas_padrao = [
-            'Hipertensão',
-            'Diabetes',
-            'Asma',
-            'Doença Cardíaca',
-            'Obesidade',
-            'Colesterol Alto'
-        ]
-        
-        for doenca_nome in doencas_padrao:
-            doenca = DoencaCronica(nome=doenca_nome)
-            db.session.add(doenca)
-        
-        db.session.commit()
-        doencas_cronicas = get_doencas_cronicas()
-    
+    doencas_cronicas = _obter_doencas_cronicas()
     return render_template('novo_paciente_triagem.html', doencas_cronicas=doencas_cronicas)
 
 @app.route('/triagem/iniciar/<int:paciente_id>')
@@ -667,114 +608,127 @@ def iniciar_triagem(paciente_id):
     
     return render_template('iniciar_triagem.html', paciente=paciente, perguntas=perguntas, modulo=modulo)
 
+def _salvar_respostas_consulta(consulta_id, respostas):
+    """Salva respostas da consulta no banco de dados"""
+    for resposta_data in respostas:
+        try:
+            pergunta_id = int(resposta_data['pergunta_id'])
+        except (ValueError, TypeError):
+            pergunta_id = None
+
+        resposta_texto = resposta_data['resposta']
+
+        if pergunta_id is not None:
+            resp = ConsultaResposta(
+                id_consulta=consulta_id,
+                id_pergunta=pergunta_id,
+                resposta=resposta_texto
+            )
+            db.session.add(resp)
+        else:
+            # Salvar como observação na consulta (fallback)
+            consulta = Consulta.query.get(consulta_id)
+            if not consulta.observacoes:
+                consulta.observacoes = ''
+            consulta.observacoes += f"\n{resposta_data['pergunta_id']}: {resposta_texto}"
+
+def _processar_triagem_scoring(data, respostas, paciente_data):
+    """Processa sistema de pontuação da triagem"""
+    from triagem_scoring import scoring_system
+    from perguntas_extractor import get_patient_profile_from_cadastro
+    
+    patient_profile = get_patient_profile_from_cadastro(paciente_data)
+    
+    scoring_result = scoring_system.calculate_score(
+        modulo=data.get('modulo', 'tosse'),
+        respostas=respostas,
+        paciente_profile=patient_profile
+    )
+    
+    recommendations = scoring_system.generate_recommendations(
+        scoring_result,
+        data.get('modulo', 'tosse'),
+        respostas,
+        patient_profile
+    )
+    
+    return scoring_result, recommendations
+
+def _gerar_resultado_triagem(scoring_result, recommendations):
+    """Gera resultado final da triagem"""
+    return {
+        'encaminhamento_medico': scoring_result.encaminhamento,
+        'motivo_encaminhamento': 'Pontuação alta ou sinais críticos detectados' if scoring_result.encaminhamento else None,
+        'recomendacoes_medicamentos': [{'medicamento': med, 'justificativa': f'Baseado na pontuação: {scoring_result.total_score:.1f}'} for med in recommendations['farmacologicas']],
+        'recomendacoes_nao_farmacologicas': [{'descricao': rec, 'justificativa': f'Recomendação não farmacológica baseada na pontuação'} for rec in recommendations['nao_farmacologicas']],
+        'observacoes': [
+            f'Pontuação total: {scoring_result.total_score:.1f}',
+            f'Nível de risco: {scoring_result.risk_level}',
+            f'Confiança: {scoring_result.confidence:.1%}',
+            f'Categoria principal: {max(scoring_result.category_scores.items(), key=lambda x: x[1])[0]}'
+        ],
+        'scoring_result': {
+            'total_score': scoring_result.total_score,
+            'category_scores': scoring_result.category_scores,
+            'risk_level': scoring_result.risk_level,
+            'confidence': scoring_result.confidence
+        }
+    }
+
+def _salvar_recomendacoes(consulta_id, triagem_result):
+    """Salva recomendações da triagem no banco"""
+    for rec in triagem_result.get('recomendacoes_medicamentos', []):
+        recomendacao = ConsultaRecomendacao(
+            id_consulta=consulta_id,
+            tipo='medicamento',
+            descricao=rec['medicamento'],
+            justificativa=rec['justificativa']
+        )
+        db.session.add(recomendacao)
+    
+    for rec in triagem_result.get('recomendacoes_nao_farmacologicas', []):
+        recomendacao = ConsultaRecomendacao(
+            id_consulta=consulta_id,
+            tipo='nao_farmacologico',
+            descricao=rec['descricao'],
+            justificativa=rec['justificativa']
+        )
+        db.session.add(recomendacao)
+    
+    if triagem_result['encaminhamento_medico']:
+        recomendacao = ConsultaRecomendacao(
+            id_consulta=consulta_id,
+            tipo='encaminhamento',
+            descricao='Encaminhamento médico',
+            justificativa=triagem_result.get('motivo_encaminhamento')
+        )
+        db.session.add(recomendacao)
+
 @app.route('/triagem/processar', methods=['POST'])
 def processar_triagem():
-    """
-    Processar triagem e gerar resultado
-    
-    Esta é a função principal do sistema de triagem que:
-    1. Recebe as respostas do questionário
-    2. Cria uma nova consulta no banco
-    3. Aplica o sistema de pontuação inteligente
-    4. Gera recomendações personalizadas
-    5. Salva tudo no banco de dados
-    """
+    """Processar triagem e gerar resultado"""
     try:
-        # ===== OBTER DADOS DA REQUISIÇÃO =====
-        # Receber dados em formato JSON da requisição AJAX
         data = request.get_json()
-        paciente_id = data['paciente_id']      # ID do paciente
-        respostas = data['respostas']          # Lista de respostas do questionário
+        paciente_id = data['paciente_id']
+        respostas = data['respostas']
         
-        # ===== BUSCAR DADOS DO PACIENTE =====
-        # Buscar paciente no banco de dados
+        # Buscar dados do paciente
         paciente = Paciente.query.get_or_404(paciente_id)
-        # Converter para dicionário para uso no sistema de pontuação
         paciente_data = paciente.to_dict()
         
-        # ===== CRIAR NOVA CONSULTA =====
-        # Criar registro de consulta no banco
-        consulta = Consulta(
-            id_paciente=paciente_id,           # ID do paciente
-            data=datetime.now()                # Data e hora atual
-        )
+        # Criar nova consulta
+        consulta = Consulta(id_paciente=paciente_id, data=datetime.now())
         db.session.add(consulta)
-        db.session.commit()  # Salvar para obter o ID da consulta
+        db.session.commit()
         
-        # ===== SALVAR RESPOSTAS NO BANCO =====
-        # Processar cada resposta do questionário
-        for resposta_data in respostas:
-            try:
-                # Tentar converter ID da pergunta para número (perguntas do banco)
-                pergunta_id = int(resposta_data['pergunta_id'])
-            except Exception:
-                # Se não conseguir converter, é uma pergunta dinâmica (módulo)
-                pergunta_id = None
-
-            # Obter texto da resposta
-            resposta_texto = resposta_data['resposta']
-
-            if pergunta_id is not None:
-                # ===== RESPOSTA DE PERGUNTA DO BANCO =====
-                # Criar registro de resposta no banco
-                resp = ConsultaResposta(
-                    id_consulta=consulta.id,        # ID da consulta
-                    id_pergunta=pergunta_id,         # ID da pergunta
-                    resposta=resposta_texto          # Texto da resposta
-                )
-                db.session.add(resp)
-            else:
-                # ===== RESPOSTA DE PERGUNTA DINÂMICA =====
-                # Salvar como observação na consulta (fallback)
-                if not consulta.observacoes:
-                    consulta.observacoes = ''
-                consulta.observacoes += f"\n{resposta_data['pergunta_id']}: {resposta_texto}"
+        # Salvar respostas
+        _salvar_respostas_consulta(consulta.id, respostas)
         
-        # ===== APLICAR SISTEMA DE PONTUAÇÃO INTELIGENTE =====
-        # Importar sistema de pontuação e utilitários
-        from triagem_scoring import scoring_system
-        from perguntas_extractor import get_patient_profile_from_cadastro
+        # Processar sistema de pontuação
+        scoring_result, recommendations = _processar_triagem_scoring(data, respostas, paciente_data)
         
-        # ===== PREPARAR PERFIL DO PACIENTE =====
-        # Converter dados do paciente para formato usado pelo sistema de pontuação
-        patient_profile = get_patient_profile_from_cadastro(paciente_data)
-        
-        # ===== CALCULAR PONTUAÇÃO =====
-        # Aplicar sistema de pontuação baseado nas respostas e perfil
-        scoring_result = scoring_system.calculate_score(
-            modulo=data.get('modulo', 'tosse'),    # Módulo específico (ex: tosse, febre)
-            respostas=respostas,                   # Respostas do questionário
-            paciente_profile=patient_profile       # Perfil do paciente
-        )
-        
-        # ===== GERAR RECOMENDAÇÕES INTELIGENTES =====
-        # Gerar recomendações baseadas na pontuação e respostas específicas
-        recommendations = scoring_system.generate_recommendations(
-            scoring_result,                        # Resultado da pontuação
-            data.get('modulo', 'tosse'),          # Módulo para recomendações específicas
-            respostas,                            # Respostas para análise adicional
-            patient_profile                       # Perfil para personalização
-        )
-        
-        # Preparar resultado da triagem
-        triagem_result = {
-            'encaminhamento_medico': scoring_result.encaminhamento,
-            'motivo_encaminhamento': 'Pontuação alta ou sinais críticos detectados' if scoring_result.encaminhamento else None,
-            'recomendacoes_medicamentos': [{'medicamento': med, 'justificativa': f'Baseado na pontuação: {scoring_result.total_score:.1f}'} for med in recommendations['farmacologicas']],
-            'recomendacoes_nao_farmacologicas': [{'descricao': rec, 'justificativa': f'Recomendação não farmacológica baseada na pontuação'} for rec in recommendations['nao_farmacologicas']],
-            'observacoes': [
-                f'Pontuação total: {scoring_result.total_score:.1f}',
-                f'Nível de risco: {scoring_result.risk_level}',
-                f'Confiança: {scoring_result.confidence:.1%}',
-                f'Categoria principal: {max(scoring_result.category_scores.items(), key=lambda x: x[1])[0]}'
-            ],
-            'scoring_result': {
-                'total_score': scoring_result.total_score,
-                'category_scores': scoring_result.category_scores,
-                'risk_level': scoring_result.risk_level,
-                'confidence': scoring_result.confidence
-            }
-        }
+        # Gerar resultado da triagem
+        triagem_result = _gerar_resultado_triagem(scoring_result, recommendations)
         
         # Atualizar consulta com resultado
         consulta.encaminhamento = triagem_result['encaminhamento_medico']
@@ -782,36 +736,10 @@ def processar_triagem():
         consulta.observacoes = '\n'.join(triagem_result.get('observacoes', []))
         
         # Salvar recomendações
-        for rec in triagem_result.get('recomendacoes_medicamentos', []):
-            recomendacao = ConsultaRecomendacao(
-                id_consulta=consulta.id,
-                tipo='medicamento',
-                descricao=rec['medicamento'],
-                justificativa=rec['justificativa']
-            )
-            db.session.add(recomendacao)
-        
-        for rec in triagem_result.get('recomendacoes_nao_farmacologicas', []):
-            recomendacao = ConsultaRecomendacao(
-                id_consulta=consulta.id,
-                tipo='nao_farmacologico',
-                descricao=rec['descricao'],
-                justificativa=rec['justificativa']
-            )
-            db.session.add(recomendacao)
-        
-        if triagem_result['encaminhamento_medico']:
-            recomendacao = ConsultaRecomendacao(
-                id_consulta=consulta.id,
-                tipo='encaminhamento',
-                descricao='Encaminhamento médico',
-                justificativa=triagem_result.get('motivo_encaminhamento')
-            )
-            db.session.add(recomendacao)
+        _salvar_recomendacoes(consulta.id, triagem_result)
         
         db.session.commit()
         
-        # Retornar resultado
         return jsonify({
             'success': True,
             'consulta_id': consulta.id,
@@ -905,7 +833,6 @@ def resultado_triagem(consulta_id):
                 resultado['alert_signs'].append('Pontuação alta ou sinais críticos detectados')
                 
         except Exception as e:
-            print(f"Erro ao calcular pontuação: {e}")
             # Fallback para cálculo simples
             resultado['score'] = len(respostas_completas) * 10
             if consulta.encaminhamento:
@@ -968,6 +895,37 @@ def gerar_relatorio(consulta_id):
         flash(f'Erro ao gerar relatório: {str(e)}', 'error')
         return redirect(url_for('resultado_triagem', consulta_id=consulta_id))
 
+@app.route('/changelog')
+def changelog():
+    """Página de changelog e notas de atualização"""
+    try:
+        # Carregar dados do changelog do arquivo JSON
+        with open('changelog_data.json', 'r', encoding='utf-8') as f:
+            changelog_data = json.load(f)
+    except FileNotFoundError:
+        # Fallback caso o arquivo não exista
+        changelog_data = [
+            {
+                'version': 'v1.0.0',
+                'date': '2024-01-01',
+                'title': 'Versão Inicial do Sistema',
+                'changes': [
+                    'Sistema de triagem farmacêutica automatizada',
+                    'Gerenciamento de pacientes e medicamentos',
+                    'Base de dados com medicamentos da ANVISA',
+                    'Relatórios em PDF',
+                    'Interface web responsiva',
+                    'Sistema de pontuação inteligente para triagem'
+                ],
+                'type': 'release'
+            }
+        ]
+    except Exception as e:
+        flash(f'Erro ao carregar changelog: {str(e)}', 'error')
+        changelog_data = []
+    
+    return render_template('changelog.html', changelog=changelog_data)
+
 @app.route('/admin')
 def admin():
     """Painel administrativo"""
@@ -981,8 +939,6 @@ def admin():
         total_medicamentos = Medicamento.query.filter_by(ativo=True).count()
         total_encaminhamentos = Consulta.query.filter_by(encaminhamento=True).count()
         
-        # Debug: imprimir valores
-        print(f"DEBUG ADMIN: Pacientes={total_pacientes}, Consultas={total_consultas}, Medicamentos={total_medicamentos}, Encaminhamentos={total_encaminhamentos}")
         
         # Pacientes por gênero
         total_pacientes_masculino = Paciente.query.filter_by(sexo='M').count()

@@ -25,61 +25,24 @@ MOTOR_DIR = os.path.join(BASE_DIR, 'motor_de_perguntas')
 
 
 def _read_module_source(slug: str) -> str:
-    """
-    Lê o código fonte de um módulo específico
-    
-    Esta função lê o arquivo Python de um módulo do motor_de_perguntas
-    para análise posterior com AST.
-    
-    Args:
-        slug: Nome do módulo (ex: 'tosse', 'febre')
-    
-    Returns:
-        Código fonte do módulo como string
-    """
+    """Lê o código fonte de um módulo específico"""
     path = os.path.join(MOTOR_DIR, f'{slug}.py')
     with open(path, 'r', encoding='utf-8') as f:
         return f.read()
 
 
 def _humanize_slug(slug: str) -> str:
-    """
-    Converte slug em nome legível
-    
-    Exemplo: 'dor_cabeca' -> 'Dor Cabeca'
-    
-    Args:
-        slug: Nome do módulo em formato slug
-    
-    Returns:
-        Nome formatado para exibição
-    """
+    """Converte slug em nome legível (ex: 'dor_cabeca' -> 'Dor Cabeca')"""
     return slug.replace('_', ' ').strip().title()
 
 
 def list_modules() -> List[Dict[str, str]]:
-    """
-    Lista módulos disponíveis no diretório motor_de_perguntas
-    
-    Esta função escaneia o diretório motor_de_perguntas e retorna
-    uma lista de todos os módulos disponíveis, excluindo arquivos
-    auxiliares como __init__.py.
-    
-    Returns:
-        Lista de dicionários com 'slug' e 'nome' de cada módulo
-    """
+    """Lista módulos disponíveis no diretório motor_de_perguntas"""
     items: List[Dict[str, str]] = []
-    # Listar arquivos do diretório em ordem alfabética
     for name in sorted(os.listdir(MOTOR_DIR)):
-        # Ignorar arquivos que não são Python
-        if not name.endswith('.py'):
+        if not name.endswith('.py') or name == '__init__.py':
             continue
-        # Ignorar arquivo __init__.py
-        if name == '__init__.py':
-            continue
-        # Converter nome do arquivo em slug (remover .py)
         slug = name[:-3]
-        # Adicionar à lista com nome formatado
         items.append({
             'slug': slug,
             'nome': _humanize_slug(slug)

@@ -1,0 +1,70 @@
+[
+    {
+        "version": "v1.4.0",
+        "date": "2024-01-20",
+        "title": "Otimização Completa do Sistema",
+        "changes": [
+            "Refatoração completa do código para melhor performance",
+            "Adicionados índices de banco de dados para consultas mais rápidas",
+            "Sistema de cache otimizado com limpeza automática",
+            "Tratamento de erros padronizado em todo o sistema",
+            "Funções utilitárias reutilizáveis para reduzir duplicação",
+            "Configurações organizadas e expandidas",
+            "Templates HTML otimizados e simplificados",
+            "Remoção de código morto e prints de debug",
+            "Melhorias na estrutura e organização do código",
+            "Mantida 100% da funcionalidade original"
+        ],
+        "type": "optimization"
+    },
+    {
+        "version": "v1.3.0",
+        "date": "2024-01-15",
+        "title": "Adição do Campo Categoria",
+        "changes": [
+            "Adicionado campo categoria aos medicamentos",
+            "Interface de criação e edição atualizada",
+            "Listagem de medicamentos com nova coluna categoria",
+            "Melhorias na organização e classificação de medicamentos"
+        ],
+        "type": "feature"
+    },
+    {
+        "version": "v1.2.0",
+        "date": "2024-01-10",
+        "title": "Melhorias na Interface de Medicamentos",
+        "changes": [
+            "Ajustes na listagem e organização de medicamentos",
+            "Melhorias visuais na tabela de medicamentos",
+            "Otimização da busca e filtros",
+            "Correções na exibição de dados"
+        ],
+        "type": "improvement"
+    },
+    {
+        "version": "v1.1.0",
+        "date": "2024-01-05",
+        "title": "Melhorias Visuais e Correções",
+        "changes": [
+            "Melhorias visuais na interface principal",
+            "Correções menores de bugs",
+            "Otimização de performance",
+            "Atualização do design responsivo"
+        ],
+        "type": "improvement"
+    },
+    {
+        "version": "v1.0.0",
+        "date": "2024-01-01",
+        "title": "Versão Inicial do Sistema",
+        "changes": [
+            "Sistema de triagem farmacêutica automatizada",
+            "Gerenciamento de pacientes e medicamentos",
+            "Base de dados com medicamentos da ANVISA",
+            "Relatórios em PDF",
+            "Interface web responsiva",
+            "Sistema de pontuação inteligente para triagem"
+        ],
+        "type": "release"
+    }
+]

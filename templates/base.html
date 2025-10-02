@@ -572,47 +572,41 @@
 
         /* ===== RESPONSIVIDADE ===== */
         @media (max-width: 768px) {
-            /* Em telas pequenas, mudar para layout vertical */
             .main-container {
-                flex-direction: column;      /* Direção vertical */
+                flex-direction: column;
             }
             
-            /* Sidebar ocupa toda a largura */
             .sidebar {
-                width: 100%;                 /* Largura total */
-                margin: 0.5rem;              /* Margem menor */
-                position: static;            /* Posição estática */
+                width: 100%;
+                margin: 0.5rem;
+                position: static;
             }
             
-            /* Conteúdo principal com margens menores */
             .main-content {
-                margin: 0.5rem;              /* Margem menor */
-                padding: 1rem;               /* Padding menor */
+                margin: 0.5rem;
+                padding: 1rem;
             }
             
-            /* Logo menor em telas pequenas */
             .navbar-brand {
-                font-size: 1.25rem;         /* Tamanho menor */
+                font-size: 1.25rem;
             }
         }
 
         /* ===== SCROLLBAR PERSONALIZADA ===== */
         ::-webkit-scrollbar {
-            width: 8px;                      /* Largura da scrollbar */
+            width: 8px;
         }
 
         ::-webkit-scrollbar-track {
-            background: var(--light-bg);     /* Fundo da trilha */
+            background: var(--light-bg);
         }
 
         ::-webkit-scrollbar-thumb {
-            /* Fundo gradiente da barra de rolagem */
             background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
-            border-radius: 4px;              /* Bordas arredondadas */
+            border-radius: 4px;
         }
 
         ::-webkit-scrollbar-thumb:hover {
-            /* Gradiente mais escuro no hover */
             background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-color) 100%);
         }
     </style>
@@ -678,6 +672,14 @@
                             Estatísticas
                         </a>
                     </li>
+                    
+                    <!-- Link para changelog -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('changelog') }}">
+                            <i class="bi bi-journal-text"></i> <!-- Ícone de jornal -->
+                            Atualizações
+                        </a>
+                    </li>
                 </ul>
                 
                 <!-- Área direita da navbar -->
@@ -738,6 +740,14 @@
                         <a class="nav-link" href="{{ url_for('admin') }}">
                             <i class="bi bi-bar-chart"></i> <!-- Ícone de gráfico de barras -->
                             Estatísticas
+                        </a>
+                    </li>
+                    
+                    <!-- Link para changelog -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('changelog') }}">
+                            <i class="bi bi-journal-text"></i> <!-- Ícone de jornal -->
+                            Atualizações
                         </a>
                     </li>
                 </ul>

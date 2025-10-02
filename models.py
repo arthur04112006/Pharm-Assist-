@@ -157,21 +157,26 @@ class PacienteDoenca(db.Model):
     __tablename__ = 'paciente_doencas'
     
     id = db.Column(db.Integer, primary_key=True)
-    id_paciente = db.Column(db.Integer, db.ForeignKey('pacientes.id', ondelete='CASCADE'), nullable=False)
-    id_doenca_cronica = db.Column(db.Integer, db.ForeignKey('doencas_cronicas.id', ondelete='CASCADE'), nullable=False)
-    created_at = db.Column(db.TIMESTAMP, default=datetime.utcnow)
+    id_paciente = db.Column(db.Integer, db.ForeignKey('pacientes.id', ondelete='CASCADE'), nullable=False, index=True)
+    id_doenca_cronica = db.Column(db.Integer, db.ForeignKey('doencas_cronicas.id', ondelete='CASCADE'), nullable=False, index=True)
+    created_at = db.Column(db.TIMESTAMP, default=datetime.utcnow, index=True)
     
     # Relacionamentos
     paciente = relationship('Paciente', back_populates='doencas_cronicas')
     doenca_cronica = relationship('DoencaCronica', back_populates='pacientes')
+    
+    # Índice composto para consultas eficientes
+    __table_args__ = (
+        Index('idx_paciente_doenca', 'id_paciente', 'id_doenca_cronica'),
+    )
 
 class Sintoma(db.Model):
     __tablename__ = 'sintomas'
     
     id = db.Column(db.Integer, primary_key=True)
-    nome = db.Column(db.String(100), nullable=False, unique=True)
-    categoria = db.Column(db.String(50))
-    created_at = db.Column(db.TIMESTAMP, default=datetime.utcnow)
+    nome = db.Column(db.String(100), nullable=False, unique=True, index=True)
+    categoria = db.Column(db.String(50), index=True)
+    created_at = db.Column(db.TIMESTAMP, default=datetime.utcnow, index=True)
     
     def to_dict(self):
         return {
@@ -185,10 +190,10 @@ class Pergunta(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     texto = db.Column(db.Text, nullable=False)
-    tipo = db.Column(db.Enum('sintoma', 'habito', 'historico', 'geral'), nullable=False)
-    ordem = db.Column(db.Integer, default=0)
-    ativa = db.Column(db.Boolean, default=True)
-    created_at = db.Column(db.TIMESTAMP, default=datetime.utcnow)
+    tipo = db.Column(db.Enum('sintoma', 'habito', 'historico', 'geral'), nullable=False, index=True)
+    ordem = db.Column(db.Integer, default=0, index=True)
+    ativa = db.Column(db.Boolean, default=True, index=True)
+    created_at = db.Column(db.TIMESTAMP, default=datetime.utcnow, index=True)
     
     def to_dict(self):
         return {
@@ -208,6 +213,7 @@ class Medicamento(db.Model):
     - nome_comercial: Nome comercial do medicamento (obrigatório)
     - nome_generico: Nome genérico/princípio ativo (opcional)
     - descricao: Descrição do medicamento (opcional)
+    - categoria: Categoria do medicamento (opcional)
     - indicacao: Indicações terapêuticas (opcional)
     - contraindicacao: Contraindicações (opcional)
     - tipo: Tipo do medicamento (farmacologico/fitoterapico)
@@ -218,6 +224,7 @@ class Medicamento(db.Model):
     - Índices para busca por nome
     - Índice para filtro por tipo
     - Índice para filtro por status ativo
+    - Índice para filtro por categoria
     """
     __tablename__ = 'medicamentos'
     
@@ -226,6 +233,7 @@ class Medicamento(db.Model):
     nome_comercial = db.Column(db.String(200), nullable=False, index=True)  # Índice para busca
     nome_generico = db.Column(db.String(200), index=True)                   # Índice para busca
     descricao = db.Column(db.Text)
+    categoria = db.Column(db.String(100), index=True)                       # Categoria do medicamento
     indicacao = db.Column(db.Text)
     contraindicacao = db.Column(db.Text)
     tipo = db.Column(db.Enum('farmacologico', 'fitoterapico'), nullable=False, index=True)  # Índice para filtros
@@ -240,6 +248,7 @@ class Medicamento(db.Model):
             'nome_comercial': self.nome_comercial,
             'nome_generico': self.nome_generico,
             'descricao': self.descricao,
+            'categoria': self.categoria,
             'indicacao': self.indicacao,
             'contraindicacao': self.contraindicacao,
             'tipo': self.tipo,
@@ -259,17 +268,17 @@ class Consulta(db.Model):
     # Chave primária
     id = db.Column(db.Integer, primary_key=True)
     # ID do paciente (chave estrangeira com CASCADE para exclusão)
-    id_paciente = db.Column(db.Integer, db.ForeignKey('pacientes.id', ondelete='CASCADE'), nullable=False)
+    id_paciente = db.Column(db.Integer, db.ForeignKey('pacientes.id', ondelete='CASCADE'), nullable=False, index=True)
     # Data e hora da consulta (padrão: agora)
-    data = db.Column(db.DateTime, default=datetime.utcnow)
+    data = db.Column(db.DateTime, default=datetime.utcnow, index=True)
     # Se houve encaminhamento médico
-    encaminhamento = db.Column(db.Boolean, default=False)
+    encaminhamento = db.Column(db.Boolean, default=False, index=True)
     # Motivo do encaminhamento (texto livre)
     motivo_encaminhamento = db.Column(db.Text)
     # Observações adicionais da consulta
     observacoes = db.Column(db.Text)
     # Data de criação do registro
-    created_at = db.Column(db.TIMESTAMP, default=datetime.utcnow)
+    created_at = db.Column(db.TIMESTAMP, default=datetime.utcnow, index=True)
     
     # ===== RELACIONAMENTOS =====
     # Dados do paciente (relacionamento um-para-muitos)
@@ -294,10 +303,10 @@ class ConsultaResposta(db.Model):
     __tablename__ = 'consulta_respostas'
     
     id = db.Column(db.Integer, primary_key=True)
-    id_consulta = db.Column(db.Integer, db.ForeignKey('consultas.id', ondelete='CASCADE'), nullable=False)
-    id_pergunta = db.Column(db.Integer, db.ForeignKey('perguntas.id', ondelete='CASCADE'), nullable=False)
+    id_consulta = db.Column(db.Integer, db.ForeignKey('consultas.id', ondelete='CASCADE'), nullable=False, index=True)
+    id_pergunta = db.Column(db.Integer, db.ForeignKey('perguntas.id', ondelete='CASCADE'), nullable=False, index=True)
     resposta = db.Column(db.Text, nullable=False)
-    created_at = db.Column(db.TIMESTAMP, default=datetime.utcnow)
+    created_at = db.Column(db.TIMESTAMP, default=datetime.utcnow, index=True)
     
     # Relacionamentos
     consulta = relationship('Consulta', back_populates='respostas')
@@ -316,11 +325,11 @@ class ConsultaRecomendacao(db.Model):
     __tablename__ = 'consulta_recomendacoes'
     
     id = db.Column(db.Integer, primary_key=True)
-    id_consulta = db.Column(db.Integer, db.ForeignKey('consultas.id', ondelete='CASCADE'), nullable=False)
-    tipo = db.Column(db.Enum('medicamento', 'nao_farmacologico', 'encaminhamento'), nullable=False)
+    id_consulta = db.Column(db.Integer, db.ForeignKey('consultas.id', ondelete='CASCADE'), nullable=False, index=True)
+    tipo = db.Column(db.Enum('medicamento', 'nao_farmacologico', 'encaminhamento'), nullable=False, index=True)
     descricao = db.Column(db.Text, nullable=False)
     justificativa = db.Column(db.Text)
-    created_at = db.Column(db.TIMESTAMP, default=datetime.utcnow)
+    created_at = db.Column(db.TIMESTAMP, default=datetime.utcnow, index=True)
     
     # Relacionamentos
     consulta = relationship('Consulta', back_populates='recomendacoes')

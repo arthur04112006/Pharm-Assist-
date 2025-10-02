@@ -48,6 +48,15 @@
                             </select>
                         </div>
                         <div class="col-md-6 mb-3">
+                            <label for="categoria" class="form-label">Categoria</label>
+                            <input type="text" class="form-control" id="categoria" name="categoria" 
+                                   value="{{ medicamento.categoria or '' }}"
+                                   placeholder="Ex: Analgésico, Anti-inflamatório, Antibiótico...">
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
                             <label class="form-label">Status Atual</label>
                             <div class="form-control-plaintext">
                                 {% if medicamento.ativo %}

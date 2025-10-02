@@ -48,7 +48,16 @@
                         <div class="col-md-6 mb-3">
                             <label for="categoria" class="form-label">Categoria</label>
                             <input type="text" class="form-control" id="categoria" name="categoria" 
-                                   placeholder="Ex: Analgésico, Anti-inflamatório...">
+                                   placeholder="Ex: Analgésico, Anti-inflamatório, Antibiótico...">
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Status</label>
+                            <div class="form-control-plaintext">
+                                <span class="badge bg-success">Será criado como Ativo</span>
+                            </div>
                         </div>
                     </div>
                     
@@ -70,23 +79,10 @@
                                   placeholder="Descreva as principais contraindicações..."></textarea>
                     </div>
                     
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" id="ativo" name="ativo" checked>
-                                <label class="form-check-label" for="ativo">
-                                    Medicamento Ativo
-                                </label>
-                            </div>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" id="controlado" name="controlado">
-                                <label class="form-check-label" for="controlado">
-                                    Medicamento Controlado
-                                </label>
-                            </div>
-                        </div>
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i>
+                        <strong>Informação:</strong> O medicamento será criado como ativo por padrão. 
+                        Você pode desativá-lo posteriormente na lista de medicamentos se necessário.
                     </div>
                     
                     <div class="d-grid gap-2 d-md-flex justify-content-md-end">
