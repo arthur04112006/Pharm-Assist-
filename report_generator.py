@@ -104,7 +104,9 @@ class ReportGenerator:
         """
         
         # Criar diretório se não existir
-        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        output_dir = os.path.dirname(output_path)
+        if output_dir:  # Só criar diretório se houver um caminho de diretório
+            os.makedirs(output_dir, exist_ok=True)
         
         # Criar documento PDF
         doc = SimpleDocTemplate(output_path, pagesize=A4)
@@ -346,7 +348,10 @@ class ReportGenerator:
             elements.append(med_title)
             
             for med in meds:
-                med_text = Paragraph(f"• {med['medicamento']} ({med['tipo']}) - {med['justificativa']}", 
+                # Acessar como objeto, não como dicionário
+                descricao = med.descricao if hasattr(med, 'descricao') else str(med)
+                justificativa = med.justificativa if hasattr(med, 'justificativa') else ''
+                med_text = Paragraph(f"• {descricao} - {justificativa}", 
                                    self.styles['CustomBody'])
                 elements.append(med_text)
         
@@ -358,7 +363,9 @@ class ReportGenerator:
             elements.append(nao_farm_title)
             
             for rec in nao_farm:
-                rec_text = Paragraph(f"• {rec['descricao']}", self.styles['CustomBody'])
+                # Acessar como objeto, não como dicionário
+                descricao = rec.descricao if hasattr(rec, 'descricao') else str(rec)
+                rec_text = Paragraph(f"• {descricao}", self.styles['CustomBody'])
                 elements.append(rec_text)
         
         # Encaminhamento

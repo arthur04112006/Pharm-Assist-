@@ -12,9 +12,9 @@ Funcionalidades:
 - Base de dados com medicamentos da ANVISA
 """
 
-from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, send_file
+from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, send_file, session
 from flask_sqlalchemy import SQLAlchemy
-from models import db, Paciente, DoencaCronica, PacienteDoenca, Sintoma, Pergunta, Medicamento, Consulta, ConsultaResposta, ConsultaRecomendacao
+from models import db, Usuario, Paciente, DoencaCronica, PacienteDoenca, Sintoma, Pergunta, Medicamento, Consulta, ConsultaResposta, ConsultaRecomendacao
 from report_generator import ReportGenerator
 from config import Config
 import os
@@ -37,6 +37,61 @@ report_generator = ReportGenerator()
 os.makedirs('reports', exist_ok=True)
 os.makedirs('uploads', exist_ok=True)
 
+# ==============================
+# SISTEMA DE AUTENTICAÇÃO
+# ==============================
+
+def login_required(f):
+    """Decorator para proteger rotas que requerem autenticação"""
+    from functools import wraps
+    
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session:
+            flash('Você precisa fazer login para acessar esta página.', 'warning')
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+def admin_required(f):
+    """Decorator para proteger rotas que requerem privilégios de administrador"""
+    from functools import wraps
+    
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session:
+            flash('Você precisa fazer login para acessar esta página.', 'warning')
+            return redirect(url_for('login'))
+        
+        user = Usuario.query.get(session['user_id'])
+        if not user or not user.is_admin:
+            flash('Você não tem permissão para acessar esta área.', 'error')
+            return redirect(url_for('index'))
+        
+        return f(*args, **kwargs)
+    return decorated_function
+
+def get_current_user():
+    """Retorna o usuário atual da sessão"""
+    if 'user_id' in session:
+        return Usuario.query.get(session['user_id'])
+    return None
+
+def create_admin_user():
+    """Cria usuário administrador padrão se não existir"""
+    admin_user = Usuario.query.filter_by(email='admin@pharmassist.com').first()
+    if not admin_user:
+        admin_user = Usuario(
+            nome='Administrador do Sistema',
+            email='admin@pharmassist.com',
+            is_admin=True,
+            ativo=True
+        )
+        admin_user.set_password('admin123')  # Senha padrão - deve ser alterada
+        db.session.add(admin_user)
+        db.session.commit()
+        print("✅ Usuário administrador criado: admin@pharmassist.com / admin123")
+
 # Cache para consultas frequentes (evita múltiplas consultas ao banco)
 @lru_cache(maxsize=128)
 def get_doencas_cronicas():
@@ -48,93 +103,300 @@ def get_perguntas_ativas():
     """Cache para perguntas ativas - consulta frequente"""
     return Pergunta.query.filter_by(ativa=True).order_by(Pergunta.ordem).all()
 
+# ==============================
+# ROTAS DE AUTENTICAÇÃO
+# ==============================
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    """Página de login"""
+    if request.method == 'POST':
+        email = request.form['email'].strip().lower()
+        senha = request.form['senha']
+        
+        # Buscar usuário
+        user = Usuario.query.filter_by(email=email, ativo=True).first()
+        
+        if user and user.check_password(senha):
+            # Login bem-sucedido
+            session['user_id'] = user.id
+            session['user_nome'] = user.nome
+            session['user_email'] = user.email
+            session['user_is_admin'] = user.is_admin
+            
+            # Atualizar último login
+            user.last_login = datetime.utcnow()
+            db.session.commit()
+            
+            flash(f'Bem-vindo(a), {user.nome}!', 'success')
+            
+            # Redirecionar para página solicitada ou dashboard
+            next_page = request.args.get('next')
+            return redirect(next_page) if next_page else redirect(url_for('index'))
+        else:
+            flash('Email ou senha incorretos.', 'error')
+    
+    return render_template('login.html')
+
+@app.route('/logout')
+def logout():
+    """Logout do usuário"""
+    session.clear()
+    flash('Você foi desconectado com sucesso.', 'info')
+    return redirect(url_for('login'))
+
+@app.route('/cadastro', methods=['GET', 'POST'])
+@admin_required
+def cadastro():
+    """Cadastro de novos usuários (apenas administradores)"""
+    if request.method == 'POST':
+        try:
+            nome = request.form['nome'].strip()
+            email = request.form['email'].strip().lower()
+            senha = request.form['senha']
+            confirmar_senha = request.form['confirmar_senha']
+            is_admin = request.form.get('is_admin') == 'on'
+            
+            # Validações
+            if not nome or not email or not senha:
+                flash('Todos os campos são obrigatórios.', 'error')
+                return render_template('cadastro.html')
+            
+            if senha != confirmar_senha:
+                flash('As senhas não coincidem.', 'error')
+                return render_template('cadastro.html')
+            
+            if len(senha) < 6:
+                flash('A senha deve ter pelo menos 6 caracteres.', 'error')
+                return render_template('cadastro.html')
+            
+            # Verificar se email já existe
+            if Usuario.query.filter_by(email=email).first():
+                flash('Este email já está cadastrado.', 'error')
+                return render_template('cadastro.html')
+            
+            # Criar usuário
+            user = Usuario(
+                nome=nome,
+                email=email,
+                is_admin=is_admin,
+                ativo=True
+            )
+            user.set_password(senha)
+            
+            db.session.add(user)
+            db.session.commit()
+            
+            flash(f'Usuário {nome} cadastrado com sucesso!', 'success')
+            return redirect(url_for('admin_usuarios'))
+            
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Erro ao cadastrar usuário: {str(e)}', 'error')
+    
+    return render_template('cadastro.html')
+
+@app.route('/admin/usuarios')
+@admin_required
+def admin_usuarios():
+    """Lista de usuários (apenas administradores)"""
+    page = request.args.get('page', 1, type=int)
+    per_page = Config.ITEMS_PER_PAGE
+    
+    usuarios = Usuario.query.paginate(
+        page=page, per_page=per_page, error_out=False
+    )
+    
+    return render_template('admin_usuarios.html', usuarios=usuarios)
+
+@app.route('/admin/usuarios/<int:id>/toggle_status', methods=['POST'])
+@admin_required
+def toggle_usuario_status(id):
+    """Ativar/desativar usuário"""
+    try:
+        user = Usuario.query.get_or_404(id)
+        
+        # Não permitir desativar a si mesmo
+        if user.id == session['user_id']:
+            flash('Você não pode desativar sua própria conta.', 'warning')
+            return redirect(url_for('admin_usuarios'))
+        
+        user.ativo = not user.ativo
+        db.session.commit()
+        
+        status = 'ativado' if user.ativo else 'desativado'
+        flash(f'Usuário {user.nome} foi {status}.', 'success')
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro ao alterar status do usuário: {str(e)}', 'error')
+    
+    return redirect(url_for('admin_usuarios'))
+
+@app.route('/admin/usuarios/<int:id>/excluir', methods=['POST'])
+@admin_required
+def excluir_usuario(id):
+    """Excluir usuário"""
+    try:
+        user = Usuario.query.get_or_404(id)
+        
+        # Não permitir excluir a si mesmo
+        if user.id == session['user_id']:
+            flash('Você não pode excluir sua própria conta.', 'warning')
+            return redirect(url_for('admin_usuarios'))
+        
+        db.session.delete(user)
+        db.session.commit()
+        
+        flash(f'Usuário {user.nome} foi excluído.', 'success')
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro ao excluir usuário: {str(e)}', 'error')
+    
+    return redirect(url_for('admin_usuarios'))
+
+@app.route('/perfil')
+@login_required
+def perfil():
+    """Página de perfil do usuário"""
+    user = get_current_user()
+    return render_template('perfil.html', user=user)
+
+@app.route('/alterar_senha', methods=['POST'])
+@login_required
+def alterar_senha():
+    """Alterar senha do usuário"""
+    try:
+        user = get_current_user()
+        senha_atual = request.form['senha_atual']
+        nova_senha = request.form['nova_senha']
+        confirmar_senha = request.form['confirmar_senha']
+        
+        # Verificar senha atual
+        if not user.check_password(senha_atual):
+            flash('Senha atual incorreta.', 'error')
+            return redirect(url_for('perfil'))
+        
+        # Validar nova senha
+        if nova_senha != confirmar_senha:
+            flash('As senhas não coincidem.', 'error')
+            return redirect(url_for('perfil'))
+        
+        if len(nova_senha) < 6:
+            flash('A nova senha deve ter pelo menos 6 caracteres.', 'error')
+            return redirect(url_for('perfil'))
+        
+        # Alterar senha
+        user.set_password(nova_senha)
+        db.session.commit()
+        
+        flash('Senha alterada com sucesso!', 'success')
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro ao alterar senha: {str(e)}', 'error')
+    
+    return redirect(url_for('perfil'))
+
+# ==============================
+# ROTAS PRINCIPAIS (PROTEGIDAS)
+# ==============================
+
+@app.route('/teste')
+@login_required
+def teste():
+    """Rota de teste para verificar se o login está funcionando"""
+    return render_template('test.html')
+
 @app.route('/')
+@login_required
 def index():
     """
     Página inicial do sistema com dashboard e estatísticas
-    
-    Otimizações implementadas:
-    - Consultas otimizadas com índices
-    - Cache de estatísticas frequentes
-    - Redução de consultas ao banco
     """
-    # Estatísticas gerais (otimizadas)
-    total_pacientes = Paciente.query.count()
-    total_medicamentos = Medicamento.query.filter_by(ativo=True).count()  # Apenas ativos
-    
-    # Consultas de hoje (otimizada)
-    hoje = datetime.now().date()
-    consultas_hoje = Consulta.query.filter(
-        db.func.date(Consulta.data) == hoje
-    ).count()
-    
-    # Encaminhamentos (otimizada)
-    encaminhamentos = Consulta.query.filter_by(encaminhamento=True).count()
-    
-    # Consultas dos últimos 30 dias (otimizada)
-    data_30_dias_atras = datetime.now() - timedelta(days=30)
-    consultas_30_dias = Consulta.query.filter(Consulta.data >= data_30_dias_atras).count()
-    
-    # Consultas por dia (últimos 7 dias)
-    consultas_por_dia = []
-    for i in range(7):
-        data = datetime.now() - timedelta(days=i)
-        inicio_dia = data.replace(hour=0, minute=0, second=0, microsecond=0)
-        fim_dia = data.replace(hour=23, minute=59, second=59, microsecond=999999)
+    try:
+        # Estatísticas gerais (otimizadas)
+        total_pacientes = Paciente.query.count()
+        total_medicamentos = Medicamento.query.filter_by(ativo=True).count()  # Apenas ativos
         
-        count = Consulta.query.filter(
-            Consulta.data >= inicio_dia,
-            Consulta.data <= fim_dia
+        # Consultas de hoje (otimizada)
+        hoje = datetime.now().date()
+        consultas_hoje = Consulta.query.filter(
+            db.func.date(Consulta.data) == hoje
         ).count()
         
-        consultas_por_dia.append({
-            'data': data.strftime('%d/%m'),
-            'count': count
-        })
-    
-    consultas_por_dia.reverse()  # Ordenar cronologicamente
-    
-    # Taxa de encaminhamentos
-    total_consultas = Consulta.query.count()
-    taxa_encaminhamento = (encaminhamentos / total_consultas * 100) if total_consultas > 0 else 0
-    
-    # Pacientes por faixa etária
-    faixas_etarias = [
-        {'faixa': '0-18', 'min': 0, 'max': 18},
-        {'faixa': '19-30', 'min': 19, 'max': 30},
-        {'faixa': '31-50', 'min': 31, 'max': 50},
-        {'faixa': '51-65', 'min': 51, 'max': 65},
-        {'faixa': '65+', 'min': 65, 'max': 120}
-    ]
-    
-    pacientes_por_faixa = []
-    for faixa in faixas_etarias:
-        count = Paciente.query.filter(
-            Paciente.idade >= faixa['min'],
-            Paciente.idade <= faixa['max']
-        ).count()
-        pacientes_por_faixa.append({
-            'faixa': faixa['faixa'],
-            'count': count
-        })
-    
-    # Últimas consultas
-    consultas_recentes = Consulta.query.join(Paciente).order_by(
-        Consulta.data.desc()
-    ).limit(5).all()
-    
-    return render_template('index.html', 
-                         total_pacientes=total_pacientes,
-                         total_medicamentos=total_medicamentos,
-                         consultas_hoje=consultas_hoje,
-                         encaminhamentos=encaminhamentos,
-                         consultas_30_dias=consultas_30_dias,
-                         consultas_por_dia=consultas_por_dia,
-                         taxa_encaminhamento=taxa_encaminhamento,
-                         pacientes_por_faixa=pacientes_por_faixa,
-                         consultas_recentes=consultas_recentes)
+        # Encaminhamentos (otimizada)
+        encaminhamentos = Consulta.query.filter_by(encaminhamento=True).count()
+        
+        # Consultas dos últimos 30 dias (otimizada)
+        data_30_dias_atras = datetime.now() - timedelta(days=30)
+        consultas_30_dias = Consulta.query.filter(Consulta.data >= data_30_dias_atras).count()
+        
+        # Consultas por dia (últimos 7 dias)
+        consultas_por_dia = []
+        for i in range(7):
+            data = datetime.now() - timedelta(days=i)
+            inicio_dia = data.replace(hour=0, minute=0, second=0, microsecond=0)
+            fim_dia = data.replace(hour=23, minute=59, second=59, microsecond=999999)
+            
+            count = Consulta.query.filter(
+                Consulta.data >= inicio_dia,
+                Consulta.data <= fim_dia
+            ).count()
+            
+            consultas_por_dia.append({
+                'data': data.strftime('%d/%m'),
+                'count': count
+            })
+        
+        consultas_por_dia.reverse()  # Ordenar cronologicamente
+        
+        # Taxa de encaminhamentos
+        total_consultas = Consulta.query.count()
+        taxa_encaminhamento = (encaminhamentos / total_consultas * 100) if total_consultas > 0 else 0
+        
+        # Pacientes por faixa etária
+        faixas_etarias = [
+            {'faixa': '0-18', 'min': 0, 'max': 18},
+            {'faixa': '19-30', 'min': 19, 'max': 30},
+            {'faixa': '31-50', 'min': 31, 'max': 50},
+            {'faixa': '51-65', 'min': 51, 'max': 65},
+            {'faixa': '65+', 'min': 65, 'max': 120}
+        ]
+        
+        pacientes_por_faixa = []
+        for faixa in faixas_etarias:
+            count = Paciente.query.filter(
+                Paciente.idade >= faixa['min'],
+                Paciente.idade <= faixa['max']
+            ).count()
+            pacientes_por_faixa.append({
+                'faixa': faixa['faixa'],
+                'count': count
+            })
+        
+        # Últimas consultas
+        consultas_recentes = Consulta.query.join(Paciente).order_by(
+            Consulta.data.desc()
+        ).limit(5).all()
+        
+        return render_template('index.html', 
+                             total_pacientes=total_pacientes,
+                             total_medicamentos=total_medicamentos,
+                             consultas_hoje=consultas_hoje,
+                             encaminhamentos=encaminhamentos,
+                             consultas_30_dias=consultas_30_dias,
+                             consultas_por_dia=consultas_por_dia,
+                             taxa_encaminhamento=taxa_encaminhamento,
+                             pacientes_por_faixa=pacientes_por_faixa,
+                             consultas_recentes=consultas_recentes)
+    except Exception as e:
+        flash(f'Erro ao carregar dashboard: {str(e)}', 'error')
+        return render_template('test.html')
 
 @app.route('/pacientes')
+@login_required
 def pacientes():
     """Lista de pacientes"""
     page = request.args.get('page', 1, type=int)
@@ -147,6 +409,7 @@ def pacientes():
     return render_template('pacientes.html', pacientes=pacientes)
 
 @app.route('/pacientes/novo', methods=['GET', 'POST'])
+@login_required
 def novo_paciente():
     """Cadastro de novo paciente"""
     if request.method == 'POST':
@@ -206,6 +469,7 @@ def novo_paciente():
     return render_template('novo_paciente.html', doencas_cronicas=doencas_cronicas)
 
 @app.route('/pacientes/<int:id>')
+@login_required
 def visualizar_paciente(id):
     """Visualizar dados de um paciente"""
     paciente = Paciente.query.get_or_404(id)
@@ -214,6 +478,7 @@ def visualizar_paciente(id):
     return render_template('visualizar_paciente.html', paciente=paciente, consultas=consultas)
 
 @app.route('/pacientes/<int:id>/editar', methods=['GET', 'POST'])
+@login_required
 def editar_paciente(id):
     """Editar dados de um paciente"""
     paciente = Paciente.query.get_or_404(id)
@@ -271,6 +536,7 @@ def editar_paciente(id):
                          doencas_cronicas=doencas_cronicas, doencas_paciente=doencas_paciente)
 
 @app.route('/medicamentos')
+@login_required
 def medicamentos():
     """Lista de medicamentos"""
     page = request.args.get('page', 1, type=int)
@@ -298,6 +564,7 @@ def medicamentos():
     return render_template('medicamentos.html', medicamentos=medicamentos, search=search)
 
 @app.route('/medicamentos/inativos')
+@login_required
 def medicamentos_inativos():
     """Lista de medicamentos inativos"""
     page = request.args.get('page', 1, type=int)
@@ -325,6 +592,7 @@ def medicamentos_inativos():
     return render_template('medicamentos_inativos.html', medicamentos=medicamentos, search=search)
 
 @app.route('/medicamentos/novo', methods=['GET', 'POST'])
+@login_required
 def novo_medicamento():
     """Cadastro de novo medicamento"""
     if request.method == 'POST':
@@ -440,6 +708,7 @@ def editar_medicamento(id):
     return render_template('editar_medicamento.html', medicamento=medicamento)
 
 @app.route('/triagem')
+@login_required
 def triagem():
     """Página inicial da triagem"""
     return render_template('triagem.html')
@@ -641,11 +910,17 @@ def processar_triagem():
             patient_profile
         )
         
+        # Separar medicamentos em grupos de 6 (iniciais e adicionais)
+        medicamentos_todos = recommendations['farmacologicas']
+        medicamentos_iniciais = medicamentos_todos[:6]  # Primeiros 6
+        medicamentos_adicionais = medicamentos_todos[6:]  # Restantes
+        
         # Preparar resultado da triagem
         triagem_result = {
             'encaminhamento_medico': scoring_result.encaminhamento,
             'motivo_encaminhamento': 'Pontuação alta ou sinais críticos detectados' if scoring_result.encaminhamento else None,
-            'recomendacoes_medicamentos': [{'medicamento': med, 'justificativa': f'Baseado na pontuação: {scoring_result.total_score:.1f}'} for med in recommendations['farmacologicas']],
+            'recomendacoes_medicamentos': [{'medicamento': med, 'justificativa': f'Baseado na pontuação: {scoring_result.total_score:.1f}'} for med in medicamentos_iniciais],
+            'recomendacoes_medicamentos_adicionais': [{'medicamento': med, 'justificativa': f'Baseado na pontuação: {scoring_result.total_score:.1f}'} for med in medicamentos_adicionais],
             'recomendacoes_nao_farmacologicas': [{'descricao': rec, 'justificativa': f'Recomendação não farmacológica baseada na pontuação'} for rec in recommendations['nao_farmacologicas']],
             'observacoes': [
                 f'Pontuação total: {scoring_result.total_score:.1f}',
@@ -740,9 +1015,44 @@ def resultado_triagem(consulta_id):
     # Processar recomendações
     for rec in recomendacoes:
         if rec.tipo == 'medicamento':
+            # Extrair posologia da descrição
+            posologia = 'Consultar bula'
+            if 'Posologia:' in rec.descricao:
+                try:
+                    posologia = rec.descricao.split('Posologia:')[1].split('|')[0].strip()
+                except:
+                    posologia = 'Consultar bula'
+            
+            # Extrair indicação da descrição
+            indicacao = 'Verificar bula'
+            if ' - ' in rec.descricao and 'Posologia:' in rec.descricao:
+                try:
+                    indicacao = rec.descricao.split(' - ')[1].split(' | Posologia:')[0].strip()
+                except:
+                    indicacao = 'Verificar bula'
+            elif ' - ' in rec.descricao:
+                try:
+                    indicacao = rec.descricao.split(' - ')[1].split(' | ')[0].strip()
+                except:
+                    indicacao = 'Verificar bula'
+            
+            # Extrair observações da descrição
+            observacoes = None
+            if ' | ' in rec.descricao and 'Posologia:' in rec.descricao:
+                try:
+                    partes = rec.descricao.split(' | ')
+                    if len(partes) > 2:
+                        observacoes = partes[2].strip()
+                except:
+                    pass
+            
             resultado['recomendacoes_farmacologicas'].append({
                 'medicamento': {'nome': rec.descricao},
-                'posologia': rec.justificativa or 'Consultar bula'
+                'posologia': posologia,
+                'indicacao': indicacao,
+                'observacoes': observacoes,
+                'prioridade': 3,  # Prioridade padrão
+                'categoria': 'Medicamento'
             })
         elif rec.tipo == 'nao_farmacologico':
             resultado['recomendacoes_nao_farmacologicas'].append({
@@ -854,6 +1164,7 @@ def gerar_relatorio(consulta_id):
         return redirect(url_for('resultado_triagem', consulta_id=consulta_id))
 
 @app.route('/admin')
+@admin_required
 def admin():
     """Painel administrativo"""
     from datetime import timedelta
@@ -869,7 +1180,7 @@ def admin():
     total_pacientes_masculino = Paciente.query.filter_by(sexo='M').count()
     total_pacientes_feminino = Paciente.query.filter_by(sexo='F').count()
     
-    # Sintomas mais comuns
+    # Sintomas mais comuns - convertido para lista de dicionários
     sintomas_comuns = db.session.query(
         ConsultaRecomendacao.descricao,
         func.count(ConsultaRecomendacao.id).label('count')
@@ -881,7 +1192,10 @@ def admin():
         func.count(ConsultaRecomendacao.id).desc()
     ).limit(10).all()
     
-    # Medicamentos mais recomendados
+    # Converter para lista de dicionários para serialização JSON
+    sintomas_comuns = [{'descricao': s.descricao, 'count': s.count} for s in sintomas_comuns]
+    
+    # Medicamentos mais recomendados - convertido para lista de dicionários
     medicamentos_recomendados = db.session.query(
         ConsultaRecomendacao.descricao,
         func.count(ConsultaRecomendacao.id).label('count')
@@ -892,6 +1206,9 @@ def admin():
     ).order_by(
         func.count(ConsultaRecomendacao.id).desc()
     ).limit(10).all()
+    
+    # Converter para lista de dicionários para serialização JSON
+    medicamentos_recomendados = [{'descricao': m.descricao, 'count': m.count} for m in medicamentos_recomendados]
     
     # Taxa de encaminhamentos
     taxa_encaminhamento = (total_encaminhamentos / total_consultas * 100) if total_consultas > 0 else 0
@@ -1005,6 +1322,69 @@ def api_medicamentos():
     medicamentos = Medicamento.query.filter_by(ativo=True).limit(1000).all()
     return jsonify([m.to_dict() for m in medicamentos])
 
+@app.route('/api/triagem/medicamentos_adicionais/<int:consulta_id>')
+def api_medicamentos_adicionais(consulta_id):
+    """API para buscar medicamentos adicionais de uma consulta"""
+    try:
+        consulta = Consulta.query.get_or_404(consulta_id)
+        
+        # Buscar medicamentos adicionais salvos na consulta
+        medicamentos_adicionais = []
+        
+        # Se houver medicamentos adicionais salvos, retornar eles
+        if hasattr(consulta, 'medicamentos_adicionais') and consulta.medicamentos_adicionais:
+            medicamentos_adicionais = consulta.medicamentos_adicionais
+        else:
+            # Gerar medicamentos adicionais dinamicamente
+            from triagem_scoring import scoring_system
+            from perguntas_extractor import get_patient_profile_from_cadastro
+            
+            # Obter perfil do paciente
+            paciente_data = consulta.paciente.to_dict()
+            patient_profile = get_patient_profile_from_cadastro(paciente_data)
+            
+            # Preparar respostas no formato esperado
+            respostas_formatadas = []
+            for resposta in consulta.respostas:
+                respostas_formatadas.append({
+                    'pergunta_id': str(resposta.id_pergunta),
+                    'resposta': resposta.resposta
+                })
+            
+            # Detectar módulo
+            modulo_detectado = _detectar_modulo_das_perguntas(consulta.respostas)
+            
+            # Calcular pontuação
+            scoring_result = scoring_system.calculate_score(
+                modulo=modulo_detectado,
+                respostas=respostas_formatadas,
+                paciente_profile=patient_profile
+            )
+            
+            # Gerar recomendações
+            recommendations = scoring_system.generate_recommendations(
+                scoring_result, 
+                modulo_detectado,
+                respostas_formatadas,
+                patient_profile
+            )
+            
+            # Pegar apenas os medicamentos adicionais (a partir do 7º)
+            medicamentos_todos = recommendations['farmacologicas']
+            medicamentos_adicionais = medicamentos_todos[6:]  # A partir do 7º medicamento
+        
+        return jsonify({
+            'success': True,
+            'medicamentos_adicionais': medicamentos_adicionais,
+            'total': len(medicamentos_adicionais)
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
 @app.errorhandler(404)
 def not_found_error(error):
     return render_template('404.html'), 404
@@ -1017,10 +1397,11 @@ def internal_error(error):
 def _detectar_modulo_das_perguntas(respostas):
     """Detecta o módulo correto baseado nas perguntas respondidas"""
     if not respostas:
-        return 'tosse'  # Módulo padrão
+        return 'geral'  # Módulo padrão para perguntas genéricas
     
     # Mapear IDs de perguntas para módulos
     modulo_por_pergunta = {}
+    sintomas_detectados = set()
     
     # Buscar todas as perguntas no banco e mapear para módulos
     for resposta in respostas:
@@ -1032,37 +1413,46 @@ def _detectar_modulo_das_perguntas(respostas):
             # Detectar módulo baseado em palavras-chave específicas dos módulos
             if any(palavra in texto_lower for palavra in ['tosse', 'tossir', 'expectoração', 'tosse seca', 'tosse produtiva']):
                 modulo_por_pergunta[resposta.id_pergunta] = 'tosse'
+                sintomas_detectados.add('tosse')
             elif any(palavra in texto_lower for palavra in ['febre', 'temperatura', 'calafrio', 'febril']):
                 modulo_por_pergunta[resposta.id_pergunta] = 'febre'
+                sintomas_detectados.add('febre')
             elif any(palavra in texto_lower for palavra in ['dor de cabeça', 'cefaleia', 'enxaqueca', 'dor de cabeça']):
                 modulo_por_pergunta[resposta.id_pergunta] = 'dor_cabeca'
+                sintomas_detectados.add('dor_cabeca')
             elif any(palavra in texto_lower for palavra in ['diarreia', 'evacuação', 'fezes', 'evacuações', 'banheiro']):
                 modulo_por_pergunta[resposta.id_pergunta] = 'diarreia'
+                sintomas_detectados.add('diarreia')
             elif any(palavra in texto_lower for palavra in ['garganta', 'dor de garganta', 'faringite', 'dor garganta']):
                 modulo_por_pergunta[resposta.id_pergunta] = 'dor_garganta'
+                sintomas_detectados.add('dor_garganta')
             elif any(palavra in texto_lower for palavra in ['azia', 'queimação', 'refluxo', 'digestão', 'estômago']):
                 modulo_por_pergunta[resposta.id_pergunta] = 'azia_ma_digestao'
+                sintomas_detectados.add('azia_ma_digestao')
             elif any(palavra in texto_lower for palavra in ['constipação', 'prisão de ventre', 'intestino', 'evacuar']):
                 modulo_por_pergunta[resposta.id_pergunta] = 'constipacao'
+                sintomas_detectados.add('constipacao')
             elif any(palavra in texto_lower for palavra in ['hemorroida', 'hemorroidas', 'anal', 'sangramento anal']):
                 modulo_por_pergunta[resposta.id_pergunta] = 'hemorroidas'
+                sintomas_detectados.add('hemorroidas')
             elif any(palavra in texto_lower for palavra in ['lombar', 'coluna', 'costas', 'dor lombar']):
                 modulo_por_pergunta[resposta.id_pergunta] = 'dor_lombar'
+                sintomas_detectados.add('dor_lombar')
             elif any(palavra in texto_lower for palavra in ['congestão', 'nasal', 'espirro', 'rinite', 'nariz']):
                 modulo_por_pergunta[resposta.id_pergunta] = 'espirro_congestao_nasal'
+                sintomas_detectados.add('espirro_congestao_nasal')
             elif any(palavra in texto_lower for palavra in ['dismenorreia', 'menstruação', 'cólica menstrual']):
                 modulo_por_pergunta[resposta.id_pergunta] = 'dismenorreia'
+                sintomas_detectados.add('dismenorreia')
             elif any(palavra in texto_lower for palavra in ['fungica', 'micose', 'candidíase', 'fungo']):
                 modulo_por_pergunta[resposta.id_pergunta] = 'infeccoes_fungicas'
+                sintomas_detectados.add('infeccoes_fungicas')
             elif any(palavra in texto_lower for palavra in ['queimadura', 'solar', 'sol', 'pele']):
                 modulo_por_pergunta[resposta.id_pergunta] = 'queimadura_solar'
+                sintomas_detectados.add('queimadura_solar')
             else:
-                # Se não conseguir detectar, usar o módulo mais comum baseado no contexto
-                # Verificar se há perguntas sobre sintomas gerais
-                if any(palavra in texto_lower for palavra in ['dor', 'sintoma', 'problema']):
-                    modulo_por_pergunta[resposta.id_pergunta] = 'tosse'  # Padrão mais comum
-                else:
-                    modulo_por_pergunta[resposta.id_pergunta] = 'tosse'  # Padrão
+                # Para perguntas genéricas, usar módulo 'geral'
+                modulo_por_pergunta[resposta.id_pergunta] = 'geral'
     
     # Retornar o módulo mais frequente
     if modulo_por_pergunta:
@@ -1077,5 +1467,8 @@ if __name__ == '__main__':
     with app.app_context():
         # Criar tabelas se não existirem
         db.create_all()
+        
+        # Criar usuário administrador padrão
+        create_admin_user()
     
     app.run(debug=Config.DEBUG, host='0.0.0.0', port=5000)

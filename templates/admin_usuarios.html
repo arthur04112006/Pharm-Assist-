@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciar Usuários - Pharm-Assist</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .user-card {
+            transition: transform 0.2s ease;
+        }
+        .user-card:hover {
+            transform: translateY(-2px);
+        }
+        .status-badge {
+            font-size: 0.8rem;
+        }
+        .admin-badge {
+            background: linear-gradient(135deg, #ffd700, #ffed4e);
+            color: #000;
+        }
+        .btn-action {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.875rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <!-- Header -->
+        <div class="row bg-primary text-white py-3 mb-4">
+            <div class="col">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h2 class="mb-0">
+                            <i class="fas fa-users me-2"></i>
+                            Gerenciar Usuários
+                        </h2>
+                        <p class="mb-0">Controle de acesso e permissões do sistema</p>
+                    </div>
+                    <div>
+                        <a href="{{ url_for('cadastro') }}" class="btn btn-light">
+                            <i class="fas fa-user-plus me-2"></i>
+                            Novo Usuário
+                        </a>
+                        <a href="{{ url_for('index') }}" class="btn btn-outline-light ms-2">
+                            <i class="fas fa-arrow-left me-2"></i>
+                            Voltar
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="container">
+            <!-- Mensagens de feedback -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <!-- Estatísticas -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card bg-primary text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h4 class="mb-0">{{ usuarios.total }}</h4>
+                                    <small>Total de Usuários</small>
+                                </div>
+                                <i class="fas fa-users fa-2x opacity-75"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-success text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h4 class="mb-0">{{ usuarios.items | selectattr('ativo') | list | length }}</h4>
+                                    <small>Usuários Ativos</small>
+                                </div>
+                                <i class="fas fa-user-check fa-2x opacity-75"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-warning text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h4 class="mb-0">{{ usuarios.items | selectattr('is_admin') | list | length }}</h4>
+                                    <small>Administradores</small>
+                                </div>
+                                <i class="fas fa-crown fa-2x opacity-75"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-info text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h4 class="mb-0">{{ usuarios.items | selectattr('ativo', 'equalto', false) | list | length }}</h4>
+                                    <small>Inativos</small>
+                                </div>
+                                <i class="fas fa-user-times fa-2x opacity-75"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lista de usuários -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-list me-2"></i>
+                        Lista de Usuários
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    {% if usuarios.items %}
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Usuário</th>
+                                        <th>Email</th>
+                                        <th>Status</th>
+                                        <th>Tipo</th>
+                                        <th>Último Login</th>
+                                        <th>Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for usuario in usuarios.items %}
+                                        <tr>
+                                            <td>
+                                                <div class="d-flex align-items-center">
+                                                    <div class="avatar bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                                                        {{ usuario.nome[0].upper() }}
+                                                    </div>
+                                                    <div>
+                                                        <strong>{{ usuario.nome }}</strong>
+                                                        <br>
+                                                        <small class="text-muted">ID: {{ usuario.id }}</small>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <i class="fas fa-envelope me-1 text-muted"></i>
+                                                {{ usuario.email }}
+                                            </td>
+                                            <td>
+                                                {% if usuario.ativo %}
+                                                    <span class="badge bg-success status-badge">
+                                                        <i class="fas fa-check me-1"></i>
+                                                        Ativo
+                                                    </span>
+                                                {% else %}
+                                                    <span class="badge bg-danger status-badge">
+                                                        <i class="fas fa-times me-1"></i>
+                                                        Inativo
+                                                    </span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if usuario.is_admin %}
+                                                    <span class="badge admin-badge status-badge">
+                                                        <i class="fas fa-crown me-1"></i>
+                                                        Admin
+                                                    </span>
+                                                {% else %}
+                                                    <span class="badge bg-secondary status-badge">
+                                                        <i class="fas fa-user me-1"></i>
+                                                        Usuário
+                                                    </span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if usuario.last_login %}
+                                                    <i class="fas fa-clock me-1 text-muted"></i>
+                                                    {{ usuario.last_login.strftime('%d/%m/%Y %H:%M') }}
+                                                {% else %}
+                                                    <span class="text-muted">Nunca</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <div class="btn-group" role="group">
+                                                    {% if usuario.id != session.user_id %}
+                                                        <form method="POST" action="{{ url_for('toggle_usuario_status', id=usuario.id) }}" class="d-inline">
+                                                            <button type="submit" class="btn btn-sm btn-{{ 'warning' if usuario.ativo else 'success' }} btn-action" 
+                                                                    title="{{ 'Desativar' if usuario.ativo else 'Ativar' }} usuário">
+                                                                <i class="fas fa-{{ 'user-times' if usuario.ativo else 'user-check' }}"></i>
+                                                            </button>
+                                                        </form>
+                                                        
+                                                        <button type="button" class="btn btn-sm btn-danger btn-action" 
+                                                                onclick="confirmarExclusao({{ usuario.id }}, '{{ usuario.nome }}')" 
+                                                                title="Excluir usuário">
+                                                            <i class="fas fa-trash"></i>
+                                                        </button>
+                                                    {% else %}
+                                                        <span class="text-muted small">Você</span>
+                                                    {% endif %}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">Nenhum usuário encontrado</h5>
+                            <p class="text-muted">Comece cadastrando o primeiro usuário do sistema.</p>
+                            <a href="{{ url_for('cadastro') }}" class="btn btn-primary">
+                                <i class="fas fa-user-plus me-2"></i>
+                                Cadastrar Usuário
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Paginação -->
+            {% if usuarios.pages > 1 %}
+                <nav aria-label="Navegação de páginas" class="mt-4">
+                    <ul class="pagination justify-content-center">
+                        {% if usuarios.has_prev %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('admin_usuarios', page=usuarios.prev_num) }}">
+                                    <i class="fas fa-chevron-left"></i>
+                                </a>
+                            </li>
+                        {% endif %}
+                        
+                        {% for page_num in usuarios.iter_pages() %}
+                            {% if page_num %}
+                                {% if page_num != usuarios.page %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="{{ url_for('admin_usuarios', page=page_num) }}">{{ page_num }}</a>
+                                    </li>
+                                {% else %}
+                                    <li class="page-item active">
+                                        <span class="page-link">{{ page_num }}</span>
+                                    </li>
+                                {% endif %}
+                            {% else %}
+                                <li class="page-item disabled">
+                                    <span class="page-link">…</span>
+                                </li>
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {% if usuarios.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('admin_usuarios', page=usuarios.next_num) }}">
+                                    <i class="fas fa-chevron-right"></i>
+                                </a>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Modal de confirmação de exclusão -->
+    <div class="modal fade" id="modalExclusao" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-exclamation-triangle text-warning me-2"></i>
+                        Confirmar Exclusão
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Tem certeza que deseja excluir o usuário <strong id="nomeUsuario"></strong>?</p>
+                    <div class="alert alert-warning">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Esta ação não pode ser desfeita. Todos os dados do usuário serão permanentemente removidos.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-2"></i>
+                        Cancelar
+                    </button>
+                    <form id="formExclusao" method="POST" class="d-inline">
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-trash me-2"></i>
+                            Excluir
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function confirmarExclusao(usuarioId, nomeUsuario) {
+            document.getElementById('nomeUsuario').textContent = nomeUsuario;
+            document.getElementById('formExclusao').action = "{{ url_for('excluir_usuario', id=0) }}".replace('0', usuarioId);
+            
+            const modal = new bootstrap.Modal(document.getElementById('modalExclusao'));
+            modal.show();
+        }
+    </script>
+</body>
+</html>
+

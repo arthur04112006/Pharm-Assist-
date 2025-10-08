@@ -273,6 +273,28 @@
                     </div>
                     {% endfor %}
                 </div>
+                
+                <!-- Botão para ver mais opções -->
+                <div class="text-center mt-4" id="ver-mais-container">
+                    <button class="btn btn-outline-primary btn-lg" id="ver-mais-medicamentos" 
+                            data-consulta-id="{{ consulta.id }}">
+                        <i class="bi bi-plus-circle me-2"></i>
+                        Ver Mais Opções de Medicamentos
+                    </button>
+                </div>
+                
+                <!-- Seção para medicamentos adicionais (inicialmente oculta) -->
+                <div id="medicamentos-adicionais" style="display: none;">
+                    <hr class="my-4">
+                    <h6 class="text-muted mb-3">
+                        <i class="bi bi-arrow-down-circle me-2"></i>
+                        Opções Adicionais de Medicamentos
+                    </h6>
+                    <div class="row" id="lista-medicamentos-adicionais">
+                        <!-- Medicamentos adicionais serão carregados aqui via JavaScript -->
+                    </div>
+                </div>
+                
                 {% else %}
                 <div class="text-center text-muted">
                     <i class="bi bi-capsule" style="font-size: 3rem; opacity: 0.3;"></i>
@@ -370,4 +392,162 @@
         </div>
     </div>
 </div>
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const verMaisBtn = document.getElementById('ver-mais-medicamentos');
+    const medicamentosAdicionais = document.getElementById('medicamentos-adicionais');
+    const listaMedicamentosAdicionais = document.getElementById('lista-medicamentos-adicionais');
+    const verMaisContainer = document.getElementById('ver-mais-container');
+    
+    if (verMaisBtn) {
+        verMaisBtn.addEventListener('click', function() {
+            const consultaId = this.getAttribute('data-consulta-id');
+            
+            // Mostrar loading
+            this.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Carregando...';
+            this.disabled = true;
+            
+            // Fazer requisição para buscar medicamentos adicionais
+            fetch(`/api/triagem/medicamentos_adicionais/${consultaId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Renderizar medicamentos adicionais
+                        renderizarMedicamentosAdicionais(data.medicamentos_adicionais);
+                        
+                        // Mostrar seção de medicamentos adicionais
+                        medicamentosAdicionais.style.display = 'block';
+                        
+                        // Ocultar botão "Ver mais"
+                        verMaisContainer.style.display = 'none';
+                        
+                        // Scroll suave para a seção
+                        medicamentosAdicionais.scrollIntoView({ 
+                            behavior: 'smooth', 
+                            block: 'start' 
+                        });
+                    } else {
+                        console.error('Erro ao carregar medicamentos adicionais:', data.error);
+                        alert('Erro ao carregar medicamentos adicionais. Tente novamente.');
+                        
+                        // Restaurar botão
+                        this.innerHTML = '<i class="bi bi-plus-circle me-2"></i>Ver Mais Opções de Medicamentos';
+                        this.disabled = false;
+                    }
+                })
+                .catch(error => {
+                    console.error('Erro na requisição:', error);
+                    alert('Erro ao carregar medicamentos adicionais. Tente novamente.');
+                    
+                    // Restaurar botão
+                    this.innerHTML = '<i class="bi bi-plus-circle me-2"></i>Ver Mais Opções de Medicamentos';
+                    this.disabled = false;
+                });
+        });
+    }
+    
+    function renderizarMedicamentosAdicionais(medicamentos) {
+        if (!medicamentos || medicamentos.length === 0) {
+            listaMedicamentosAdicionais.innerHTML = `
+                <div class="col-12">
+                    <div class="text-center text-muted py-4">
+                        <i class="bi bi-info-circle me-2"></i>
+                        Nenhum medicamento adicional disponível.
+                    </div>
+                </div>
+            `;
+            return;
+        }
+        
+        let html = '';
+        medicamentos.forEach(medicamento => {
+            // Extrair informações do medicamento
+            const nomeMedicamento = medicamento.medicamento || medicamento;
+            const principioAtivo = medicamento.principio_ativo || '';
+            const indicacao = medicamento.indicacao || 'Consultar bula';
+            const posologia = medicamento.posologia || 'Consultar bula';
+            const observacoes = medicamento.observacoes || '';
+            const categoria = medicamento.categoria || 'Medicamento';
+            const prioridade = medicamento.prioridade || 3;
+            
+            html += `
+                <div class="col-12 mb-4">
+                    <div class="card shadow-sm border-0" style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);">
+                        <div class="card-header" style="background: linear-gradient(135deg, #6c757d 0%, #495057 100%); color: white; border: none;">
+                            <h6 class="mb-0 d-flex align-items-center">
+                                <i class="bi bi-capsule me-2"></i> 
+                                <span class="fw-bold">${nomeMedicamento}</span>
+                                <span class="badge bg-light text-dark ms-auto">Opção Adicional</span>
+                            </h6>
+                        </div>
+                        <div class="card-body" style="background: white;">
+                            <div class="row">
+                                <div class="col-md-8">
+                                    <div class="mb-3">
+                                        <h6 class="text-primary mb-2">
+                                            <i class="bi bi-info-circle me-1"></i> Indicação
+                                        </h6>
+                                        <p class="mb-2 text-dark">${indicacao}</p>
+                                    </div>
+                                    ${principioAtivo ? `
+                                    <div class="mb-3">
+                                        <h6 class="text-secondary mb-2">
+                                            <i class="bi bi-flask me-1"></i> Princípio Ativo
+                                        </h6>
+                                        <p class="mb-2 text-dark">${principioAtivo}</p>
+                                    </div>
+                                    ` : ''}
+                                    <div class="mb-3">
+                                        <h6 class="text-success mb-2">
+                                            <i class="bi bi-clock me-1"></i> Posologia
+                                        </h6>
+                                        <p class="mb-2 text-dark">${posologia}</p>
+                                    </div>
+                                    ${observacoes ? `
+                                    <div class="mb-3">
+                                        <h6 class="text-warning mb-2">
+                                            <i class="bi bi-exclamation-triangle me-1"></i> Observações
+                                        </h6>
+                                        <p class="mb-2 text-dark">${observacoes}</p>
+                                    </div>
+                                    ` : ''}
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="text-center">
+                                        <div class="mb-3">
+                                            <i class="bi bi-shield-check text-info" style="font-size: 2rem;"></i>
+                                        </div>
+                                        <span class="badge bg-info fs-6 px-3 py-2">Prioridade ${prioridade}</span>
+                                        <div class="mt-2">
+                                            <small class="text-muted">${categoria}</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="alert alert-warning border-0 mb-0" style="background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);">
+                                <div class="d-flex align-items-start">
+                                    <i class="bi bi-exclamation-triangle-fill text-warning me-2 mt-1"></i>
+                                    <div>
+                                        <strong class="text-dark">Importante:</strong>
+                                        <p class="mb-0 text-dark">
+                                            Consulte sempre um farmacêutico ou médico antes do uso. 
+                                            Leia a bula e siga as orientações de posologia.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+        
+        listaMedicamentosAdicionais.innerHTML = html;
+    }
+});
+</script>
+{% endblock %}
+
 {% endblock %}

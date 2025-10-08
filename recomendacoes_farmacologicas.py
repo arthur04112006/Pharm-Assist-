@@ -218,7 +218,8 @@ class SistemaRecomendacoesFarmacologicas:
             'constipacao': ['Lactulona', 'Bisacodil'],
             'hemorroidas': ['Proctyl', 'Anusol'],
             'dor_lombar': ['Ciclobenzaprina', 'Tramadol'],
-            'espirro_congestao_nasal': ['Sorine', 'Allegra', 'Rinosoro']
+            'espirro_congestao_nasal': ['Sorine', 'Allegra', 'Rinosoro'],
+            'infeccoes_fungicas': ['Canesten', 'Lamisil', 'Nizoral', 'Daktarin']
         }
         
         nomes_relevantes = medicamentos_por_modulo.get(modulo, [])
@@ -271,6 +272,10 @@ class SistemaRecomendacoesFarmacologicas:
             ],
             'espirro_congestao_nasal': [
                 'naftazolina', 'sorine', 'descongestionante', 'nasal', 'rinite'
+            ],
+            'infeccoes_fungicas': [
+                'clotrimazol', 'terbinafina', 'cetoconazol', 'miconazol', 'antifungico', 
+                'micose', 'fungo', 'candidíase', 'pé de atleta', 'intertrigo', 'unha'
             ]
         }
         
@@ -427,6 +432,30 @@ class SistemaRecomendacoesFarmacologicas:
                 elif 'alergia' in pergunta_id and resposta_valor in ['sim', 'yes']:
                     sintomas_identificados['alergia'] = True
         
+        elif modulo == 'infeccoes_fungicas':
+            for resposta in respostas:
+                pergunta_id = resposta['pergunta_id']
+                resposta_valor = resposta['resposta'].lower()
+                
+                if 'coceira' in pergunta_id and resposta_valor in ['sim', 'yes']:
+                    sintomas_identificados['coceira'] = True
+                elif 'descamacao' in pergunta_id and resposta_valor in ['sim', 'yes']:
+                    sintomas_identificados['descamacao'] = True
+                elif 'vermelhidao' in pergunta_id and resposta_valor in ['sim', 'yes']:
+                    sintomas_identificados['vermelhidao'] = True
+                elif 'unha' in pergunta_id and resposta_valor in ['sim', 'yes']:
+                    sintomas_identificados['unha_afetada'] = True
+                elif 'pe' in pergunta_id and resposta_valor in ['sim', 'yes']:
+                    sintomas_identificados['pe_afetado'] = True
+                elif 'virilha' in pergunta_id and resposta_valor in ['sim', 'yes']:
+                    sintomas_identificados['virilha_afetada'] = True
+                elif 'duracao' in pergunta_id and resposta_valor.isdigit():
+                    duracao = int(resposta_valor)
+                    if duracao > 30:
+                        sintomas_identificados['duracao_longa'] = True
+                elif 'area' in pergunta_id and resposta_valor in ['sim', 'yes']:
+                    sintomas_identificados['area_extensa'] = True
+        
         return sintomas_identificados
     
     def gerar_recomendacoes(self, modulo: str, respostas: List[Dict[str, str]] = None, 
@@ -462,9 +491,9 @@ class SistemaRecomendacoesFarmacologicas:
         # Aplicar filtros de contraindicações
         recomendacoes = self._aplicar_filtros_contraindicacoes(recomendacoes, paciente_profile)
         
-        # Ordenar por prioridade e retornar até 6 medicamentos
+        # Ordenar por prioridade e retornar até 12 medicamentos (6 iniciais + 6 adicionais)
         recomendacoes.sort(key=lambda x: x.prioridade)
-        return recomendacoes[:6]
+        return recomendacoes[:12]
     
     def _gerar_recomendacoes_fixas_por_modulo(self, modulo: str) -> List[RecomendacaoFarmacologica]:
         """Gera 6 medicamentos fixos para cada módulo"""
@@ -523,6 +552,60 @@ class SistemaRecomendacoesFarmacologicas:
                     'observacoes': 'Não usar por mais de 7 dias',
                     'prioridade': 6,
                     'categoria': 'sintomatico'
+                },
+                {
+                    'medicamento': 'Xarope de Mel',
+                    'principio_ativo': 'Mel de Abelha',
+                    'indicacao': 'Tosse seca e irritativa',
+                    'posologia': '1 colher de sopa a cada 4-6 horas',
+                    'observacoes': 'Natural, seguro para crianças',
+                    'prioridade': 7,
+                    'categoria': 'natural'
+                },
+                {
+                    'medicamento': 'Xarope de Guaco',
+                    'principio_ativo': 'Mikania glomerata',
+                    'indicacao': 'Expectorante natural',
+                    'posologia': '1 colher de sopa a cada 6 horas',
+                    'observacoes': 'Fitoterápico, sem contraindicações',
+                    'prioridade': 8,
+                    'categoria': 'fitoterapico'
+                },
+                {
+                    'medicamento': 'Xarope de Eucalipto',
+                    'principio_ativo': 'Eucalyptus globulus',
+                    'indicacao': 'Tosse com secreção',
+                    'posologia': '1 colher de sopa a cada 6 horas',
+                    'observacoes': 'Ação expectorante e antisséptica',
+                    'prioridade': 9,
+                    'categoria': 'fitoterapico'
+                },
+                {
+                    'medicamento': 'Xarope de Alcaçuz',
+                    'principio_ativo': 'Glycyrrhiza glabra',
+                    'indicacao': 'Tosse seca e irritativa',
+                    'posologia': '1 colher de sopa a cada 6 horas',
+                    'observacoes': 'Ação anti-inflamatória',
+                    'prioridade': 10,
+                    'categoria': 'fitoterapico'
+                },
+                {
+                    'medicamento': 'Xarope de Propolis',
+                    'principio_ativo': 'Própolis',
+                    'indicacao': 'Tosse e irritação da garganta',
+                    'posologia': '1 colher de sopa a cada 6 horas',
+                    'observacoes': 'Ação antisséptica e cicatrizante',
+                    'prioridade': 11,
+                    'categoria': 'natural'
+                },
+                {
+                    'medicamento': 'Xarope de Gengibre',
+                    'principio_ativo': 'Zingiber officinale',
+                    'indicacao': 'Tosse e inflamação',
+                    'posologia': '1 colher de sopa a cada 6 horas',
+                    'observacoes': 'Ação anti-inflamatória e expectorante',
+                    'prioridade': 12,
+                    'categoria': 'fitoterapico'
                 }
             ],
             'febre': [
@@ -1028,6 +1111,116 @@ class SistemaRecomendacoesFarmacologicas:
                     'prioridade': 6,
                     'categoria': 'terapeutico'
                 }
+            ],
+            'infeccoes_fungicas': [
+                {
+                    'medicamento': 'Canesten',
+                    'principio_ativo': 'Clotrimazol',
+                    'indicacao': 'Micoses superficiais (pé de atleta, candidíase)',
+                    'posologia': 'Aplicar 2-3 vezes ao dia por 2-4 semanas',
+                    'observacoes': 'Manter área limpa e seca',
+                    'prioridade': 1,
+                    'categoria': 'antifungico'
+                },
+                {
+                    'medicamento': 'Lamisil',
+                    'principio_ativo': 'Terbinafina',
+                    'indicacao': 'Micoses de unhas e pele',
+                    'posologia': 'Aplicar 1-2 vezes ao dia por 1-2 semanas',
+                    'observacoes': 'Não usar em gestantes',
+                    'prioridade': 2,
+                    'categoria': 'antifungico'
+                },
+                {
+                    'medicamento': 'Nizoral',
+                    'principio_ativo': 'Cetoconazol',
+                    'indicacao': 'Micoses superficiais e candidíase',
+                    'posologia': 'Aplicar 1-2 vezes ao dia por 2-4 semanas',
+                    'observacoes': 'Evitar exposição solar',
+                    'prioridade': 3,
+                    'categoria': 'antifungico'
+                },
+                {
+                    'medicamento': 'Daktarin',
+                    'principio_ativo': 'Miconazol',
+                    'indicacao': 'Micoses superficiais e intertrigo',
+                    'posologia': 'Aplicar 2 vezes ao dia por 2-4 semanas',
+                    'observacoes': 'Adequado para áreas úmidas',
+                    'prioridade': 4,
+                    'categoria': 'antifungico'
+                },
+                {
+                    'medicamento': 'Fungicort',
+                    'principio_ativo': 'Clotrimazol + Hidrocortisona',
+                    'indicacao': 'Micoses com inflamação',
+                    'posologia': 'Aplicar 2-3 vezes ao dia por 1-2 semanas',
+                    'observacoes': 'Não usar por mais de 2 semanas',
+                    'prioridade': 5,
+                    'categoria': 'antifungico'
+                },
+                {
+                    'medicamento': 'Pomada de Enxofre',
+                    'principio_ativo': 'Enxofre',
+                    'indicacao': 'Micoses superficiais leves',
+                    'posologia': 'Aplicar 1-2 vezes ao dia por 2-4 semanas',
+                    'observacoes': 'Produto natural, menos agressivo',
+                    'prioridade': 6,
+                    'categoria': 'natural'
+                },
+                {
+                    'medicamento': 'Creme de Aloe Vera',
+                    'principio_ativo': 'Aloe Vera',
+                    'indicacao': 'Alívio de sintomas de micoses',
+                    'posologia': 'Aplicar 2-3 vezes ao dia',
+                    'observacoes': 'Ação calmante e hidratante',
+                    'prioridade': 7,
+                    'categoria': 'natural'
+                },
+                {
+                    'medicamento': 'Óleo de Melaleuca',
+                    'principio_ativo': 'Melaleuca alternifolia',
+                    'indicacao': 'Micoses superficiais',
+                    'posologia': 'Aplicar 2-3 gotas 2 vezes ao dia',
+                    'observacoes': 'Diluir em óleo carreador',
+                    'prioridade': 8,
+                    'categoria': 'fitoterapico'
+                },
+                {
+                    'medicamento': 'Pomada de Calêndula',
+                    'principio_ativo': 'Calendula officinalis',
+                    'indicacao': 'Micoses com irritação',
+                    'posologia': 'Aplicar 2-3 vezes ao dia',
+                    'observacoes': 'Ação anti-inflamatória',
+                    'prioridade': 9,
+                    'categoria': 'fitoterapico'
+                },
+                {
+                    'medicamento': 'Creme de Própolis',
+                    'principio_ativo': 'Própolis',
+                    'indicacao': 'Micoses superficiais',
+                    'posologia': 'Aplicar 2-3 vezes ao dia',
+                    'observacoes': 'Ação antisséptica natural',
+                    'prioridade': 10,
+                    'categoria': 'natural'
+                },
+                {
+                    'medicamento': 'Pomada de Iodo',
+                    'principio_ativo': 'Iodo',
+                    'indicacao': 'Micoses superficiais',
+                    'posologia': 'Aplicar 1-2 vezes ao dia',
+                    'observacoes': 'Ação antisséptica e antifúngica',
+                    'prioridade': 11,
+                    'categoria': 'antifungico'
+                },
+                {
+                    'medicamento': 'Creme de Bicarbonato',
+                    'principio_ativo': 'Bicarbonato de Sódio',
+                    'indicacao': 'Alívio de sintomas de micoses',
+                    'posologia': 'Aplicar pasta 2 vezes ao dia',
+                    'observacoes': 'Misturar com água até formar pasta',
+                    'prioridade': 12,
+                    'categoria': 'natural'
+                }
             ]
         }
         
@@ -1074,6 +1267,8 @@ class SistemaRecomendacoesFarmacologicas:
             recomendacoes = self._recomendar_para_dor_lombar(sintomas, medicamentos, scoring_result)
         elif modulo == 'espirro_congestao_nasal':
             recomendacoes = self._recomendar_para_congestao_nasal(sintomas, medicamentos, scoring_result)
+        elif modulo == 'infeccoes_fungicas':
+            recomendacoes = self._recomendar_para_infeccoes_fungicas(sintomas, medicamentos, scoring_result)
         
         return recomendacoes
     
@@ -1632,6 +1827,73 @@ class SistemaRecomendacoesFarmacologicas:
         
         return recomendacoes
     
+    def _recomendar_para_infeccoes_fungicas(self, sintomas: Dict[str, bool], medicamentos: List[Medicamento], 
+                                           scoring_result) -> List[RecomendacaoFarmacologica]:
+        """Gera recomendações específicas para infecções fúngicas"""
+        recomendacoes = []
+        
+        # Antifúngicos tópicos para casos leves
+        if sintomas.get('coceira', False) or sintomas.get('descamacao', False):
+            antifungicos = [m for m in medicamentos if self._e_antifungico(m)]
+            for med in antifungicos[:3]:
+                recomendacoes.append(RecomendacaoFarmacologica(
+                    medicamento=med.nome_comercial,
+                    principio_ativo=med.nome_generico or med.nome_comercial,
+                    indicacao="Micose superficial",
+                    posologia=self._gerar_posologia(med, 'antifungico'),
+                    contraindicacoes=med.contraindicacao or "Verificar bula",
+                    observacoes="Manter área limpa e seca",
+                    prioridade=1,
+                    categoria='antifungico'
+                ))
+        
+        # Casos mais graves ou duração longa
+        if sintomas.get('duracao_longa', False) or sintomas.get('area_extensa', False):
+            antifungicos_sistemicos = [m for m in medicamentos if self._e_antifungico_sistemico(m)]
+            for med in antifungicos_sistemicos[:2]:
+                recomendacoes.append(RecomendacaoFarmacologica(
+                    medicamento=med.nome_comercial,
+                    principio_ativo=med.nome_generico or med.nome_comercial,
+                    indicacao="Micose extensa ou duradoura",
+                    posologia=self._gerar_posologia(med, 'antifungico_sistemico'),
+                    contraindicacoes=med.contraindicacao or "Verificar bula",
+                    observacoes="Consulte médico se não melhorar em 2 semanas",
+                    prioridade=1,
+                    categoria='antifungico'
+                ))
+        
+        # Unhas afetadas
+        if sintomas.get('unha_afetada', False):
+            antifungicos_unha = [m for m in medicamentos if self._e_antifungico_unha(m)]
+            for med in antifungicos_unha[:2]:
+                recomendacoes.append(RecomendacaoFarmacologica(
+                    medicamento=med.nome_comercial,
+                    principio_ativo=med.nome_generico or med.nome_comercial,
+                    indicacao="Micose de unha",
+                    posologia=self._gerar_posologia(med, 'antifungico_unha'),
+                    contraindicacoes=med.contraindicacao or "Verificar bula",
+                    observacoes="Tratamento pode durar 3-6 meses",
+                    prioridade=2,
+                    categoria='antifungico'
+                ))
+        
+        # Inflamação associada
+        if sintomas.get('vermelhidao', False):
+            antifungicos_inflamacao = [m for m in medicamentos if self._e_antifungico_inflamacao(m)]
+            for med in antifungicos_inflamacao[:1]:
+                recomendacoes.append(RecomendacaoFarmacologica(
+                    medicamento=med.nome_comercial,
+                    principio_ativo=med.nome_generico or med.nome_comercial,
+                    indicacao="Micose com inflamação",
+                    posologia=self._gerar_posologia(med, 'antifungico_inflamacao'),
+                    contraindicacoes=med.contraindicacao or "Verificar bula",
+                    observacoes="Não usar por mais de 2 semanas",
+                    prioridade=1,
+                    categoria='antifungico'
+                ))
+        
+        return recomendacoes
+    
     # Métodos auxiliares para classificar medicamentos
     def _medicamento_para_tosse(self, medicamento: Medicamento) -> bool:
         """Verifica se o medicamento é indicado para tosse"""
@@ -1731,6 +1993,34 @@ class SistemaRecomendacoesFarmacologicas:
         indicacao = medicamento.indicacao.lower()
         return any(palavra in indicacao for palavra in ['antihistamínico', 'antihistaminico', 'loratadina', 'cetirizina'])
     
+    def _e_antifungico(self, medicamento: Medicamento) -> bool:
+        """Verifica se é antifúngico tópico"""
+        if not medicamento.indicacao:
+            return False
+        indicacao = medicamento.indicacao.lower()
+        return any(palavra in indicacao for palavra in ['antifúngico', 'antifungico', 'clotrimazol', 'miconazol', 'cetoconazol'])
+    
+    def _e_antifungico_sistemico(self, medicamento: Medicamento) -> bool:
+        """Verifica se é antifúngico sistêmico"""
+        if not medicamento.indicacao:
+            return False
+        indicacao = medicamento.indicacao.lower()
+        return any(palavra in indicacao for palavra in ['terbinafina', 'fluconazol', 'itraconazol', 'griseofulvina'])
+    
+    def _e_antifungico_unha(self, medicamento: Medicamento) -> bool:
+        """Verifica se é antifúngico para unhas"""
+        if not medicamento.indicacao:
+            return False
+        indicacao = medicamento.indicacao.lower()
+        return any(palavra in indicacao for palavra in ['unha', 'onicomicose', 'terbinafina', 'ciclopirox'])
+    
+    def _e_antifungico_inflamacao(self, medicamento: Medicamento) -> bool:
+        """Verifica se é antifúngico com anti-inflamatório"""
+        if not medicamento.indicacao:
+            return False
+        indicacao = medicamento.indicacao.lower()
+        return any(palavra in indicacao for palavra in ['clotrimazol + hidrocortisona', 'miconazol + hidrocortisona', 'fungicort'])
+    
     def _gerar_posologia(self, medicamento: Medicamento, tipo: str) -> str:
         """Gera posologia baseada no tipo de medicamento"""
         posologias = {
@@ -1746,7 +2036,11 @@ class SistemaRecomendacoesFarmacologicas:
             'laxante': '1 comprimido ao dia',
             'topico_hemorroidas': 'Aplicar 2-3 vezes ao dia',
             'descongestionante': '1 comprimido a cada 12 horas',
-            'antihistaminico': '1 comprimido ao dia'
+            'antihistaminico': '1 comprimido ao dia',
+            'antifungico': 'Aplicar 2-3 vezes ao dia por 2-4 semanas',
+            'antifungico_sistemico': '1 comprimido ao dia por 1-2 semanas',
+            'antifungico_unha': 'Aplicar 1-2 vezes ao dia por 3-6 meses',
+            'antifungico_inflamacao': 'Aplicar 2-3 vezes ao dia por 1-2 semanas'
         }
         return posologias.get(tipo, 'Seguir orientação médica')
     

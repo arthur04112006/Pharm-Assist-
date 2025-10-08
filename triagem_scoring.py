@@ -289,28 +289,36 @@ class TriagemScoring:
         }
         
         # Gerar recomendações farmacológicas específicas usando o sistema de recomendações
-        if respostas and paciente_profile:
-            try:
-                recomendacoes_farmacologicas = sistema_recomendacoes.gerar_recomendacoes(
-                    modulo, respostas, scoring_result, paciente_profile
-                )
-                
-                for rec in recomendacoes_farmacologicas:
+        try:
+            # Sempre tentar gerar recomendações específicas primeiro
+            recomendacoes_farmacologicas = sistema_recomendacoes.gerar_recomendacoes(
+                modulo, respostas or [], scoring_result, paciente_profile or {}
+            )
+            
+            # Se não houver recomendações específicas, usar fallback
+            if not recomendacoes_farmacologicas:
+                recomendacoes_farmacologicas = self._gerar_recomendacoes_fixas_por_modulo(modulo)
+            
+            # Converter para formato de texto
+            for rec in recomendacoes_farmacologicas:
+                if hasattr(rec, 'medicamento'):
                     recomendacao_texto = f"{rec.medicamento}"
-                    if rec.principio_ativo and rec.principio_ativo != rec.medicamento:
+                    if hasattr(rec, 'principio_ativo') and rec.principio_ativo and rec.principio_ativo != rec.medicamento:
                         recomendacao_texto += f" ({rec.principio_ativo})"
-                    recomendacao_texto += f" - {rec.indicacao}"
-                    if rec.posologia:
+                    if hasattr(rec, 'indicacao') and rec.indicacao:
+                        recomendacao_texto += f" - {rec.indicacao}"
+                    if hasattr(rec, 'posologia') and rec.posologia:
                         recomendacao_texto += f" | Posologia: {rec.posologia}"
-                    if rec.observacoes:
+                    if hasattr(rec, 'observacoes') and rec.observacoes:
                         recomendacao_texto += f" | {rec.observacoes}"
                     
                     recommendations['farmacologicas'].append(recomendacao_texto)
-            except Exception as e:
-                print(f"Erro ao gerar recomendações farmacológicas: {e}")
-                # Fallback para recomendações genéricas
-                recommendations['farmacologicas'] = self._gerar_recomendacoes_genericas(modulo, scoring_result)
-        else:
+                else:
+                    # Se for uma string simples
+                    recommendations['farmacologicas'].append(str(rec))
+                    
+        except Exception as e:
+            print(f"Erro ao gerar recomendações farmacológicas: {e}")
             # Fallback para recomendações genéricas
             recommendations['farmacologicas'] = self._gerar_recomendacoes_genericas(modulo, scoring_result)
         
@@ -354,6 +362,55 @@ class TriagemScoring:
                     recommendations.append('Associação com cafeína')
         
         return recommendations
+    
+    def _gerar_recomendacoes_fixas_por_modulo(self, modulo: str) -> List[str]:
+        """Gera recomendações farmacológicas fixas por módulo como fallback"""
+        recomendacoes_fixas = {
+            'tosse': [
+                'Xarope de mel e própolis',
+                'Pastilhas para tosse',
+                'Chá de gengibre com limão',
+                'Umidificador de ar',
+                'Repouso vocal'
+            ],
+            'diarreia': [
+                'Solução de reidratação oral',
+                'Probióticos',
+                'Chá de camomila',
+                'Dieta BRAT (banana, arroz, maçã, torrada)',
+                'Evitar laticínios temporariamente'
+            ],
+            'dor_cabeca': [
+                'Paracetamol',
+                'Ibuprofeno',
+                'Repouso em ambiente escuro',
+                'Compressa fria na testa',
+                'Hidratação adequada'
+            ],
+            'febre': [
+                'Paracetamol',
+                'Ibuprofeno',
+                'Banho morno',
+                'Hidratação abundante',
+                'Repouso'
+            ],
+            'infeccoes_fungicas': [
+                'Canesten (Clotrimazol)',
+                'Lamisil (Terbinafina)',
+                'Nizoral (Cetoconazol)',
+                'Daktarin (Miconazol)',
+                'Fungicort (Clotrimazol + Hidrocortisona)',
+                'Pomada de Enxofre'
+            ]
+        }
+        
+        return recomendacoes_fixas.get(modulo, [
+            'Consulte um farmacêutico',
+            'Leia a bula do medicamento',
+            'Siga as orientações médicas',
+            'Mantenha boa hidratação',
+            'Repouso adequado'
+        ])
     
     def _gerar_recomendacoes_nao_farmacologicas(self, modulo: str) -> List[str]:
         """Gera recomendações não farmacológicas específicas por módulo"""
@@ -436,6 +493,25 @@ class TriagemScoring:
                 'Evitar alérgenos conhecidos',
                 'Usar máscara em ambientes poluídos',
                 'Manter ambiente limpo e arejado'
+            ]
+        
+        elif modulo == 'infeccoes_fungicas':
+            return [
+                'Manter a área afetada sempre limpa e seca',
+                'Evitar usar roupas apertadas ou sintéticas',
+                'Trocar meias e roupas íntimas diariamente',
+                'Secar bem entre os dedos após o banho',
+                'Usar calçados ventilados e alternar sapatos',
+                'Não compartilhar toalhas, roupas ou calçados',
+                'Lavar roupas com água quente e secar ao sol',
+                'Evitar andar descalço em locais úmidos',
+                'Usar talco antifúngico nos pés',
+                'Manter unhas cortadas e limpas',
+                'Evitar coçar a área afetada',
+                'Aplicar compressas frias para aliviar coceira',
+                'Usar roupas de algodão que permitam transpiração',
+                'Evitar banhos muito quentes e prolongados',
+                'Manter ambiente bem ventilado e seco'
             ]
         
         return []

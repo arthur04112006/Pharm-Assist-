@@ -1,0 +1,71 @@
+{% extends "base_simple.html" %}
+
+{% block title %}Teste - Pharm-Assist{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0">
+                    <i class="fas fa-check-circle text-success me-2"></i>
+                    Teste de Login
+                </h4>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-success">
+                    <i class="fas fa-thumbs-up me-2"></i>
+                    Se você está vendo esta página, o login funcionou!
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5>Informações da Sessão:</h5>
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item">
+                                <strong>Usuário:</strong> 
+                                {{ session.user_nome if session and session.user_nome else 'Não logado' }}
+                            </li>
+                            <li class="list-group-item">
+                                <strong>Email:</strong> 
+                                {{ session.user_email if session and session.user_email else 'N/A' }}
+                            </li>
+                            <li class="list-group-item">
+                                <strong>Admin:</strong> 
+                                {% if session and session.user_is_admin %}
+                                    <span class="badge bg-warning">Sim</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Não</span>
+                                {% endif %}
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h5>Ações:</h5>
+                        <div class="d-grid gap-2">
+                            <a href="{{ url_for('index') }}" class="btn btn-primary">
+                                <i class="fas fa-home me-2"></i>
+                                Ir para Dashboard
+                            </a>
+                            <a href="{{ url_for('perfil') }}" class="btn btn-info">
+                                <i class="fas fa-user me-2"></i>
+                                Meu Perfil
+                            </a>
+                            {% if session and session.user_is_admin %}
+                            <a href="{{ url_for('admin_usuarios') }}" class="btn btn-warning">
+                                <i class="fas fa-users-cog me-2"></i>
+                                Gerenciar Usuários
+                            </a>
+                            {% endif %}
+                            <a href="{{ url_for('logout') }}" class="btn btn-danger">
+                                <i class="fas fa-sign-out-alt me-2"></i>
+                                Sair
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

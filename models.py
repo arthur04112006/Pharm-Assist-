@@ -25,9 +25,68 @@ from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 from sqlalchemy.orm import relationship
 from sqlalchemy import Index
+from werkzeug.security import generate_password_hash, check_password_hash
 
 # Inicialização do SQLAlchemy
 db = SQLAlchemy()
+
+class Usuario(db.Model):
+    """
+    Modelo para armazenar dados dos usuários do sistema
+    
+    Campos:
+    - id: Identificador único (chave primária)
+    - nome: Nome completo do usuário (obrigatório)
+    - email: Email único para login (obrigatório)
+    - senha_hash: Hash da senha (obrigatório)
+    - ativo: Status do usuário (padrão: True)
+    - is_admin: Se é administrador (padrão: False)
+    - created_at: Data de criação do registro
+    - updated_at: Data da última atualização
+    - last_login: Data do último login
+    
+    Métodos:
+    - set_password: Define a senha com hash
+    - check_password: Verifica se a senha está correta
+    - to_dict: Serializa o objeto para dicionário
+    """
+    __tablename__ = 'usuarios'
+    
+    # Campos principais
+    id = db.Column(db.Integer, primary_key=True)
+    nome = db.Column(db.String(200), nullable=False, index=True)
+    email = db.Column(db.String(120), nullable=False, unique=True, index=True)
+    senha_hash = db.Column(db.String(255), nullable=False)
+    ativo = db.Column(db.Boolean, default=True, index=True)
+    is_admin = db.Column(db.Boolean, default=False, index=True)
+    
+    # Timestamps para auditoria
+    created_at = db.Column(db.TIMESTAMP, default=datetime.utcnow, index=True)
+    updated_at = db.Column(db.TIMESTAMP, default=datetime.utcnow, onupdate=datetime.utcnow)
+    last_login = db.Column(db.TIMESTAMP)
+    
+    def set_password(self, senha):
+        """Define a senha com hash de segurança"""
+        self.senha_hash = generate_password_hash(senha)
+    
+    def check_password(self, senha):
+        """Verifica se a senha está correta"""
+        return check_password_hash(self.senha_hash, senha)
+    
+    def to_dict(self):
+        """Serializa o objeto para dicionário (sem senha)"""
+        return {
+            'id': self.id,
+            'nome': self.nome,
+            'email': self.email,
+            'ativo': self.ativo,
+            'is_admin': self.is_admin,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'last_login': self.last_login.isoformat() if self.last_login else None
+        }
+    
+    def __repr__(self):
+        return f'<Usuario {self.email}>'
 
 class Paciente(db.Model):
     """
