@@ -240,6 +240,88 @@ class Medicamento(db.Model):
     # Timestamp para auditoria
     created_at = db.Column(db.TIMESTAMP, default=datetime.utcnow, index=True)
     
+    def nome_resumido(self):
+        """
+        Retorna o nome principal do medicamento, removendo dosagens, formas farmacêuticas
+        e outras informações secundárias.
+        
+        Exemplos:
+        - "DIPIRONA SÓDICA 500MG" → "DIPIRONA"
+        - "PARACETAMOL 750MG COMP" → "PARACETAMOL"
+        - "IBUPROFENO 600MG COMPRIMIDO" → "IBUPROFENO"
+        - "Tylenol" → "Tylenol"
+        """
+        import re
+        
+        if not self.nome_comercial:
+            return ""
+        
+        nome = self.nome_comercial.strip()
+        
+        # Padrões para remover dosagens (mg, g, ml, etc)
+        dosagem_patterns = [
+            r'\s+\d+[,.]?\d*\s*mg\b',  # 500mg, 500,5mg
+            r'\s+\d+[,.]?\d*\s*g\b',   # 1g, 1,5g
+            r'\s+\d+[,.]?\d*\s*ml\b',  # 100ml, 100,5ml
+            r'\s+\d+[,.]?\d*\s*mcg\b', # 50mcg
+            r'\s+\d+[,.]?\d*\s*UI\b',  # 1000UI
+            r'\s+\d+[,.]?\d*\s*%\b',   # 2%
+            r'\s+\d+[,.]?\d*\s*mg/ml\b', # 10mg/ml
+        ]
+        
+        # Padrões para remover formas farmacêuticas
+        forma_patterns = [
+            r'\s+comp\b',              # comp
+            r'\s+comprimido\b',        # comprimido
+            r'\s+cápsula\b',           # cápsula
+            r'\s+capsula\b',           # capsula
+            r'\s+xarope\b',            # xarope
+            r'\s+solução\b',           # solução
+            r'\s+solucao\b',           # solucao
+            r'\s+pomada\b',            # pomada
+            r'\s+gel\b',               # gel
+            r'\s+creme\b',            # creme
+            r'\s+spray\b',            # spray
+            r'\s+gotas\b',            # gotas
+            r'\s+injetável\b',        # injetável
+            r'\s+injetavel\b',        # injetavel
+            r'\s+suspensão\b',        # suspensão
+            r'\s+suspensao\b',        # suspensao
+            r'\s+drágea\b',           # drágea
+            r'\s+dragea\b',           # dragea
+            r'\s+tablete\b',          # tablete
+            r'\s+pastilha\b',         # pastilha
+            r'\s+supositório\b',      # supositório
+            r'\s+supositorio\b',      # supositorio
+        ]
+        
+        # Padrões para remover palavras secundárias (opcionalmente)
+        secundarias_patterns = [
+            r'\s+sódico\b',           # sódico
+            r'\s+sodico\b',           # sodico
+            r'\s+sódica\b',           # sódica
+            r'\s+sodica\b',           # sodica
+            r'\s+cloridrato\b',       # cloridrato
+            r'\s+sulfato\b',          # sulfato
+            r'\s+hidrocloridrato\b',  # hidrocloridrato
+            r'\s+monoidratado\b',     # monoidratado
+            r'\s+anidro\b',           # anidro
+        ]
+        
+        # Aplicar remoções
+        for pattern in dosagem_patterns + forma_patterns + secundarias_patterns:
+            nome = re.sub(pattern, '', nome, flags=re.IGNORECASE)
+        
+        # Limpar espaços extras e caracteres especiais no final
+        nome = re.sub(r'\s+', ' ', nome).strip()
+        nome = re.sub(r'[,\-\.]+$', '', nome).strip()
+        
+        # Se ficou muito curto (menos de 3 caracteres), retornar nome original
+        if len(nome) < 3:
+            return self.nome_comercial
+        
+        return nome
+    
     def to_dict(self):
         return {
             'id': self.id,

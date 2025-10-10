@@ -225,7 +225,7 @@
                             <div class="card-header" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; border: none;">
                                 <h6 class="mb-0 d-flex align-items-center">
                                     <i class="bi bi-capsule me-2"></i> 
-                                    <span class="fw-bold">{{ rec.medicamento.nome if rec.medicamento else rec.medicamento }}</span>
+                                    <span class="fw-bold">{{ rec.medicamento.nome|resumir_nome if rec.medicamento else rec.medicamento }}</span>
                                     <span class="badge bg-light text-dark ms-auto">Recomendado</span>
                                 </h6>
                             </div>
@@ -448,6 +448,80 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
+    // Função para resumir nome do medicamento (equivalente ao método Python)
+    function resumirNomeMedicamento(nome) {
+        if (!nome) return "";
+        
+        let nomeResumido = nome.trim();
+        
+        // Padrões para remover dosagens (mg, g, ml, etc)
+        const dosagemPatterns = [
+            /\s+\d+[,.]?\d*\s*mg\b/i,  // 500mg, 500,5mg
+            /\s+\d+[,.]?\d*\s*g\b/i,   // 1g, 1,5g
+            /\s+\d+[,.]?\d*\s*ml\b/i,  // 100ml, 100,5ml
+            /\s+\d+[,.]?\d*\s*mcg\b/i, // 50mcg
+            /\s+\d+[,.]?\d*\s*UI\b/i,  // 1000UI
+            /\s+\d+[,.]?\d*\s*%\b/i,   // 2%
+            /\s+\d+[,.]?\d*\s*mg\/ml\b/i, // 10mg/ml
+        ];
+        
+        // Padrões para remover formas farmacêuticas
+        const formaPatterns = [
+            /\s+comp\b/i,              // comp
+            /\s+comprimido\b/i,        // comprimido
+            /\s+cápsula\b/i,           // cápsula
+            /\s+capsula\b/i,           // capsula
+            /\s+xarope\b/i,            // xarope
+            /\s+solução\b/i,           // solução
+            /\s+solucao\b/i,           // solucao
+            /\s+pomada\b/i,            // pomada
+            /\s+gel\b/i,               // gel
+            /\s+creme\b/i,            // creme
+            /\s+spray\b/i,            // spray
+            /\s+gotas\b/i,            // gotas
+            /\s+injetável\b/i,        // injetável
+            /\s+injetavel\b/i,        // injetavel
+            /\s+suspensão\b/i,        // suspensão
+            /\s+suspensao\b/i,        // suspensao
+            /\s+drágea\b/i,           // drágea
+            /\s+dragea\b/i,           // dragea
+            /\s+tablete\b/i,          // tablete
+            /\s+pastilha\b/i,         // pastilha
+            /\s+supositório\b/i,      // supositório
+            /\s+supositorio\b/i,      // supositorio
+        ];
+        
+        // Padrões para remover palavras secundárias
+        const secundariasPatterns = [
+            /\s+sódico\b/i,           // sódico
+            /\s+sodico\b/i,           // sodico
+            /\s+sódica\b/i,           // sódica
+            /\s+sodica\b/i,           // sodica
+            /\s+cloridrato\b/i,       // cloridrato
+            /\s+sulfato\b/i,          // sulfato
+            /\s+hidrocloridrato\b/i,  // hidrocloridrato
+            /\s+monoidratado\b/i,     // monoidratado
+            /\s+anidro\b/i,           // anidro
+        ];
+        
+        // Aplicar remoções
+        const todosPatterns = [...dosagemPatterns, ...formaPatterns, ...secundariasPatterns];
+        todosPatterns.forEach(pattern => {
+            nomeResumido = nomeResumido.replace(pattern, '');
+        });
+        
+        // Limpar espaços extras e caracteres especiais no final
+        nomeResumido = nomeResumido.replace(/\s+/g, ' ').trim();
+        nomeResumido = nomeResumido.replace(/[,\-\.]+$/, '').trim();
+        
+        // Se ficou muito curto (menos de 3 caracteres), retornar nome original
+        if (nomeResumido.length < 3) {
+            return nome;
+        }
+        
+        return nomeResumido;
+    }
+
     function renderizarMedicamentosAdicionais(medicamentos) {
         if (!medicamentos || medicamentos.length === 0) {
             listaMedicamentosAdicionais.innerHTML = `
@@ -464,7 +538,8 @@ document.addEventListener('DOMContentLoaded', function() {
         let html = '';
         medicamentos.forEach(medicamento => {
             // Extrair informações do medicamento
-            const nomeMedicamento = medicamento.medicamento || medicamento;
+            const nomeMedicamentoOriginal = medicamento.medicamento || medicamento;
+            const nomeMedicamento = resumirNomeMedicamento(nomeMedicamentoOriginal);
             const principioAtivo = medicamento.principio_ativo || '';
             const indicacao = medicamento.indicacao || 'Consultar bula';
             const posologia = medicamento.posologia || 'Consultar bula';

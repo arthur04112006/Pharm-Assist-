@@ -38,6 +38,100 @@ os.makedirs('reports', exist_ok=True)
 os.makedirs('uploads', exist_ok=True)
 
 # ==============================
+# FILTROS JINJA2 PERSONALIZADOS
+# ==============================
+
+@app.template_filter('resumir_nome')
+def resumir_nome_medicamento(nome):
+    """
+    Filtro Jinja2 para resumir nomes de medicamentos
+    Remove dosagens, formas farmacêuticas e palavras secundárias
+    """
+    import re
+    
+    if not nome:
+        return ""
+    
+    nome_resumido = nome.strip()
+    
+    # Para recomendações complexas, extrair apenas o nome principal
+    # Ex: "Vick 44 (Dextrometorfano) - Tosse seca..." → "Vick 44"
+    if ' - ' in nome_resumido:
+        nome_resumido = nome_resumido.split(' - ')[0].strip()
+    
+    # Remover informações entre parênteses se não for o nome principal
+    # Ex: "Vick 44 (Dextrometorfano)" → "Vick 44"
+    if '(' in nome_resumido and ')' in nome_resumido:
+        # Verificar se o conteúdo entre parênteses é muito longo (provavelmente princípio ativo)
+        match = re.search(r'\(([^)]+)\)', nome_resumido)
+        if match and len(match.group(1)) > 8:  # Se for muito longo, é princípio ativo
+            nome_resumido = nome_resumido.split('(')[0].strip()
+    
+    # Padrões para remover dosagens (mg, g, ml, etc)
+    dosagem_patterns = [
+        r'\s+\d+[,.]?\d*\s*mg\b',  # 500mg, 500,5mg
+        r'\s+\d+[,.]?\d*\s*g\b',   # 1g, 1,5g
+        r'\s+\d+[,.]?\d*\s*ml\b',  # 100ml, 100,5ml
+        r'\s+\d+[,.]?\d*\s*mcg\b', # 50mcg
+        r'\s+\d+[,.]?\d*\s*UI\b',  # 1000UI
+        r'\s+\d+[,.]?\d*\s*%\b',   # 2%
+        r'\s+\d+[,.]?\d*\s*mg/ml\b', # 10mg/ml
+    ]
+    
+    # Padrões para remover formas farmacêuticas
+    forma_patterns = [
+        r'\s+comp\b',              # comp
+        r'\s+comprimido\b',        # comprimido
+        r'\s+cápsula\b',           # cápsula
+        r'\s+capsula\b',           # capsula
+        r'\s+xarope\b',            # xarope
+        r'\s+solução\b',           # solução
+        r'\s+solucao\b',           # solucao
+        r'\s+pomada\b',            # pomada
+        r'\s+gel\b',               # gel
+        r'\s+creme\b',            # creme
+        r'\s+spray\b',            # spray
+        r'\s+gotas\b',            # gotas
+        r'\s+injetável\b',        # injetável
+        r'\s+injetavel\b',        # injetavel
+        r'\s+suspensão\b',        # suspensão
+        r'\s+suspensao\b',        # suspensao
+        r'\s+drágea\b',           # drágea
+        r'\s+dragea\b',           # dragea
+        r'\s+tablete\b',          # tablete
+        r'\s+pastilha\b',         # pastilha
+        r'\s+supositório\b',      # supositório
+        r'\s+supositorio\b',      # supositorio
+    ]
+    
+    # Padrões para remover palavras secundárias
+    secundarias_patterns = [
+        r'\s+sódico\b',           # sódico
+        r'\s+sodico\b',           # sodico
+        r'\s+sódica\b',           # sódica
+        r'\s+sodica\b',           # sodica
+        r'\s+cloridrato\b',       # cloridrato
+        r'\s+sulfato\b',          # sulfato
+        r'\s+hidrocloridrato\b',  # hidrocloridrato
+        r'\s+monoidratado\b',     # monoidratado
+        r'\s+anidro\b',           # anidro
+    ]
+    
+    # Aplicar remoções
+    for pattern in dosagem_patterns + forma_patterns + secundarias_patterns:
+        nome_resumido = re.sub(pattern, '', nome_resumido, flags=re.IGNORECASE)
+    
+    # Limpar espaços extras e caracteres especiais no final
+    nome_resumido = re.sub(r'\s+', ' ', nome_resumido).strip()
+    nome_resumido = re.sub(r'[,\-\.]+$', '', nome_resumido).strip()
+    
+    # Se ficou muito curto (menos de 3 caracteres), retornar nome original
+    if len(nome_resumido) < 3:
+        return nome
+    
+    return nome_resumido
+
+# ==============================
 # SISTEMA DE AUTENTICAÇÃO
 # ==============================
 
@@ -1047,7 +1141,7 @@ def resultado_triagem(consulta_id):
                     pass
             
             resultado['recomendacoes_farmacologicas'].append({
-                'medicamento': {'nome': rec.descricao},
+                'medicamento': {'nome': resumir_nome_medicamento(rec.descricao)},
                 'posologia': posologia,
                 'indicacao': indicacao,
                 'observacoes': observacoes,

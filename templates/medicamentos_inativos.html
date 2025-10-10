@@ -101,7 +101,7 @@
                     {% for medicamento in medicamentos.items %}
                     <tr class="table-warning">
                         <td>
-                            <strong>{{ medicamento.nome_comercial }}</strong>
+                            <strong>{{ medicamento.nome_comercial|resumir_nome }}</strong>
                             {% if medicamento.nome_generico %}
                             <br><small class="text-muted">{{ medicamento.nome_generico }}</small>
                             {% endif %}
