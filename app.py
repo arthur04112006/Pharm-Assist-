@@ -939,7 +939,12 @@ def processar_triagem():
         # Atualizar consulta com resultado
         consulta.encaminhamento = triagem_result['encaminhamento_medico']
         consulta.motivo_encaminhamento = triagem_result.get('motivo_encaminhamento')
-        consulta.observacoes = '\n'.join(triagem_result.get('observacoes', []))
+        
+        # Adicionar o módulo/sintoma principal nas observações de forma destacada
+        modulo_usado = data.get('modulo', 'geral')
+        observacoes_list = [f'MODULO: {modulo_usado}']  # Primeiro item é sempre o módulo
+        observacoes_list.extend(triagem_result.get('observacoes', []))
+        consulta.observacoes = '\n'.join(observacoes_list)
         
         # Salvar recomendações
         for rec in triagem_result.get('recomendacoes_medicamentos', []):
@@ -1180,22 +1185,7 @@ def admin():
     total_pacientes_masculino = Paciente.query.filter_by(sexo='M').count()
     total_pacientes_feminino = Paciente.query.filter_by(sexo='F').count()
     
-    # Sintomas mais comuns - convertido para lista de dicionários
-    sintomas_comuns = db.session.query(
-        ConsultaRecomendacao.descricao,
-        func.count(ConsultaRecomendacao.id).label('count')
-    ).filter(
-        ConsultaRecomendacao.tipo == 'nao_farmacologico'
-    ).group_by(
-        ConsultaRecomendacao.descricao
-    ).order_by(
-        func.count(ConsultaRecomendacao.id).desc()
-    ).limit(10).all()
-    
-    # Converter para lista de dicionários para serialização JSON
-    sintomas_comuns = [{'descricao': s.descricao, 'count': s.count} for s in sintomas_comuns]
-    
-    # Medicamentos mais recomendados - convertido para lista de dicionários
+    # Medicamentos mais recomendados
     medicamentos_recomendados = db.session.query(
         ConsultaRecomendacao.descricao,
         func.count(ConsultaRecomendacao.id).label('count')
@@ -1205,10 +1195,18 @@ def admin():
         ConsultaRecomendacao.descricao
     ).order_by(
         func.count(ConsultaRecomendacao.id).desc()
-    ).limit(10).all()
+    ).limit(5).all()
     
     # Converter para lista de dicionários para serialização JSON
-    medicamentos_recomendados = [{'descricao': m.descricao, 'count': m.count} for m in medicamentos_recomendados]
+    # Extrair apenas o nome do medicamento (antes do primeiro " - " ou " | ")
+    medicamentos_recomendados_formatados = []
+    for m in medicamentos_recomendados:
+        nome_medicamento = m.descricao.split(' - ')[0].split(' | ')[0].strip()
+        medicamentos_recomendados_formatados.append({
+            'descricao': nome_medicamento, 
+            'count': m.count
+        })
+    medicamentos_recomendados = medicamentos_recomendados_formatados
     
     # Taxa de encaminhamentos
     taxa_encaminhamento = (total_encaminhamentos / total_consultas * 100) if total_consultas > 0 else 0
@@ -1220,6 +1218,57 @@ def admin():
         'pouco_eficaz': 5
     }
     
+    # Consultas por mês (últimos 6 meses)
+    from datetime import datetime, timedelta
+    import calendar
+    
+    consultas_por_mes = []
+    hoje = datetime.now()
+    
+    for i in range(5, -1, -1):  # Últimos 6 meses
+        # Calcular o mês
+        mes_data = hoje - timedelta(days=30 * i)
+        mes_inicio = mes_data.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        
+        # Último dia do mês
+        ultimo_dia = calendar.monthrange(mes_inicio.year, mes_inicio.month)[1]
+        mes_fim = mes_inicio.replace(day=ultimo_dia, hour=23, minute=59, second=59)
+        
+        # Contar consultas do mês
+        count = Consulta.query.filter(
+            Consulta.data >= mes_inicio,
+            Consulta.data <= mes_fim
+        ).count()
+        
+        # Nome do mês em português
+        meses_pt = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 
+                    'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
+        mes_nome = meses_pt[mes_inicio.month - 1]
+        
+        consultas_por_mes.append({
+            'mes': f'{mes_nome}/{mes_inicio.year}',
+            'count': count
+        })
+    
+    # Pacientes por faixa etária
+    faixas_etarias = [
+        {'faixa': '0-18 anos', 'min': 0, 'max': 18},
+        {'faixa': '19-35 anos', 'min': 19, 'max': 35},
+        {'faixa': '36-60 anos', 'min': 36, 'max': 60},
+        {'faixa': '60+ anos', 'min': 61, 'max': 150}
+    ]
+    
+    pacientes_por_faixa = []
+    for faixa in faixas_etarias:
+        count = Paciente.query.filter(
+            Paciente.idade >= faixa['min'],
+            Paciente.idade <= faixa['max']
+        ).count()
+        pacientes_por_faixa.append({
+            'faixa': faixa['faixa'],
+            'count': count
+        })
+    
     # Consultas recentes
     consultas_recentes = Consulta.query.join(Paciente).order_by(Consulta.data.desc()).limit(5).all()
     
@@ -1230,11 +1279,12 @@ def admin():
                          total_encaminhamentos=total_encaminhamentos,
                          total_pacientes_masculino=total_pacientes_masculino,
                          total_pacientes_feminino=total_pacientes_feminino,
-                         sintomas_comuns=sintomas_comuns,
                          medicamentos_recomendados=medicamentos_recomendados,
                          taxa_encaminhamento=taxa_encaminhamento,
                          eficacia_recomendacoes=eficacia_recomendacoes,
-                         consultas_recentes=consultas_recentes)
+                         consultas_recentes=consultas_recentes,
+                         consultas_por_mes=consultas_por_mes,
+                         pacientes_por_faixa=pacientes_por_faixa)
 
 
 
