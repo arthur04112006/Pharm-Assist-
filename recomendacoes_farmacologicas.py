@@ -11,6 +11,8 @@ baseado nas respostas da triagem e nas indicações dos medicamentos cadastrados
 from typing import Dict, List, Tuple, Optional
 from dataclasses import dataclass
 import re
+import json
+import os
 import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
@@ -60,6 +62,66 @@ class SistemaRecomendacoesFarmacologicas:
         texto_normalizado = texto_normalizado.strip()
         
         return texto_normalizado
+    
+    def expandir_sintomas(self, sintomas: List[str]) -> List[str]:
+        """
+        Expande uma lista de sintomas incluindo seus sinônimos clínicos.
+        
+        Args:
+            sintomas: Lista de sintomas originais
+            
+        Returns:
+            Lista expandida com sintomas originais e seus sinônimos
+        """
+        sintomas_expandidos = set()
+        
+        try:
+            # Carregar dicionário de sinônimos
+            caminho_sinonimos = os.path.join(os.path.dirname(__file__), 'data', 'sinonimos.json')
+            
+            if os.path.exists(caminho_sinonimos):
+                with open(caminho_sinonimos, 'r', encoding='utf-8') as f:
+                    sinonimos = json.load(f)
+                
+                # Adicionar sintomas originais
+                for sintoma in sintomas:
+                    sintoma_normalizado = self.normalizar_texto(sintoma)
+                    sintomas_expandidos.add(sintoma_normalizado)
+                    
+                    # Buscar sinônimos para o sintoma
+                    for termo_principal, lista_sinonimos in sinonimos.items():
+                        termo_principal_normalizado = self.normalizar_texto(termo_principal)
+                        
+                        # Se o sintoma corresponde ao termo principal
+                        if sintoma_normalizado == termo_principal_normalizado:
+                            for sinonimo in lista_sinonimos:
+                                sinonimo_normalizado = self.normalizar_texto(sinonimo)
+                                sintomas_expandidos.add(sinonimo_normalizado)
+                        
+                        # Se o sintoma corresponde a algum sinônimo
+                        for sinonimo in lista_sinonimos:
+                            sinonimo_normalizado = self.normalizar_texto(sinonimo)
+                            if sintoma_normalizado == sinonimo_normalizado:
+                                # Adicionar o termo principal e outros sinônimos
+                                sintomas_expandidos.add(termo_principal_normalizado)
+                                for outro_sinonimo in lista_sinonimos:
+                                    outro_sinonimo_normalizado = self.normalizar_texto(outro_sinonimo)
+                                    sintomas_expandidos.add(outro_sinonimo_normalizado)
+                                break
+            else:
+                # Se arquivo não existe, retornar sintomas originais normalizados
+                for sintoma in sintomas:
+                    sintoma_normalizado = self.normalizar_texto(sintoma)
+                    sintomas_expandidos.add(sintoma_normalizado)
+                    
+        except Exception as e:
+            # Em caso de erro, retornar sintomas originais normalizados
+            print(f"Erro ao carregar sinônimos: {e}")
+            for sintoma in sintomas:
+                sintoma_normalizado = self.normalizar_texto(sintoma)
+                sintomas_expandidos.add(sintoma_normalizado)
+        
+        return list(sintomas_expandidos)
     
     def buscar_por_semelhanca(self, sintoma: str, lista_indicacoes: List[str]) -> List[Tuple[str, float]]:
         """
@@ -227,10 +289,16 @@ class SistemaRecomendacoesFarmacologicas:
             
             if not indicacoes_medicamentos:
                 # Se não há indicações, usar busca por palavras-chave
-                return self._buscar_medicamentos_por_palavras_chave(medicamentos_ativos, modulo)
+                sintomas_expandidos = self.expandir_sintomas([sintoma])
+                return self._buscar_medicamentos_por_palavras_chave(medicamentos_ativos, modulo, sintomas_expandidos)
             
-            # Usar busca semântica
-            resultados_semanticos = self.buscar_por_semelhanca(sintoma, indicacoes_medicamentos)
+            # Expandir sintomas com sinônimos clínicos
+            sintomas_expandidos = self.expandir_sintomas([sintoma])
+            
+            # Usar busca semântica com sintomas expandidos
+            # Criar uma string combinada com todos os sintomas expandidos para busca
+            sintomas_para_busca = " ".join(sintomas_expandidos)
+            resultados_semanticos = self.buscar_por_semelhanca(sintomas_para_busca, indicacoes_medicamentos)
             
             # Aplicar limiar de similaridade (0.25 conforme requisito)
             limiar_similaridade = 0.25
@@ -246,7 +314,7 @@ class SistemaRecomendacoesFarmacologicas:
             
             # Se não encontrou medicamentos com busca semântica, tentar busca por palavras-chave
             if not medicamentos_relevantes:
-                medicamentos_relevantes = self._buscar_medicamentos_por_palavras_chave(medicamentos_ativos, modulo)
+                medicamentos_relevantes = self._buscar_medicamentos_por_palavras_chave(medicamentos_ativos, modulo, sintomas_expandidos)
             
             # Se ainda não encontrou, buscar por módulo geral
             if not medicamentos_relevantes:
@@ -262,10 +330,14 @@ class SistemaRecomendacoesFarmacologicas:
         
         return medicamentos_relevantes
     
-    def _buscar_medicamentos_por_palavras_chave(self, medicamentos_ativos: List[Medicamento], modulo: str) -> List[Medicamento]:
-        """Busca medicamentos usando palavras-chave (método original)"""
+    def _buscar_medicamentos_por_palavras_chave(self, medicamentos_ativos: List[Medicamento], modulo: str, sintomas_expandidos: List[str] = None) -> List[Medicamento]:
+        """Busca medicamentos usando palavras-chave incluindo sinônimos"""
         medicamentos_relevantes = []
         palavras_chave = self.palavras_chave_sintomas.get(modulo, [])
+        
+        # Adicionar sinônimos às palavras-chave se fornecidos
+        if sintomas_expandidos:
+            palavras_chave.extend(sintomas_expandidos)
         
         for medicamento in medicamentos_ativos:
             if not medicamento.indicacao:
