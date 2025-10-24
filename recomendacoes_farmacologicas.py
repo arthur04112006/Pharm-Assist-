@@ -8,16 +8,21 @@ Este módulo implementa um sistema inteligente de recomendações farmacológica
 baseado nas respostas da triagem e nas indicações dos medicamentos cadastrados.
 """
 
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List, Tuple, Optional, Union
 from dataclasses import dataclass
 import re
 import json
 import os
+import logging
 import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from unidecode import unidecode
 from models import Medicamento, db
+
+# Configurar logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 @dataclass
 class RecomendacaoFarmacologica:
@@ -264,15 +269,19 @@ class SistemaRecomendacoesFarmacologicas:
             ]
         }
     
-    def buscar_medicamentos_por_sintoma(self, sintoma: str, modulo: str) -> List[Medicamento]:
+    def buscar_medicamentos_por_sintoma(self, sintoma: str, modulo: str, limiar_confianca: float = 0.25) -> Union[List[Medicamento], Dict[str, str]]:
         """Busca medicamentos que tenham indicações relacionadas ao sintoma usando busca semântica"""
+        logger.info(f"Iniciando busca de medicamentos para sintoma: '{sintoma}' no módulo: '{modulo}'")
+        
         medicamentos_relevantes = []
+        scores_similaridade = []
         
         try:
             # Buscar medicamentos do banco de dados
             medicamentos_ativos = Medicamento.query.filter_by(ativo=True).all()
             
             if not medicamentos_ativos:
+                logger.warning("Nenhum medicamento ativo encontrado no banco, usando fallback")
                 # Fallback para medicamentos simulados
                 return self._get_medicamentos_simulados_por_modulo(modulo)
             
@@ -288,20 +297,23 @@ class SistemaRecomendacoesFarmacologicas:
                     medicamentos_com_indicacao.append(medicamento)
             
             if not indicacoes_medicamentos:
+                logger.info("Nenhuma indicação encontrada, usando busca por palavras-chave")
                 # Se não há indicações, usar busca por palavras-chave
                 sintomas_expandidos = self.expandir_sintomas([sintoma])
+                logger.info(f"Sinônimos expandidos: {sintomas_expandidos}")
                 return self._buscar_medicamentos_por_palavras_chave(medicamentos_ativos, modulo, sintomas_expandidos)
             
             # Expandir sintomas com sinônimos clínicos
             sintomas_expandidos = self.expandir_sintomas([sintoma])
+            logger.info(f"Sinônimos expandidos: {sintomas_expandidos}")
             
             # Usar busca semântica com sintomas expandidos
             # Criar uma string combinada com todos os sintomas expandidos para busca
             sintomas_para_busca = " ".join(sintomas_expandidos)
             resultados_semanticos = self.buscar_por_semelhanca(sintomas_para_busca, indicacoes_medicamentos)
             
-            # Aplicar limiar de similaridade (0.25 conforme requisito)
-            limiar_similaridade = 0.25
+            # Aplicar limiar de similaridade configurável
+            limiar_similaridade = limiar_confianca
             
             for indicacao_completa, score in resultados_semanticos:
                 if score >= limiar_similaridade:
@@ -310,21 +322,35 @@ class SistemaRecomendacoesFarmacologicas:
                         texto_med = f"{med.nome_comercial} {med.nome_generico or ''} {med.indicacao}"
                         if texto_med == indicacao_completa:
                             medicamentos_relevantes.append(med)
+                            scores_similaridade.append(score)
+                            logger.info(f"Medicamento encontrado: {med.nome_comercial} (score: {score:.3f})")
                             break
             
             # Se não encontrou medicamentos com busca semântica, tentar busca por palavras-chave
             if not medicamentos_relevantes:
+                logger.info("Nenhum medicamento encontrado com busca semântica, tentando busca por palavras-chave")
                 medicamentos_relevantes = self._buscar_medicamentos_por_palavras_chave(medicamentos_ativos, modulo, sintomas_expandidos)
             
             # Se ainda não encontrou, buscar por módulo geral
             if not medicamentos_relevantes:
+                logger.info("Nenhum medicamento encontrado com busca por palavras-chave, tentando busca geral por módulo")
                 medicamentos_relevantes = self._buscar_medicamentos_gerais_por_modulo(modulo, medicamentos_ativos)
+            
+            # Verificar se nenhum medicamento atinge o limiar de confiança
+            if not medicamentos_relevantes or (scores_similaridade and max(scores_similaridade) < limiar_confianca):
+                logger.warning(f"Nenhum medicamento atingiu o limiar de confiança de {limiar_confianca}")
+                return {
+                    "status": "baixa_confianca",
+                    "mensagem": "Encaminhar ao farmacêutico"
+                }
             
             # Ordenar por relevância (medicamentos com indicações mais específicas primeiro)
             medicamentos_relevantes.sort(key=lambda m: self._calcular_relevancia_medicamento(m, modulo))
             
+            logger.info(f"Encontrados {len(medicamentos_relevantes)} medicamentos relevantes")
+            
         except Exception as e:
-            print(f"Erro ao buscar medicamentos do banco: {e}")
+            logger.error(f"Erro ao buscar medicamentos do banco: {e}")
             # Fallback para medicamentos simulados
             medicamentos_relevantes = self._get_medicamentos_simulados_por_modulo(modulo)
         
@@ -381,6 +407,138 @@ class SistemaRecomendacoesFarmacologicas:
             relevancia -= 0.3
         
         return relevancia
+    
+    def _validar_contraindicacoes_avancadas(self, medicamentos: List[Medicamento], perfil_paciente: Dict[str, any] = None) -> List[Medicamento]:
+        """
+        Valida contraindicações avançadas baseadas no perfil do paciente
+        
+        Args:
+            medicamentos: Lista de medicamentos a serem validados
+            perfil_paciente: Dicionário com informações do paciente (idade, gestante, etc.)
+        
+        Returns:
+            Lista de medicamentos com validações aplicadas
+        """
+        try:
+            # Carregar regras de contraindicação
+            contraindicacoes_path = os.path.join(os.path.dirname(__file__), 'data', 'contraindicacoes.json')
+            
+            if not os.path.exists(contraindicacoes_path):
+                logger.warning("Arquivo de contraindicações não encontrado, pulando validação avançada")
+                return medicamentos
+            
+            with open(contraindicacoes_path, 'r', encoding='utf-8') as f:
+                regras_contraindicacao = json.load(f)
+            
+            medicamentos_validados = []
+            
+            for medicamento in medicamentos:
+                medicamento_validado = medicamento
+                alertas_aplicados = []
+                prioridade_ajustada = 0
+                
+                # Verificar contraindicações por grupo de risco
+                if perfil_paciente:
+                    # Verificar gestantes
+                    if perfil_paciente.get('gestante', False):
+                        contraindicados_gestantes = regras_contraindicacao.get('gestantes', {}).get('contraindicados', [])
+                        cuidado_especial_gestantes = regras_contraindicacao.get('gestantes', {}).get('cuidado_especial', [])
+                        
+                        nome_medicamento = medicamento.nome_comercial.lower()
+                        principio_ativo = (medicamento.nome_generico or '').lower()
+                        
+                        # Verificar contraindicações absolutas
+                        for contraindicado in contraindicados_gestantes:
+                            if (contraindicado.lower() in nome_medicamento or 
+                                contraindicado.lower() in principio_ativo):
+                                alertas_aplicados.append(f"CONTRAINDICADO para gestantes: {contraindicado}")
+                                prioridade_ajustada -= 2
+                                logger.warning(f"Medicamento {medicamento.nome_comercial} contraindicado para gestantes")
+                                break
+                        
+                        # Verificar cuidados especiais
+                        for cuidado in cuidado_especial_gestantes:
+                            if (cuidado.lower() in nome_medicamento or 
+                                cuidado.lower() in principio_ativo):
+                                alertas_aplicados.append(f"CUIDADO ESPECIAL para gestantes: {cuidado}")
+                                prioridade_ajustada -= 1
+                                logger.info(f"Medicamento {medicamento.nome_comercial} requer cuidado especial para gestantes")
+                                break
+                    
+                    # Verificar idosos (assumindo idade >= 65)
+                    if perfil_paciente.get('idade', 0) >= 65:
+                        contraindicados_idosos = regras_contraindicacao.get('idosos', {}).get('contraindicados', [])
+                        cuidado_especial_idosos = regras_contraindicacao.get('idosos', {}).get('cuidado_especial', [])
+                        
+                        nome_medicamento = medicamento.nome_comercial.lower()
+                        principio_ativo = (medicamento.nome_generico or '').lower()
+                        
+                        # Verificar contraindicações absolutas
+                        for contraindicado in contraindicados_idosos:
+                            if (contraindicado.lower() in nome_medicamento or 
+                                contraindicado.lower() in principio_ativo):
+                                alertas_aplicados.append(f"CONTRAINDICADO para idosos: {contraindicado}")
+                                prioridade_ajustada -= 2
+                                logger.warning(f"Medicamento {medicamento.nome_comercial} contraindicado para idosos")
+                                break
+                        
+                        # Verificar cuidados especiais
+                        for cuidado in cuidado_especial_idosos:
+                            if (cuidado.lower() in nome_medicamento or 
+                                cuidado.lower() in principio_ativo):
+                                alertas_aplicados.append(f"CUIDADO ESPECIAL para idosos: {cuidado}")
+                                prioridade_ajustada -= 1
+                                logger.info(f"Medicamento {medicamento.nome_comercial} requer cuidado especial para idosos")
+                                break
+                    
+                    # Verificar crianças (assumindo idade < 18)
+                    if perfil_paciente.get('idade', 0) < 18:
+                        contraindicados_criancas = regras_contraindicacao.get('criancas', {}).get('contraindicados', [])
+                        cuidado_especial_criancas = regras_contraindicacao.get('criancas', {}).get('cuidado_especial', [])
+                        
+                        nome_medicamento = medicamento.nome_comercial.lower()
+                        principio_ativo = (medicamento.nome_generico or '').lower()
+                        
+                        # Verificar contraindicações absolutas
+                        for contraindicado in contraindicados_criancas:
+                            if (contraindicado.lower() in nome_medicamento or 
+                                contraindicado.lower() in principio_ativo):
+                                alertas_aplicados.append(f"CONTRAINDICADO para crianças: {contraindicado}")
+                                prioridade_ajustada -= 2
+                                logger.warning(f"Medicamento {medicamento.nome_comercial} contraindicado para crianças")
+                                break
+                        
+                        # Verificar cuidados especiais
+                        for cuidado in cuidado_especial_criancas:
+                            if (cuidado.lower() in nome_medicamento or 
+                                cuidado.lower() in principio_ativo):
+                                alertas_aplicados.append(f"CUIDADO ESPECIAL para crianças: {cuidado}")
+                                prioridade_ajustada -= 1
+                                logger.info(f"Medicamento {medicamento.nome_comercial} requer cuidado especial para crianças")
+                                break
+                
+                # Aplicar ajustes de prioridade se necessário
+                if prioridade_ajustada != 0:
+                    # Adicionar atributo de prioridade ajustada ao medicamento
+                    if not hasattr(medicamento, 'prioridade_ajustada'):
+                        medicamento.prioridade_ajustada = 0
+                    medicamento.prioridade_ajustada += prioridade_ajustada
+                
+                # Adicionar alertas ao medicamento
+                if alertas_aplicados:
+                    if not hasattr(medicamento, 'alertas_contraindicacao'):
+                        medicamento.alertas_contraindicacao = []
+                    medicamento.alertas_contraindicacao.extend(alertas_aplicados)
+                    logger.info(f"Alertas aplicados ao medicamento {medicamento.nome_comercial}: {alertas_aplicados}")
+                
+                medicamentos_validados.append(medicamento)
+            
+            logger.info(f"Validação de contraindicações concluída para {len(medicamentos_validados)} medicamentos")
+            return medicamentos_validados
+            
+        except Exception as e:
+            logger.error(f"Erro ao validar contraindicações: {e}")
+            return medicamentos
     
     def _get_medicamentos_simulados(self) -> List[Medicamento]:
         """Retorna medicamentos simulados quando o banco não está disponível"""
@@ -707,12 +865,24 @@ class SistemaRecomendacoesFarmacologicas:
             sintomas_identificados = self.analisar_respostas_para_sintomas(respostas, modulo)
         
         # Buscar medicamentos do banco de dados
-        medicamentos_relevantes = self.buscar_medicamentos_por_sintoma(modulo, modulo)
+        resultado_busca = self.buscar_medicamentos_por_sintoma(modulo, modulo)
+        
+        # Verificar se houve baixa confiança
+        if isinstance(resultado_busca, dict) and resultado_busca.get('status') == 'baixa_confianca':
+            logger.warning(f"Baixa confiança detectada para módulo {modulo}")
+            return []  # Retornar lista vazia para indicar necessidade de encaminhamento
+        
+        medicamentos_relevantes = resultado_busca
         
         # Se não encontrou medicamentos, tentar busca mais ampla
         if not medicamentos_relevantes:
-            print(f"Nenhum medicamento encontrado para módulo {modulo}, tentando busca ampla...")
+            logger.info(f"Nenhum medicamento encontrado para módulo {modulo}, tentando busca ampla...")
             medicamentos_relevantes = self._buscar_medicamentos_gerais_por_modulo(modulo)
+        
+        # Aplicar validação de contraindicações avançadas
+        if medicamentos_relevantes and paciente_profile:
+            logger.info("Aplicando validação de contraindicações avançadas")
+            medicamentos_relevantes = self._validar_contraindicacoes_avancadas(medicamentos_relevantes, paciente_profile)
         
         # Gerar recomendações baseadas nos sintomas identificados
         recomendacoes = self._gerar_recomendacoes_inteligentes(
