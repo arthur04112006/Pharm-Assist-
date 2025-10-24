@@ -11,6 +11,10 @@ baseado nas respostas da triagem e nas indicações dos medicamentos cadastrados
 from typing import Dict, List, Tuple, Optional
 from dataclasses import dataclass
 import re
+import numpy as np
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+from unidecode import unidecode
 from models import Medicamento, db
 
 @dataclass
@@ -31,6 +35,126 @@ class SistemaRecomendacoesFarmacologicas:
     def __init__(self):
         self.palavras_chave_sintomas = self._carregar_palavras_chave()
         self.medicamentos_cache = None
+        self.tfidf_vectorizer = None
+        self.medicamentos_tfidf_matrix = None
+        self.medicamentos_textos = []
+    
+    def normalizar_texto(self, texto: str) -> str:
+        """Normaliza texto removendo acentos, pontuação e convertendo para minúsculas"""
+        if not texto:
+            return ""
+        
+        # Remove acentos usando unidecode
+        texto_normalizado = unidecode(texto)
+        
+        # Converte para minúsculas
+        texto_normalizado = texto_normalizado.lower()
+        
+        # Remove pontuação e caracteres especiais, mantendo apenas letras, números e espaços
+        texto_normalizado = re.sub(r'[^a-zA-Z0-9\s]', ' ', texto_normalizado)
+        
+        # Remove espaços múltiplos
+        texto_normalizado = re.sub(r'\s+', ' ', texto_normalizado)
+        
+        # Remove espaços no início e fim
+        texto_normalizado = texto_normalizado.strip()
+        
+        return texto_normalizado
+    
+    def buscar_por_semelhanca(self, sintoma: str, lista_indicacoes: List[str]) -> List[Tuple[str, float]]:
+        """
+        Busca medicamentos por semelhança semântica usando TF-IDF e similaridade de cosseno.
+        
+        Args:
+            sintoma: Sintoma informado pelo usuário
+            lista_indicacoes: Lista de indicações dos medicamentos
+            
+        Returns:
+            Lista de tuplas (indicacao, score_similaridade) ordenada por relevância
+        """
+        if not sintoma or not lista_indicacoes:
+            return []
+        
+        # Normalizar o sintoma
+        sintoma_normalizado = self.normalizar_texto(sintoma)
+        
+        # Normalizar todas as indicações
+        indicacoes_normalizadas = [self.normalizar_texto(ind) for ind in lista_indicacoes]
+        
+        # Filtrar indicações vazias
+        indicacoes_validas = [(i, ind) for i, ind in enumerate(indicacoes_normalizadas) if ind.strip()]
+        
+        if not indicacoes_validas:
+            return []
+        
+        # Preparar textos para TF-IDF (sintoma + indicações)
+        textos = [sintoma_normalizado] + [ind for _, ind in indicacoes_validas]
+        
+        try:
+            # Criar vetorizador TF-IDF
+            vectorizer = TfidfVectorizer(
+                lowercase=True,
+                stop_words=None,  # Não usar stop words em português por enquanto
+                ngram_range=(1, 2),  # Unigramas e bigramas
+                min_df=1,  # Mínimo 1 documento
+                max_df=1.0,  # Máximo 100% dos documentos
+                token_pattern=r'\b\w+\b'  # Padrão para tokens
+            )
+            
+            # Calcular matriz TF-IDF
+            tfidf_matrix = vectorizer.fit_transform(textos)
+            
+            # Calcular similaridade de cosseno entre o sintoma e as indicações
+            sintoma_vector = tfidf_matrix[0:1]  # Primeiro vetor é o sintoma
+            indicacoes_vectors = tfidf_matrix[1:]  # Resto são as indicações
+            
+            # Calcular similaridades
+            similaridades = cosine_similarity(sintoma_vector, indicacoes_vectors).flatten()
+            
+            # Criar lista de resultados com scores
+            resultados = []
+            for i, (indice_original, _) in enumerate(indicacoes_validas):
+                score = similaridades[i]
+                indicacao_original = lista_indicacoes[indice_original]
+                resultados.append((indicacao_original, float(score)))
+            
+            # Ordenar por score (maior primeiro)
+            resultados.sort(key=lambda x: x[1], reverse=True)
+            
+            return resultados
+            
+        except Exception as e:
+            print(f"Erro na busca semântica: {e}")
+            # Fallback para busca literal simples
+            return self._busca_literal_fallback(sintoma_normalizado, lista_indicacoes)
+    
+    def _busca_literal_fallback(self, sintoma_normalizado: str, lista_indicacoes: List[str]) -> List[Tuple[str, float]]:
+        """Fallback para busca literal quando TF-IDF falha"""
+        resultados = []
+        palavras_sintoma = sintoma_normalizado.split()
+        
+        for indicacao in lista_indicacoes:
+            if not indicacao:
+                continue
+                
+            indicacao_normalizada = self.normalizar_texto(indicacao)
+            score = 0.0
+            
+            # Contar palavras em comum
+            for palavra in palavras_sintoma:
+                if palavra in indicacao_normalizada:
+                    score += 1.0
+            
+            # Normalizar score pelo número de palavras do sintoma
+            if palavras_sintoma:
+                score = score / len(palavras_sintoma)
+            
+            if score > 0:
+                resultados.append((indicacao, score))
+        
+        # Ordenar por score
+        resultados.sort(key=lambda x: x[1], reverse=True)
+        return resultados
     
     def _carregar_palavras_chave(self) -> Dict[str, List[str]]:
         """Carrega palavras-chave para mapear sintomas com indicações"""
@@ -79,32 +203,52 @@ class SistemaRecomendacoesFarmacologicas:
         }
     
     def buscar_medicamentos_por_sintoma(self, sintoma: str, modulo: str) -> List[Medicamento]:
-        """Busca medicamentos que tenham indicações relacionadas ao sintoma"""
+        """Busca medicamentos que tenham indicações relacionadas ao sintoma usando busca semântica"""
         medicamentos_relevantes = []
         
         try:
             # Buscar medicamentos do banco de dados
             medicamentos_ativos = Medicamento.query.filter_by(ativo=True).all()
-            palavras_chave = self.palavras_chave_sintomas.get(modulo, [])
             
-            # Buscar medicamentos com indicações específicas
+            if not medicamentos_ativos:
+                # Fallback para medicamentos simulados
+                return self._get_medicamentos_simulados_por_modulo(modulo)
+            
+            # Preparar lista de indicações para busca semântica
+            indicacoes_medicamentos = []
+            medicamentos_com_indicacao = []
+            
             for medicamento in medicamentos_ativos:
-                if not medicamento.indicacao:
-                    continue
-                    
-                indicacao_lower = medicamento.indicacao.lower()
-                nome_lower = medicamento.nome_comercial.lower()
-                generico_lower = (medicamento.nome_generico or "").lower()
-                
-                # Verificar se a indicação contém palavras-chave do sintoma
-                for palavra in palavras_chave:
-                    if (palavra.lower() in indicacao_lower or 
-                        palavra.lower() in nome_lower or 
-                        palavra.lower() in generico_lower):
-                        medicamentos_relevantes.append(medicamento)
-                        break
+                if medicamento.indicacao:
+                    # Combinar nome comercial, genérico e indicação para busca mais abrangente
+                    texto_completo = f"{medicamento.nome_comercial} {medicamento.nome_generico or ''} {medicamento.indicacao}"
+                    indicacoes_medicamentos.append(texto_completo)
+                    medicamentos_com_indicacao.append(medicamento)
             
-            # Se não encontrou medicamentos específicos, buscar por módulo geral
+            if not indicacoes_medicamentos:
+                # Se não há indicações, usar busca por palavras-chave
+                return self._buscar_medicamentos_por_palavras_chave(medicamentos_ativos, modulo)
+            
+            # Usar busca semântica
+            resultados_semanticos = self.buscar_por_semelhanca(sintoma, indicacoes_medicamentos)
+            
+            # Aplicar limiar de similaridade (0.25 conforme requisito)
+            limiar_similaridade = 0.25
+            
+            for indicacao_completa, score in resultados_semanticos:
+                if score >= limiar_similaridade:
+                    # Encontrar o medicamento correspondente
+                    for i, med in enumerate(medicamentos_com_indicacao):
+                        texto_med = f"{med.nome_comercial} {med.nome_generico or ''} {med.indicacao}"
+                        if texto_med == indicacao_completa:
+                            medicamentos_relevantes.append(med)
+                            break
+            
+            # Se não encontrou medicamentos com busca semântica, tentar busca por palavras-chave
+            if not medicamentos_relevantes:
+                medicamentos_relevantes = self._buscar_medicamentos_por_palavras_chave(medicamentos_ativos, modulo)
+            
+            # Se ainda não encontrou, buscar por módulo geral
             if not medicamentos_relevantes:
                 medicamentos_relevantes = self._buscar_medicamentos_gerais_por_modulo(modulo, medicamentos_ativos)
             
@@ -115,6 +259,29 @@ class SistemaRecomendacoesFarmacologicas:
             print(f"Erro ao buscar medicamentos do banco: {e}")
             # Fallback para medicamentos simulados
             medicamentos_relevantes = self._get_medicamentos_simulados_por_modulo(modulo)
+        
+        return medicamentos_relevantes
+    
+    def _buscar_medicamentos_por_palavras_chave(self, medicamentos_ativos: List[Medicamento], modulo: str) -> List[Medicamento]:
+        """Busca medicamentos usando palavras-chave (método original)"""
+        medicamentos_relevantes = []
+        palavras_chave = self.palavras_chave_sintomas.get(modulo, [])
+        
+        for medicamento in medicamentos_ativos:
+            if not medicamento.indicacao:
+                continue
+                
+            indicacao_lower = medicamento.indicacao.lower()
+            nome_lower = medicamento.nome_comercial.lower()
+            generico_lower = (medicamento.nome_generico or "").lower()
+            
+            # Verificar se a indicação contém palavras-chave do sintoma
+            for palavra in palavras_chave:
+                if (palavra.lower() in indicacao_lower or 
+                    palavra.lower() in nome_lower or 
+                    palavra.lower() in generico_lower):
+                    medicamentos_relevantes.append(medicamento)
+                    break
         
         return medicamentos_relevantes
     
