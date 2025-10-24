@@ -1,9 +1,32 @@
-Flask==2.3.3
-Flask-SQLAlchemy==3.0.5
-mysql-connector-python==8.1.0
-ReportLab==4.0.4
-python-dotenv==1.0.0
-Werkzeug==2.3.7
-scikit-learn==1.3.2
-unidecode==1.3.7
-numpy==1.24.3
+# Pharm-Assist - Sistema de Triagem Farmacêutica
+# Dependências Python atualizadas e compatíveis
+# Compatível com Python 3.10+
+
+# Framework web
+Flask==3.0.3
+Flask-SQLAlchemy==3.1.1
+
+# Banco de dados
+mysql-connector-python==9.1.0
+
+# Geração de relatórios PDF
+ReportLab==4.2.2
+
+# Configuração e ambiente
+python-dotenv==1.0.1
+
+# Machine Learning e análise de dados
+scikit-learn==1.4.2
+numpy==1.26.4
+
+# Processamento de texto
+unidecode==1.3.8
+
+# Manipulação de dados
+pandas==2.2.2
+
+# Utilitários do Flask
+Werkzeug==3.0.3
+
+# SQLAlchemy (dependência do Flask-SQLAlchemy)
+SQLAlchemy==2.0.30
