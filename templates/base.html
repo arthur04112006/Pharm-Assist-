@@ -117,68 +117,25 @@
 
         /* ===== LAYOUT PRINCIPAL ===== */
         .main-container {
-            display: flex;                   /* Layout flexbox horizontal */
+            width: 100%;                     /* Ocupar 100% da largura */
             min-height: calc(100vh - 80px); /* Altura mínima considerando a navbar */
             margin-top: 0;                   /* Sem margem superior */
         }
 
-        /* ===== SIDEBAR (BARRA LATERAL) ===== */
-        .sidebar {
-            background: white;               /* Fundo branco */
-            box-shadow: var(--shadow-md);    /* Sombra para destacar */
-            border-radius: 1rem;             /* Bordas arredondadas */
-            margin: 1rem;                    /* Margem externa */
-            padding: 1.5rem 0;              /* Padding interno */
-            width: 280px;                    /* Largura fixa */
-            flex-shrink: 0;                  /* Não permitir encolhimento */
-            height: fit-content;             /* Altura ajustada ao conteúdo */
-            position: sticky;                /* Fixar durante scroll */
-            top: 100px;                      /* Posição abaixo da navbar */
-        }
 
-        /* Links de navegação na sidebar */
-        .sidebar .nav-link {
-            color: var(--text-secondary);    /* Cor do texto secundário */
-            padding: 0.875rem 1.5rem;       /* Padding interno */
-            margin: 0.25rem 1rem;           /* Margem entre links */
-            border-radius: 0.75rem;         /* Bordas arredondadas */
-            font-weight: 500;                /* Peso da fonte médio */
-            transition: all 0.3s ease;      /* Transição suave */
-            border: 2px solid transparent;  /* Borda transparente para hover */
-        }
-
-        /* Efeito hover nos links da sidebar */
-        .sidebar .nav-link:hover {
-            /* Fundo gradiente no hover */
-            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
-            color: white;                    /* Texto branco */
-            transform: translateX(5px);      /* Movimento para direita */
-            box-shadow: var(--shadow-md);    /* Sombra no hover */
-        }
-
-        /* Link ativo na sidebar */
-        .sidebar .nav-link.active {
-            /* Fundo gradiente para link ativo */
-            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
-            color: white;                    /* Texto branco */
-            box-shadow: var(--shadow-md);    /* Sombra */
-        }
-
-        /* Ícones nos links da sidebar */
-        .sidebar .nav-link i {
-            margin-right: 0.75rem;           /* Espaçamento à direita */
-            font-size: 1.1rem;              /* Tamanho do ícone */
-        }
 
         /* ===== CONTEÚDO PRINCIPAL ===== */
         .main-content {
-            flex: 1;                         /* Ocupar espaço restante */
+            width: 100%;                     /* Ocupar 100% da largura */
+            max-width: 1600px;               /* Largura máxima para melhor leitura */
+            margin: 2rem auto;               /* Centralizar com margens */
             padding: 2rem;                   /* Padding interno */
-            background: white;                /* Fundo branco */
+            padding-bottom: 2rem;            /* Padding inferior adicional */
+            background: white;               /* Fundo branco */
             border-radius: 1rem;             /* Bordas arredondadas */
-            margin: 1rem;                    /* Margem externa */
             box-shadow: var(--shadow-sm);    /* Sombra sutil */
             min-height: calc(100vh - 120px); /* Altura mínima */
+            overflow-x: hidden;              /* Evitar scroll horizontal */
         }
 
         /* ===== CARDS (CARTÕES) ===== */
@@ -351,12 +308,6 @@
             margin-bottom: 1rem;
         }
         
-        /* Melhorar layout das páginas */
-        .main-content {
-            min-height: calc(100vh - 200px);
-            padding-bottom: 2rem;
-        }
-        
         /* Container principal responsivo */
         .container-fluid {
             max-width: 100%;
@@ -414,27 +365,18 @@
             }
         }
         
-        /* Melhorar layout geral para evitar cortes */
-        .main-content {
-            padding-left: 1rem;
-            padding-right: 1rem;
-            overflow-x: hidden;
-            max-width: 100%;
-        }
-        
         /* Ajustar margens para telas pequenas */
         @media (max-width: 992px) {
-            .main-content {
-                padding-left: 0.5rem;
-                padding-right: 0.5rem;
-                overflow-x: hidden;
-            }
-            
             .page-header {
                 margin-left: 0;
                 margin-right: 0;
                 padding-left: 0;
                 padding-right: 0;
+            }
+            
+            .main-content {
+                padding-left: 0.5rem;
+                padding-right: 0.5rem;
             }
         }
         
@@ -572,22 +514,11 @@
 
         /* ===== RESPONSIVIDADE ===== */
         @media (max-width: 768px) {
-            /* Em telas pequenas, mudar para layout vertical */
-            .main-container {
-                flex-direction: column;      /* Direção vertical */
-            }
-            
-            /* Sidebar ocupa toda a largura */
-            .sidebar {
-                width: 100%;                 /* Largura total */
-                margin: 0.5rem;              /* Margem menor */
-                position: static;            /* Posição estática */
-            }
-            
             /* Conteúdo principal com margens menores */
             .main-content {
-                margin: 0.5rem;              /* Margem menor */
+                margin: 1rem;                /* Margem menor */
                 padding: 1rem;               /* Padding menor */
+                max-width: calc(100% - 2rem); /* Ajustar largura máxima */
             }
             
             /* Logo menor em telas pequenas */
@@ -595,7 +526,7 @@
                 font-size: 1.25rem;         /* Tamanho menor */
             }
         }
-
+        
         /* ===== SCROLLBAR PERSONALIZADA ===== */
         ::-webkit-scrollbar {
             width: 8px;                      /* Largura da scrollbar */
@@ -719,54 +650,6 @@
 
     <!-- ===== CONTAINER PRINCIPAL ===== -->
     <div class="main-container">
-        <!-- ===== SIDEBAR (BARRA LATERAL) ===== -->
-        <nav class="sidebar">
-            <div class="position-sticky pt-3">
-                <!-- Menu de navegação lateral -->
-                <ul class="nav flex-column">
-                    <!-- Link para dashboard -->
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('index') }}">
-                            <i class="bi bi-speedometer2"></i> <!-- Ícone de velocímetro -->
-                            Dashboard
-                        </a>
-                    </li>
-                    
-                    <!-- Link para gerenciamento de pacientes -->
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('pacientes') }}">
-                            <i class="bi bi-people-fill"></i> <!-- Ícone de pessoas preenchido -->
-                            Gerenciar Pacientes
-                        </a>
-                    </li>
-                    
-                    <!-- Link para gerenciamento de medicamentos -->
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('medicamentos') }}">
-                            <i class="bi bi-capsule"></i> <!-- Ícone de cápsula -->
-                            Gerenciar Medicamentos
-                        </a>
-                    </li>
-                    
-                    <!-- Link para nova triagem -->
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('triagem') }}">
-                            <i class="bi bi-clipboard-pulse"></i> <!-- Ícone de prancheta com pulso -->
-                            Nova Triagem
-                        </a>
-                    </li>
-                    
-                    <!-- Link para estatísticas -->
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('admin') }}">
-                            <i class="bi bi-bar-chart"></i> <!-- Ícone de gráfico de barras -->
-                            Estatísticas
-                        </a>
-                    </li>
-                </ul>
-            </div>
-        </nav>
-
         <!-- ===== CONTEÚDO PRINCIPAL ===== -->
         <main class="main-content fade-in-up">
             <!-- ===== MENSAGENS FLASH ===== -->

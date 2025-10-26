@@ -14,21 +14,21 @@ from pathlib import Path
 
 def install_requirements():
     """Instala as dependências necessárias"""
-    print("📦 Verificando dependências...")
+    print("Verificando dependências...")
     
     try:
         import flask
         import sqlalchemy
-        print("✅ Dependências já instaladas")
+        print("Dependências já instaladas")
         return True
     except ImportError:
-        print("📥 Instalando dependências...")
+        print("Instalando dependências...")
         try:
             subprocess.check_call([sys.executable, "-m", "pip", "install", "-r", "requirements.txt"])
-            print("✅ Dependências instaladas com sucesso")
+            print("Dependências instaladas com sucesso")
             return True
         except subprocess.CalledProcessError as e:
-            print(f"❌ Erro ao instalar dependências: {e}")
+            print(f"Erro ao instalar dependências: {e}")
             return False
 
 def create_directories():
@@ -38,22 +38,22 @@ def create_directories():
     for directory in directories:
         Path(directory).mkdir(exist_ok=True)
     
-    print("📁 Diretórios criados/verificados")
+    print("Diretórios criados/verificados")
 
 def check_database():
     """Verifica se o banco de dados existe"""
     db_path = Path("instance/triagem_farmaceutica.db")
     
     if db_path.exists():
-        print("🗄️ Banco de dados encontrado")
+        print("Banco de dados encontrado")
         return True
     else:
-        print("🗄️ Banco de dados será criado automaticamente")
+        print("Banco de dados será criado automaticamente")
         return False
 
 def start_system():
     """Inicia o sistema"""
-    print("🚀 Iniciando Pharm-Assist...")
+    print("Iniciando Pharm-Assist...")
     
     # Criar diretórios
     create_directories()
@@ -69,8 +69,8 @@ def start_system():
         # Importar e executar a aplicação
         from core.app import app
         
-        print("🌐 Sistema iniciado com sucesso!")
-        print("📱 Abrindo navegador automaticamente...")
+        print("Sistema iniciado com sucesso!")
+        print("Abrindo navegador automaticamente...")
         
         # Aguardar um pouco para o sistema inicializar
         time.sleep(2)
@@ -78,47 +78,47 @@ def start_system():
         # Abrir navegador
         webbrowser.open('http://localhost:5000')
         
-        print("🎉 Pharm-Assist está rodando em: http://localhost:5000")
-        print("🛑 Para parar: Pressione Ctrl+C")
+        print("Pharm-Assist está rodando em: http://localhost:5000")
+        print("Para parar: Pressione Ctrl+C")
         
         # Executar a aplicação
         app.run(host='0.0.0.0', port=5000, debug=True)
         
     except Exception as e:
-        print(f"❌ Erro ao iniciar o sistema: {e}")
-        print("🔧 Verifique se todas as dependências estão instaladas")
+        print(f"Erro ao iniciar o sistema: {e}")
+        print("Verifique se todas as dependências estão instaladas")
         return False
 
 def main():
     """Função principal"""
     print("=" * 60)
-    print("🏥 Pharm-Assist - Sistema de Triagem Farmaceutica")
+    print("Pharm-Assist - Sistema de Triagem Farmaceutica")
     print("=" * 60)
     
     # Verificar Python
     if sys.version_info < (3, 8):
-        print("❌ Python 3.8+ é necessário")
+        print("Python 3.8+ é necessário")
         print(f"   Versão atual: {sys.version}")
         return
     
-    print(f"🐍 Python {sys.version_info.major}.{sys.version_info.minor} detectado")
+    print(f"Python {sys.version_info.major}.{sys.version_info.minor} detectado")
     
     # Instalar dependências se necessário
     if not install_requirements():
-        print("❌ Falha na instalação das dependências")
+        print("Falha na instalação das dependências")
         return
     
     # Iniciar sistema
     if not start_system():
-        print("❌ Falha ao iniciar o sistema")
+        print("Falha ao iniciar o sistema")
         return
 
 if __name__ == "__main__":
     try:
         main()
     except KeyboardInterrupt:
-        print("\n🛑 Sistema interrompido pelo usuário")
-        print("👋 Até logo!")
+        print("\nSistema interrompido pelo usuário")
+        print("Até logo!")
     except Exception as e:
-        print(f"\n❌ Erro inesperado: {e}")
-        print("🔧 Verifique os logs para mais detalhes")
+        print(f"\nErro inesperado: {e}")
+        print("Verifique os logs para mais detalhes")

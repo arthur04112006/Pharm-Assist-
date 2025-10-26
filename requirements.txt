@@ -1,6 +1,6 @@
 # Pharm-Assist - Sistema de Triagem Farmacêutica
 # Dependências Python atualizadas e compatíveis
-# Compatível com Python 3.10+
+# Compatível com Python 3.10+ (testado com Python 3.13)
 
 # Framework web
 Flask==3.0.3
@@ -15,7 +15,7 @@ ReportLab==4.2.2
 # Configuração e ambiente
 python-dotenv==1.0.1
 
-# Machine Learning e análise de dados
+# Machine Learning e análise de dados (versões pré-compiladas para Windows)
 scikit-learn==1.4.2
 numpy==1.26.4
 
@@ -30,3 +30,7 @@ Werkzeug==3.0.3
 
 # SQLAlchemy (dependência do Flask-SQLAlchemy)
 SQLAlchemy==2.0.30
+
+# Dependências adicionais para compatibilidade
+setuptools>=70.0.0
+wheel>=0.40.0
