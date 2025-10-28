@@ -36,6 +36,7 @@ import os
 from datetime import datetime, timedelta
 import json
 from functools import lru_cache
+from services.triagem.qa_collector import qa_collector
 from utils.extractors.perguntas_extractor import list_modules as list_motor_modulos, extract_questions_for_module
 
 # Inicialização da aplicação
@@ -54,8 +55,13 @@ db.init_app(app)
 report_generator = ReportGenerator()
 
 # Criar diretórios necessários
-os.makedirs('reports', exist_ok=True)
-os.makedirs('uploads', exist_ok=True)
+# Usar o diretório de trabalho atual como referência
+project_root = os.getcwd()
+reports_dir = os.path.join(project_root, 'reports')
+uploads_dir = os.path.join(project_root, 'uploads')
+
+os.makedirs(reports_dir, exist_ok=True)
+os.makedirs(uploads_dir, exist_ok=True)
 
 # ==============================
 # SISTEMA DE AUTENTICAÇÃO
@@ -888,25 +894,48 @@ def processar_triagem():
         # Persistir respostas dinâmicas (id_pergunta pode ser slug string). Armazenar como texto no campo resposta e usar pergunta_texto separado? 
         # Para compatibilidade, vamos guardar o id (string) junto com a resposta no campo resposta.
         for resposta_data in respostas:
-            try:
-                pergunta_id = int(resposta_data['pergunta_id'])
-            except Exception:
-                pergunta_id = None
-
+            pergunta_id_str = resposta_data['pergunta_id']
             resposta_texto = resposta_data['resposta']
 
-            if pergunta_id is not None:
+            # Tentar converter para inteiro primeiro (para perguntas antigas)
+            try:
+                pergunta_id = int(pergunta_id_str)
+                # Se conseguiu converter, usar o ID numérico
                 resp = ConsultaResposta(
                     id_consulta=consulta.id,
                     id_pergunta=pergunta_id,
                     resposta=resposta_texto
                 )
                 db.session.add(resp)
-            else:
-                # Fallback: quando não há id numérico, apenas registrar como observação agregada
-                if not consulta.observacoes:
-                    consulta.observacoes = ''
-                consulta.observacoes += f"\n{resposta_data['pergunta_id']}: {resposta_texto}"
+            except (ValueError, TypeError):
+                # Se não conseguiu converter, é um ID string (formato: modulo_ordem)
+                # Para perguntas dinâmicas, usar um ID fixo baseado no hash
+                import hashlib
+                pergunta_id_hash = abs(hash(pergunta_id_str)) % 1000000  # ID entre 0 e 999999
+                
+                # Verificar se já existe uma pergunta com esse ID
+                pergunta_existente = Pergunta.query.filter_by(id=pergunta_id_hash).first()
+                
+                if not pergunta_existente:
+                    # Criar nova pergunta com ID baseado no hash
+                    nova_pergunta = Pergunta(
+                        id=pergunta_id_hash,
+                        texto=pergunta_id_str,
+                        tipo='sintoma',  # Usar um tipo válido do ENUM
+                        ordem=999,
+                        ativa=True
+                    )
+                    db.session.add(nova_pergunta)
+                    pergunta_id = pergunta_id_hash
+                else:
+                    pergunta_id = pergunta_id_hash
+                
+                resp = ConsultaResposta(
+                    id_consulta=consulta.id,
+                    id_pergunta=pergunta_id,
+                    resposta=resposta_texto
+                )
+                db.session.add(resp)
         
         # Processar triagem usando sistema de pontuação
         from utils.scoring.triagem_scoring import scoring_system
@@ -1155,32 +1184,148 @@ def gerar_relatorio(consulta_id):
         consulta_data = consulta.to_dict()
         paciente_data = paciente.to_dict()
         
-        # Buscar dados completos das respostas
-        respostas_completas = []
-        for resposta in respostas:
-            pergunta = Pergunta.query.get(resposta.id_pergunta)
-            respostas_completas.append({
-                'pergunta_texto': pergunta.texto if pergunta else 'Pergunta não encontrada',
-                'resposta': resposta.resposta
-            })
+        # Log detalhado da geração de PDF
+        print(f"=== GERAÇÃO DE RELATÓRIO PDF - Consulta {consulta_id} ===")
+        print(f"Data da consulta: {consulta.data}")
+        print(f"Paciente: {paciente.nome} (ID: {paciente.id})")
+        print(f"Total de respostas persistidas: {len(respostas)}")
+        print(f"Total de recomendações: {len(recomendacoes)}")
+        
+        # Usar coletor unificado para obter dados consolidados de perguntas e respostas
+        try:
+            qa_data = qa_collector.collect_qa_for_consulta(consulta_id)
+            print(f"Q&A coletado com sucesso: {qa_data['total_perguntas']} perguntas de {len(qa_data['modulos_utilizados'])} módulos")
+        except Exception as e:
+            print(f"Erro ao coletar Q&A unificado: {e}")
+            import traceback
+            traceback.print_exc()
+            # Fallback para método antigo se houver erro
+            respostas_completas = []
+            for resposta in respostas:
+                pergunta = Pergunta.query.get(resposta.id_pergunta)
+                pergunta_texto = pergunta.texto if pergunta else f'Pergunta ID {resposta.id_pergunta}'
+                
+                respostas_completas.append({
+                    'pergunta_id': resposta.id_pergunta,
+                    'pergunta_texto': pergunta_texto,
+                    'resposta': resposta.resposta
+                })
+            
+            # Converter para formato esperado pelo coletor
+            qa_data = {
+                'consulta_id': consulta_id,
+                'perguntas_respostas': respostas_completas,
+                'modulos_utilizados': ['geral'],
+                'total_perguntas': len(respostas_completas)
+            }
+            print(f"Fallback usado: {qa_data['total_perguntas']} perguntas")
+        
+        # Separar recomendações por tipo
+        medicamentos_principais = []
+        medicamentos_adicionais = []
+        recomendacoes_nao_farmacologicas = []
+        
+        for rec in recomendacoes:
+            if rec.tipo == 'medicamento':
+                # Separar medicamentos principais dos adicionais baseado na ordem
+                if len(medicamentos_principais) < 6:
+                    medicamentos_principais.append(rec)
+                else:
+                    medicamentos_adicionais.append(rec)
+            elif rec.tipo == 'nao_farmacologico':
+                recomendacoes_nao_farmacologicas.append(rec)
         
         # Buscar resultado da triagem das recomendações
         triagem_result = {
             'encaminhamento_medico': consulta.encaminhamento,
             'motivo_encaminhamento': consulta.motivo_encaminhamento,
-            'recomendacoes_medicamentos': [r for r in recomendacoes if r.tipo == 'medicamento'],
-            'recomendacoes_nao_farmacologicas': [r for r in recomendacoes if r.tipo == 'nao_farmacologico'],
-            'observacoes': consulta.observacoes.split('\n') if consulta.observacoes else []
+            'recomendacoes_medicamentos': medicamentos_principais,
+            'recomendacoes_medicamentos_adicionais': medicamentos_adicionais,
+            'recomendacoes_nao_farmacologicas': recomendacoes_nao_farmacologicas,
+            'observacoes': consulta.observacoes.split('\n') if consulta.observacoes else [],
+            'scoring_result': {
+                'total_score': 0.0,
+                'risk_level': 'baixo',
+                'confidence': 0.0,
+                'category_scores': {}
+            }
         }
+        
+        # Tentar extrair dados de pontuação das observações
+        observacoes_texto = consulta.observacoes or ''
+        if 'Pontuação total:' in observacoes_texto:
+            try:
+                import re
+                score_match = re.search(r'Pontuação total: ([\d.]+)', observacoes_texto)
+                if score_match:
+                    triagem_result['scoring_result']['total_score'] = float(score_match.group(1))
+                
+                nivel_match = re.search(r'Nível de risco: (\w+)', observacoes_texto)
+                if nivel_match:
+                    triagem_result['scoring_result']['risk_level'] = nivel_match.group(1).lower()
+                
+                confianca_match = re.search(r'Confiança: ([\d.]+%)', observacoes_texto)
+                if confianca_match:
+                    confianca_str = confianca_match.group(1).replace('%', '')
+                    triagem_result['scoring_result']['confidence'] = float(confianca_str) / 100.0
+            except Exception:
+                pass  # Manter valores padrão se houver erro
+        
+        # Se não há dados de pontuação nas observações, tentar recalcular
+        if triagem_result['scoring_result']['total_score'] == 0.0 and respostas_completas:
+            try:
+                from utils.scoring.triagem_scoring import scoring_system
+                from utils.extractors.perguntas_extractor import get_patient_profile_from_cadastro
+                
+                # Obter perfil do paciente
+                paciente_data_dict = paciente.to_dict()
+                patient_profile = get_patient_profile_from_cadastro(paciente_data_dict)
+                
+                # Preparar respostas no formato esperado
+                respostas_formatadas = []
+                for resposta in respostas_completas:
+                    respostas_formatadas.append({
+                        'pergunta_id': str(resposta['pergunta_id']),
+                        'resposta': resposta['resposta']
+                    })
+                
+                # Detectar módulo
+                modulo_detectado = _detectar_modulo_das_perguntas(consulta.respostas)
+                
+                # Calcular pontuação
+                scoring_result = scoring_system.calculate_score(
+                    modulo=modulo_detectado,
+                    respostas=respostas_formatadas,
+                    paciente_profile=patient_profile
+                )
+                
+                # Atualizar resultado com dados reais
+                triagem_result['scoring_result'] = {
+                    'total_score': scoring_result.total_score,
+                    'risk_level': scoring_result.risk_level,
+                    'confidence': scoring_result.confidence,
+                    'category_scores': scoring_result.category_scores
+                }
+                
+            except Exception as e:
+                print(f"Erro ao recalcular pontuação: {e}")
+                # Manter valores padrão
         
         # Gerar PDF
         filename = f"relatorio_consulta_{consulta_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
-        output_path = os.path.join('reports', filename)
+        output_path = os.path.join(reports_dir, filename)
+        
+        print(f"Iniciando geração do PDF: {filename}")
+        print(f"Caminho de saída: {output_path}")
         
         report_generator.generate_triagem_report(
             consulta_data, paciente_data, triagem_result, 
-            respostas_completas, output_path
+            qa_data, output_path
         )
+        
+        print(f"PDF gerado com sucesso: {filename}")
+        print(f"Tamanho do arquivo: {os.path.getsize(output_path)} bytes")
+        print("=== FIM DA GERAÇÃO DE RELATÓRIO ===")
         
         return send_file(output_path, as_attachment=True, download_name=filename)
         
