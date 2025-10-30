@@ -41,7 +41,6 @@ from utils.extractors.perguntas_extractor import list_modules as list_motor_modu
 
 # Inicialização da aplicação
 # Configurar o caminho correto para os templates
-import os
 template_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'templates'))
 static_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'static'))
 
@@ -156,9 +155,12 @@ def login():
             
             flash(f'Bem-vindo(a), {user.nome}!', 'success')
             
-            # Redirecionar para página solicitada ou dashboard
+            # Redirecionar para página solicitada ou dashboard (validando URL)
             next_page = request.args.get('next')
-            return redirect(next_page) if next_page else redirect(url_for('index'))
+            if next_page and next_page.startswith('/') and not next_page.startswith('//'):
+                # Validar que é uma URL relativa segura (não externa)
+                return redirect(next_page)
+            return redirect(url_for('index'))
         else:
             flash('Email ou senha incorretos.', 'error')
     
@@ -646,6 +648,7 @@ def novo_medicamento():
     return render_template('novo_medicamento.html')
 
 @app.route('/medicamentos/<int:id>/excluir', methods=['POST'])
+@login_required
 def excluir_medicamento(id):
     """Exclusão de medicamento"""
     try:
@@ -677,6 +680,7 @@ def excluir_medicamento(id):
     return redirect(url_for('medicamentos'))
 
 @app.route('/medicamentos/<int:id>/desativar', methods=['POST'])
+@login_required
 def desativar_medicamento(id):
     """Desativação de medicamento (exclusão lógica)"""
     try:
@@ -693,6 +697,7 @@ def desativar_medicamento(id):
     return redirect(url_for('medicamentos'))
 
 @app.route('/medicamentos/<int:id>/reativar', methods=['POST'])
+@login_required
 def reativar_medicamento(id):
     """Reativação de medicamento"""
     try:
@@ -709,6 +714,7 @@ def reativar_medicamento(id):
     return redirect(url_for('medicamentos_inativos'))
 
 @app.route('/medicamentos/<int:id>/editar', methods=['GET', 'POST'])
+@login_required
 def editar_medicamento(id):
     """Editar dados de um medicamento"""
     medicamento = Medicamento.query.get_or_404(id)
@@ -740,6 +746,7 @@ def triagem():
     return render_template('triagem.html')
 
 @app.route('/triagem/buscar_paciente')
+@login_required
 def buscar_paciente_triagem():
     """Buscar paciente para iniciar triagem"""
     query = request.args.get('q', '')
@@ -779,6 +786,7 @@ def buscar_paciente_triagem():
     return render_template('buscar_paciente_triagem.html', pacientes=pacientes, query=query, doencas_cronicas=doencas_cronicas)
 
 @app.route('/triagem/novo_paciente', methods=['GET', 'POST'])
+@login_required
 def novo_paciente_triagem():
     """Cadastro rápido de paciente para triagem"""
     if request.method == 'POST':
@@ -837,6 +845,7 @@ def novo_paciente_triagem():
     return render_template('novo_paciente_triagem.html', doencas_cronicas=doencas_cronicas)
 
 @app.route('/triagem/iniciar/<int:paciente_id>')
+@login_required
 def iniciar_triagem(paciente_id):
     """Iniciar triagem para um paciente"""
     paciente = Paciente.query.get_or_404(paciente_id)
@@ -871,6 +880,7 @@ def iniciar_triagem(paciente_id):
     return render_template('iniciar_triagem.html', paciente=paciente, perguntas=perguntas, modulo=modulo)
 
 @app.route('/triagem/processar', methods=['POST'])
+@login_required
 def processar_triagem():
     """Processar triagem e gerar resultado"""
     try:
@@ -1040,6 +1050,7 @@ def processar_triagem():
         }), 500
 
 @app.route('/triagem/resultado/<int:consulta_id>')
+@login_required
 def resultado_triagem(consulta_id):
     """Exibir resultado da triagem"""
     consulta = Consulta.query.get_or_404(consulta_id)
@@ -1172,6 +1183,7 @@ def resultado_triagem(consulta_id):
                          recomendacoes=recomendacoes)
 
 @app.route('/relatorio/<int:consulta_id>')
+@login_required
 def gerar_relatorio(consulta_id):
     """Gerar relatório PDF da consulta"""
     try:
