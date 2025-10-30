@@ -1192,9 +1192,12 @@ def gerar_relatorio(consulta_id):
         print(f"Total de recomendações: {len(recomendacoes)}")
         
         # Usar coletor unificado para obter dados consolidados de perguntas e respostas
+        respostas_completas = []
         try:
             qa_data = qa_collector.collect_qa_for_consulta(consulta_id)
             print(f"Q&A coletado com sucesso: {qa_data['total_perguntas']} perguntas de {len(qa_data['modulos_utilizados'])} módulos")
+            # Extrair respostas_completas do qa_data para uso posterior
+            respostas_completas = qa_data.get('perguntas_respostas', [])
         except Exception as e:
             print(f"Erro ao coletar Q&A unificado: {e}")
             import traceback
@@ -1220,20 +1223,68 @@ def gerar_relatorio(consulta_id):
             }
             print(f"Fallback usado: {qa_data['total_perguntas']} perguntas")
         
-        # Separar recomendações por tipo
+        # Separar recomendações por tipo e converter para dicionários
         medicamentos_principais = []
         medicamentos_adicionais = []
         recomendacoes_nao_farmacologicas = []
         
         for rec in recomendacoes:
             if rec.tipo == 'medicamento':
+                # Extrair posologia da descrição
+                posologia = 'Consultar bula'
+                if 'Posologia:' in rec.descricao:
+                    try:
+                        posologia = rec.descricao.split('Posologia:')[1].split('|')[0].strip()
+                    except:
+                        posologia = 'Consultar bula'
+                
+                # Extrair indicação da descrição
+                indicacao = 'Verificar bula'
+                if ' - ' in rec.descricao and 'Posologia:' in rec.descricao:
+                    try:
+                        indicacao = rec.descricao.split(' - ')[1].split(' | Posologia:')[0].strip()
+                    except:
+                        indicacao = 'Verificar bula'
+                elif ' - ' in rec.descricao:
+                    try:
+                        indicacao = rec.descricao.split(' - ')[1].split(' | ')[0].strip()
+                    except:
+                        indicacao = 'Verificar bula'
+                
+                # Extrair observações da descrição
+                observacoes = None
+                if ' | ' in rec.descricao and 'Posologia:' in rec.descricao:
+                    try:
+                        partes = rec.descricao.split(' | ')
+                        if len(partes) > 2:
+                            observacoes = partes[2].strip()
+                    except:
+                        pass
+                
+                # Converter objeto para dicionário
+                rec_dict = {
+                    'medicamento': {'nome': rec.descricao},
+                    'posologia': posologia,
+                    'indicacao': indicacao,
+                    'observacoes': observacoes,
+                    'justificativa': rec.justificativa or 'Recomendado pela triagem',
+                    'prioridade': 3,
+                    'categoria': 'Medicamento'
+                }
+                
                 # Separar medicamentos principais dos adicionais baseado na ordem
                 if len(medicamentos_principais) < 6:
-                    medicamentos_principais.append(rec)
+                    medicamentos_principais.append(rec_dict)
                 else:
-                    medicamentos_adicionais.append(rec)
+                    medicamentos_adicionais.append(rec_dict)
             elif rec.tipo == 'nao_farmacologico':
-                recomendacoes_nao_farmacologicas.append(rec)
+                # Converter objeto para dicionário
+                rec_dict = {
+                    'titulo': rec.descricao,
+                    'descricao': rec.descricao,
+                    'justificativa': rec.justificativa or 'Recomendação não-farmacológica'
+                }
+                recomendacoes_nao_farmacologicas.append(rec_dict)
         
         # Buscar resultado da triagem das recomendações
         triagem_result = {
