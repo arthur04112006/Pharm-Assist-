@@ -12,37 +12,42 @@ import webbrowser
 import time
 from pathlib import Path
 
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
 def install_requirements():
     """Instala as dependências necessárias"""
-    print("Verificando dependências...")
-    
+    requirements_path = PROJECT_ROOT / "requirements.txt"
+    if not requirements_path.exists():
+        print("❌ Arquivo requirements.txt não encontrado.")
+        print(f"   Caminho esperado: {requirements_path}")
+        return False
+
+    print("Instalando/verificando dependências do requirements.txt...")
+
     try:
-        import flask
-        import sqlalchemy
-        print("Dependências já instaladas")
+        subprocess.check_call(
+            [sys.executable, "-m", "pip", "install", "-r", str(requirements_path)],
+            cwd=str(PROJECT_ROOT)
+        )
+        print("Dependências conforme requirements.txt instaladas/verificadas ✅")
         return True
-    except ImportError:
-        print("Instalando dependências...")
-        try:
-            subprocess.check_call([sys.executable, "-m", "pip", "install", "-r", "requirements.txt"])
-            print("Dependências instaladas com sucesso")
-            return True
-        except subprocess.CalledProcessError as e:
-            print(f"Erro ao instalar dependências: {e}")
-            return False
+    except subprocess.CalledProcessError as e:
+        print(f"Erro ao instalar dependências: {e}")
+        return False
 
 def create_directories():
     """Cria diretórios necessários"""
     directories = ['uploads', 'reports', 'instance']
     
     for directory in directories:
-        Path(directory).mkdir(exist_ok=True)
+        target_dir = PROJECT_ROOT / directory
+        target_dir.mkdir(parents=True, exist_ok=True)
     
     print("Diretórios criados/verificados")
 
 def check_database():
     """Verifica se o banco de dados existe"""
-    db_path = Path("instance/triagem_farmaceutica.db")
+    db_path = PROJECT_ROOT / "instance" / "triagem_farmaceutica.db"
     
     if db_path.exists():
         print("Banco de dados encontrado")
@@ -67,6 +72,9 @@ def start_system():
     
     try:
         # Importar e executar a aplicação
+        if str(PROJECT_ROOT) not in sys.path:
+            sys.path.insert(0, str(PROJECT_ROOT))
+
         from core.app import app
         
         print("Sistema iniciado com sucesso!")
@@ -102,6 +110,9 @@ def main():
         return
     
     print(f"Python {sys.version_info.major}.{sys.version_info.minor} detectado")
+
+    # Garantir execução a partir da raiz do projeto
+    os.chdir(PROJECT_ROOT)
     
     # Instalar dependências se necessário
     if not install_requirements():

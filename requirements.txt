@@ -3,37 +3,37 @@
 # Compatível com Python 3.10+ (testado com Python 3.13)
 
 # Framework web
-Flask>=2.3.3
-Flask-SQLAlchemy>=3.0.5
+Flask>=2.3.3,<3.2
+Flask-SQLAlchemy>=3.0.5,<3.2
 
-# Banco de dados
-mysql-connector-python>=8.1.0
+# Banco de dados (opcional - use apenas se for integrar com MySQL)
+mysql-connector-python>=8.1.0,<10.0
 
 # Geração de relatórios PDF
-ReportLab>=4.0.4
+ReportLab>=4.0.4,<5.0
 
 # Configuração e ambiente
-python-dotenv>=1.0.0
+python-dotenv>=1.0.0,<2.0.0
 
 # Machine Learning e análise de dados
-scikit-learn>=1.7.2
-numpy>=2.2.6
+scikit-learn>=1.3.0,<2.0.0
+numpy>=1.24.4,<3.0.0
 
 # Processamento de texto
 unidecode>=1.3.7
 
 # Manipulação de dados
-pandas>=2.3.3
+pandas>=2.0.3,<3.0.0
 
 # Utilitários do Flask
-Werkzeug>=2.3.7
+Werkzeug>=2.3.7,<4.0.0
 
 # SQLAlchemy (dependência do Flask-SQLAlchemy)
-SQLAlchemy>=2.0.34
+SQLAlchemy>=2.0.34,<3.0.0
 
 # Dependências adicionais para compatibilidade
-setuptools>=70.0.0
-wheel>=0.40.0
+setuptools>=65.0.0
+wheel>=0.40.0,<0.47.0
 
 # Nota: O conflito com 'locust' detectado por 'pip check' não é crítico,
 # pois 'locust' não é uma dependência direta deste projeto. Se você tiver
