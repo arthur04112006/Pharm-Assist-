@@ -2432,6 +2432,16 @@ class SistemaRecomendacoesFarmacologicas:
     
     def _gerar_posologia(self, medicamento: Medicamento, tipo: str) -> str:
         """Gera posologia baseada no tipo de medicamento"""
+        # CORREÇÃO: Verificar se é descongestionante nasal em spray
+        # Medicamentos como Sorine, Nasonex, etc. são sprays/jatos, não comprimidos
+        if tipo == 'descongestionante':
+            # Lista de descongestionantes nasais em spray
+            spray_nasais = ['sorine', 'nasonex', 'nazolin', 'afrin', 'rinosoro', 'atrovent']
+            nome_med = medicamento.nome_comercial.lower() if medicamento else ''
+            
+            if any(spray in nome_med for spray in spray_nasais):
+                return '2-3 jatos em cada narina a cada 12 horas'
+        
         posologias = {
             'antitussigeno': '1 comprimido a cada 6-8 horas',
             'expectorante': '1 comprimido a cada 8 horas',

@@ -1414,27 +1414,36 @@ def admin():
     total_pacientes_feminino = Paciente.query.filter_by(sexo='F').count()
     
     # Medicamentos mais recomendados
-    medicamentos_recomendados = db.session.query(
-        ConsultaRecomendacao.descricao,
-        func.count(ConsultaRecomendacao.id).label('count')
+    # CORREÇÃO: Extrair nome base antes de agrupar para evitar duplicações
+    medicamentos_raw = db.session.query(
+        ConsultaRecomendacao.descricao
     ).filter(
         ConsultaRecomendacao.tipo == 'medicamento'
-    ).group_by(
-        ConsultaRecomendacao.descricao
-    ).order_by(
-        func.count(ConsultaRecomendacao.id).desc()
-    ).limit(5).all()
+    ).all()
     
-    # Converter para lista de dicionários para serialização JSON
-    # Extrair apenas o nome do medicamento (antes do primeiro " - " ou " | ")
-    medicamentos_recomendados_formatados = []
-    for m in medicamentos_recomendados:
-        nome_medicamento = m.descricao.split(' - ')[0].split(' | ')[0].strip()
-        medicamentos_recomendados_formatados.append({
-            'descricao': nome_medicamento, 
-            'count': m.count
-        })
-    medicamentos_recomendados = medicamentos_recomendados_formatados
+    # Processar medicamentos para extrair nome base e contar
+    medicamentos_dict = {}
+    for m in medicamentos_raw:
+        # Extrair nome base (antes do primeiro " - " ou " | ")
+        nome_base = m.descricao.split(' - ')[0].split(' | ')[0].strip()
+        
+        if nome_base in medicamentos_dict:
+            medicamentos_dict[nome_base] += 1
+        else:
+            medicamentos_dict[nome_base] = 1
+    
+    # Ordenar por contagem e pegar top 5
+    medicamentos_ordenados = sorted(
+        medicamentos_dict.items(), 
+        key=lambda x: x[1], 
+        reverse=True
+    )[:5]
+    
+    # Converter para formato esperado pelo template
+    medicamentos_recomendados = [
+        {'descricao': nome, 'count': count} 
+        for nome, count in medicamentos_ordenados
+    ]
     
     # Taxa de encaminhamentos
     taxa_encaminhamento = (total_encaminhamentos / total_consultas * 100) if total_consultas > 0 else 0
