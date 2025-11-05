@@ -192,8 +192,8 @@ flask.log
 # ============================================
 
 # Relatórios gerados
-reports/
-*.pdf
+# reports/ - COMENTADO: pasta reports contém arquivos importantes para o projeto
+# *.pdf - COMENTADO: PDFs em reports/ são necessários para o funcionamento
 *.docx
 *.xlsx
 *.csv
