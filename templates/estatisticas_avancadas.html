@@ -3,15 +3,37 @@
 {% block title %}Estatísticas Avançadas - Pharm-Assist{% endblock %}
 
 {% block extra_css %}
+<!-- Chart.js - Biblioteca de gráficos interativos -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 <style>
-    /* Painel de Filtros */
+    /* =====================================================
+       ESTATÍSTICAS AVANÇADAS - ESTILOS PERSONALIZADOS
+       
+       Este arquivo contém os estilos para a página de
+       estatísticas avançadas com filtros dinâmicos e
+       gráficos interativos usando Chart.js.
+       
+       Estrutura:
+       1. Painel de Filtros
+       2. Cards de Métricas
+       3. Cards de Gráficos
+       4. Loading States
+       5. Responsividade
+       ===================================================== */
+
+    /* ==========================================
+       1. PAINEL DE FILTROS
+       Área superior com controles de filtro
+       ========================================== */
+    
     .filters-panel {
         background: white;
         border-radius: 1rem;
         padding: 1.5rem;
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         margin-bottom: 2rem;
+        border-left: 4px solid var(--primary-color); /* Borda azul usando variável do projeto */
     }
 
     .filter-group {
@@ -34,27 +56,30 @@
         font-size: 0.95rem;
     }
 
+    /* Efeito de foco nos campos de filtro */
     .filter-group select:focus,
     .filter-group input:focus {
         outline: none;
-        border-color: var(--primary-color);
-        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        border-color: var(--primary-color); /* Usa cor primária do projeto */
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1); /* Sombra azul sutil */
     }
 
+    /* Botão principal de aplicar filtros */
     .btn-filter {
-        background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+        background: linear-gradient(135deg, var(--primary-color), var(--primary-dark)); /* Gradiente azul do projeto */
         color: white;
         border: none;
         padding: 0.75rem 2rem;
         border-radius: 0.5rem;
         font-weight: 600;
         cursor: pointer;
-        transition: all 0.3s;
+        transition: all 0.3s ease; /* Transição suave */
     }
 
+    /* Efeito hover no botão de filtro */
     .btn-filter:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 10px 20px rgba(99, 102, 241, 0.3);
+        transform: translateY(-2px); /* Eleva o botão */
+        box-shadow: 0 10px 20px rgba(99, 102, 241, 0.3); /* Sombra mais intensa */
     }
 
     .btn-reset {
@@ -74,35 +99,46 @@
         color: var(--primary-color);
     }
 
-    /* Cards de Métricas */
+    /* ==========================================
+       2. CARDS DE MÉTRICAS
+       Cards informativos com animações hover
+       ========================================== */
+    
     .metric-card {
         background: white;
         border-radius: 1rem;
         padding: 1.5rem;
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        transition: all 0.3s;
-        border-left: 4px solid;
+        transition: all 0.3s ease; /* Transição suave para hover */
+        border-left: 4px solid; /* Borda colorida à esquerda */
+        position: relative;
+        overflow: hidden;
     }
 
+    /* Efeito hover nos cards - eleva e aumenta sombra */
     .metric-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+        transform: translateY(-5px); /* Eleva o card */
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15); /* Sombra mais pronunciada */
     }
 
+    /* Card azul - Total de Consultas (usa cor primária do projeto) */
     .metric-card.primary {
-        border-left-color: #6366f1;
+        border-left-color: var(--primary-color);
     }
 
+    /* Card verde - Taxa de Resolução (usa cor de sucesso do projeto) */
     .metric-card.success {
-        border-left-color: #10b981;
+        border-left-color: var(--success-color);
     }
 
+    /* Card azul claro - Pacientes Atendidos (usa cor info do projeto) */
     .metric-card.info {
-        border-left-color: #06b6d4;
+        border-left-color: var(--info-color);
     }
 
+    /* Card amarelo - Encaminhamentos (usa cor warning do projeto) */
     .metric-card.warning {
-        border-left-color: #f59e0b;
+        border-left-color: var(--warning-color);
     }
 
     .metric-value {
@@ -126,47 +162,69 @@
         float: right;
     }
 
-    /* Cards de Gráficos */
+    /* ==========================================
+       3. CARDS DE GRÁFICOS
+       Containers para os gráficos Chart.js
+       ========================================== */
+    
+    /* Card principal que contém cada gráfico */
     .chart-card {
         background: white;
         border-radius: 1rem;
         padding: 1.5rem;
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         margin-bottom: 2rem;
+        transition: box-shadow 0.3s ease; /* Transição suave no hover */
     }
 
+    /* Efeito hover sutil no card */
+    .chart-card:hover {
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Header do card com título e botões de opção */
     .chart-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
         margin-bottom: 1.5rem;
         padding-bottom: 1rem;
-        border-bottom: 2px solid #f1f5f9;
+        border-bottom: 2px solid #f1f5f9;  /* Linha separadora sutil */
+        flex-wrap: wrap;  /* Permite quebra em telas pequenas */
+        gap: 1rem;
     }
 
+    /* Título do gráfico */
     .chart-title {
         font-size: 1.25rem;
         font-weight: 700;
         color: var(--text-primary);
+        margin: 0;
     }
 
+    /* Subtítulo/descrição do gráfico */
     .chart-subtitle {
         font-size: 0.875rem;
         color: var(--text-secondary);
         margin-top: 0.25rem;
     }
 
+    /* Container responsivo para gráficos Chart.js */
     .chart-container {
         position: relative;
-        height: 400px;
+        height: 400px;  /* Altura padrão (ajustada por media queries) */
         margin: 1rem 0;
+        width: 100%;    /* Largura total para responsividade */
     }
 
+    /* Container dos botões de tipo de gráfico (Linha/Barra/Pizza) */
     .chart-options {
         display: flex;
         gap: 0.5rem;
+        flex-wrap: wrap;  /* Permite quebra em mobile */
     }
 
+    /* Botões de opção de tipo de gráfico (Linha, Barra, Pizza) */
     .chart-option-btn {
         padding: 0.5rem 1rem;
         border: 1px solid #e2e8f0;
@@ -174,40 +232,51 @@
         border-radius: 0.5rem;
         cursor: pointer;
         font-size: 0.875rem;
-        transition: all 0.2s;
+        transition: all 0.2s ease;  /* Transição suave */
+        font-weight: 500;
     }
 
+    /* Estado ativo do botão (tipo de gráfico selecionado) */
     .chart-option-btn.active {
-        background: var(--primary-color);
+        background: var(--primary-color);      /* Azul do projeto */
         color: white;
         border-color: var(--primary-color);
+        box-shadow: 0 2px 4px rgba(99, 102, 241, 0.3);  /* Sombra azul */
     }
 
+    /* Hover em botões não ativos */
     .chart-option-btn:hover:not(.active) {
         border-color: var(--primary-color);
         color: var(--primary-color);
+        background: rgba(99, 102, 241, 0.05);  /* Fundo azul muito sutil */
     }
 
-    /* Loading Spinner */
+    /* ==========================================
+       4. LOADING STATES
+       Spinner animado durante carregamento de dados
+       ========================================== */
+    
     .loading-spinner {
-        display: none;
+        display: none;          /* Oculto por padrão, exibido via JavaScript */
         text-align: center;
         padding: 2rem;
     }
 
+    /* Spinner circular rotativo */
     .spinner {
-        border: 4px solid #f3f4f6;
-        border-top: 4px solid var(--primary-color);
-        border-radius: 50%;
+        border: 4px solid #f3f4f6;                  /* Borda cinza clara */
+        border-top: 4px solid var(--primary-color); /* Topo azul (cor do projeto) */
+        border-radius: 50%;                         /* Forma circular */
         width: 40px;
         height: 40px;
-        animation: spin 1s linear infinite;
+        animation: spin 1s linear infinite;         /* Animação contínua */
         margin: 0 auto;
     }
 
+    /* Animação de rotação do spinner */
     @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
+        0% { transform: rotate(0deg); }      /* Início: 0 graus */
+        100% { transform: rotate(360deg); }  /* Fim: 360 graus (volta completa) */
     }
 
     /* Status Badge */
@@ -236,14 +305,135 @@
         color: #1e40af;
     }
 
-    /* Responsive */
+    /* ==========================================
+       5. RESPONSIVIDADE
+       Ajustes para diferentes tamanhos de tela
+       Mobile-first approach
+       ========================================== */
+    
+    /* Tablets e dispositivos médios (max-width: 992px) */
+    @media (max-width: 992px) {
+        /* Reduz padding do painel de filtros em tablets */
+        .filters-panel {
+            padding: 1rem;
+        }
+        
+        /* Ajusta altura dos gráficos para tablets */
+        .chart-container {
+            height: 350px;
+        }
+        
+        /* Garante espaçamento entre cards de métricas */
+        .metric-card {
+            margin-bottom: 1rem;
+        }
+        
+        /* Ajusta título dos gráficos */
+        .chart-title {
+            font-size: 1.1rem;
+        }
+    }
+    
+    /* Smartphones e dispositivos pequenos (max-width: 768px) */
     @media (max-width: 768px) {
+        /* Reduz altura dos gráficos em mobile para melhor visualização */
         .chart-container {
             height: 300px;
         }
-
+        
+        /* Ajusta tamanho dos valores das métricas para mobile */
+        .metric-value {
+            font-size: 1.75rem;
+        }
+        
+        /* Reduz tamanho do título dos gráficos */
+        .chart-title {
+            font-size: 1rem;
+        }
+        
+        /* Subtítulo menor em mobile */
+        .chart-subtitle {
+            font-size: 0.75rem;
+        }
+        
+        /* Botões de opção de gráfico menores */
+        .chart-option-btn {
+            padding: 0.4rem 0.75rem;
+            font-size: 0.75rem;
+        }
+        
+        /* Filtros ocupam largura total */
+        .filter-group {
+            margin-bottom: 0.75rem;
+        }
+        
+        /* Botões de filtro em largura total */
+        .btn-filter,
+        .btn-reset {
+            width: 100%;
+            margin: 0.25rem 0;
+        }
+        
+        /* Reduz padding dos cards */
+        .chart-card {
+            padding: 1rem;
+        }
+    }
+    
+    /* Dispositivos muito pequenos (max-width: 480px) */
+    @media (max-width: 480px) {
+        /* Altura mínima para gráficos em telas muito pequenas */
+        .chart-container {
+            height: 250px;
+        }
+        
+        /* Valores das métricas ainda menores para telas pequenas */
         .metric-value {
             font-size: 1.5rem;
+        }
+        
+        /* Ícones das métricas menores */
+        .metric-icon {
+            font-size: 1.5rem;
+        }
+        
+        /* Padding reduzido nos cards */
+        .chart-card,
+        .metric-card {
+            padding: 1rem;
+        }
+        
+        /* Opções de gráfico em coluna para telas pequenas */
+        .chart-options {
+            flex-direction: column;
+            gap: 0.25rem;
+            width: 100%;
+        }
+        
+        /* Botões de opção ocupam largura total */
+        .chart-option-btn {
+            width: 100%;
+        }
+        
+        /* Ajusta header do gráfico para mobile */
+        .chart-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+    }
+    
+    /* Dispositivos com orientação paisagem (landscape) */
+    @media (max-height: 600px) and (orientation: landscape) {
+        /* Reduz altura dos gráficos em modo paisagem */
+        .chart-container {
+            height: 250px;
+        }
+        
+        /* Reduz padding vertical */
+        .chart-card,
+        .metric-card {
+            padding: 1rem;
         }
     }
 </style>
@@ -469,26 +659,56 @@
 
 {% block extra_js %}
 <script>
-// Variáveis globais para os gráficos
-let consultasChart = null;
-let medicamentosChart = null;
-let pacientesChart = null;
+/* =====================================================
+   ESTATÍSTICAS AVANÇADAS - JAVASCRIPT
+   
+   Este arquivo contém toda a lógica JavaScript para:
+   - Gerenciamento de filtros dinâmicos
+   - Chamadas às APIs de estatísticas
+   - Criação e atualização de gráficos Chart.js
+   - Manipulação de eventos de UI
+   
+   Estrutura:
+   1. Variáveis globais e configurações
+   2. Event listeners
+   3. Funções de filtros
+   4. Funções de carregamento de dados
+   5. Funções de criação de gráficos
+   ===================================================== */
 
-// Configurações padrão do Chart.js
-Chart.defaults.font.family = 'Inter, sans-serif';
-Chart.defaults.color = '#64748b';
+// ==========================================
+// 1. VARIÁVEIS GLOBAIS E CONFIGURAÇÕES
+// ==========================================
 
-// Mostrar/ocultar campos de data personalizada
+// Instâncias dos gráficos Chart.js (para atualização dinâmica)
+let consultasChart = null;      // Gráfico de consultas por período
+let medicamentosChart = null;   // Gráfico de medicamentos mais recomendados
+let pacientesChart = null;      // Gráfico de distribuição de pacientes
+
+// Configurações padrão do Chart.js (aplica-se a todos os gráficos)
+Chart.defaults.font.family = 'Inter, sans-serif';  // Fonte consistente com o projeto
+Chart.defaults.color = '#64748b';                  // Cor padrão de texto dos gráficos
+
+// ==========================================
+// 2. EVENT LISTENERS
+// Gerencia eventos de UI e interações do usuário
+// ==========================================
+
+/**
+ * Event Listener: Mudança no filtro de período
+ * Exibe/oculta campos de data personalizada conforme seleção
+ */
 document.getElementById('periodo-filter').addEventListener('change', function() {
     const periodo = this.value;
     const dataInicioGroup = document.getElementById('data-inicio-group');
     const dataFimGroup = document.getElementById('data-fim-group');
     
+    // Se período personalizado for selecionado, mostra campos de data
     if (periodo === 'personalizado') {
         dataInicioGroup.style.display = 'block';
         dataFimGroup.style.display = 'block';
         
-        // Definir datas padrão
+        // Definir datas padrão (hoje e um mês atrás)
         const hoje = new Date();
         const umMesAtras = new Date();
         umMesAtras.setMonth(umMesAtras.getMonth() - 1);
@@ -496,33 +716,57 @@ document.getElementById('periodo-filter').addEventListener('change', function() 
         document.getElementById('data-fim').valueAsDate = hoje;
         document.getElementById('data-inicio').valueAsDate = umMesAtras;
     } else {
+        // Oculta campos de data para períodos pré-definidos
         dataInicioGroup.style.display = 'none';
         dataFimGroup.style.display = 'none';
     }
 });
 
-// Função para aplicar filtros
+// ==========================================
+// 3. FUNÇÕES DE FILTROS
+// Gerenciam aplicação e reset de filtros
+// ==========================================
+
+/**
+ * Função: aplicarFiltros
+ * Aplica todos os filtros selecionados e recarrega todos os gráficos
+ * Chamada quando o usuário clica em "Aplicar Filtros"
+ */
 function aplicarFiltros() {
-    carregarDesempenho();
-    carregarConsultas();
-    carregarMedicamentos();
-    carregarPacientes('faixa_etaria');
+    carregarDesempenho();               // Atualiza cards de métricas
+    carregarConsultas();                // Atualiza gráfico de consultas
+    carregarMedicamentos();             // Atualiza gráfico de medicamentos
+    carregarPacientes('faixa_etaria');  // Atualiza gráfico de pacientes
 }
 
-// Função para resetar filtros
+/**
+ * Função: resetarFiltros
+ * Restaura filtros para valores padrão e recarrega dados
+ * Chamada quando o usuário clica em "Limpar"
+ */
 function resetarFiltros() {
+    // Restaurar valores padrão
     document.getElementById('periodo-filter').value = 'mes';
     document.getElementById('limite-filter').value = '10';
+    
+    // Ocultar campos de data personalizada
     document.getElementById('data-inicio-group').style.display = 'none';
     document.getElementById('data-fim-group').style.display = 'none';
+    
+    // Reaplicar filtros com valores padrão
     aplicarFiltros();
 }
 
-// Função para obter parâmetros de filtro
+/**
+ * Função: getFiltroParams
+ * Constrói parâmetros de URL baseado nos filtros selecionados
+ * @returns {URLSearchParams} - Objeto com parâmetros para requisições API
+ */
 function getFiltroParams() {
     const periodo = document.getElementById('periodo-filter').value;
     const params = new URLSearchParams();
     
+    // Se período personalizado, usa datas específicas
     if (periodo === 'personalizado') {
         const dataInicio = document.getElementById('data-inicio').value;
         const dataFim = document.getElementById('data-fim').value;
@@ -531,31 +775,45 @@ function getFiltroParams() {
             params.append('data_fim', dataFim);
         }
     } else {
+        // Caso contrário, usa período pré-definido
         params.append('periodo', periodo);
     }
     
     return params;
 }
 
-// Função para carregar métricas de desempenho
+// ==========================================
+// 4. FUNÇÕES DE CARREGAMENTO DE DADOS
+// Fazem requisições às APIs e atualizam a UI
+// ==========================================
+
+/**
+ * Função: carregarDesempenho
+ * Carrega métricas de desempenho do sistema via API
+ * Atualiza os 4 cards de métricas no topo da página
+ */
 function carregarDesempenho() {
     const params = getFiltroParams();
     
+    // Chamada à API de desempenho
     fetch(`/api/estatisticas/desempenho?${params}`)
         .then(response => response.json())
         .then(data => {
             if (data.success) {
                 const m = data.metricas;
+                
+                // Atualizar valores principais dos cards
                 document.getElementById('metric-consultas').textContent = m.total_consultas;
                 document.getElementById('metric-encaminhamentos').textContent = m.total_encaminhamentos;
                 document.getElementById('metric-resolucao').textContent = m.taxa_resolucao + '%';
                 document.getElementById('metric-pacientes').textContent = m.total_pacientes_atendidos;
                 
+                // Atualizar badges informativos
                 document.getElementById('taxa-encaminhamento').textContent = m.taxa_encaminhamento + '% encaminhados';
                 document.getElementById('taxa-resolucao-badge').textContent = m.taxa_resolucao + '% resolvidos';
                 document.getElementById('media-dia').textContent = m.media_consultas_dia + ' consultas/dia';
                 
-                // Atualizar badge de período
+                // Atualizar badge de período selecionado
                 const periodoTexto = {
                     'dia': 'Hoje',
                     'semana': 'Última Semana',
@@ -569,11 +827,15 @@ function carregarDesempenho() {
         .catch(error => console.error('Erro ao carregar desempenho:', error));
 }
 
-// Função para carregar gráfico de consultas
+/**
+ * Função: carregarConsultas
+ * Carrega e renderiza gráfico de consultas por período
+ * @param {string} tipoGrafico - Tipo do gráfico ('line', 'bar', ou 'area')
+ */
 function carregarConsultas(tipoGrafico = 'line') {
     const params = getFiltroParams();
     const loading = document.getElementById('loading-consultas');
-    loading.style.display = 'block';
+    loading.style.display = 'block';  // Exibe loading spinner
     
     fetch(`/api/estatisticas/consultas?${params}`)
         .then(response => response.json())
@@ -583,46 +845,116 @@ function carregarConsultas(tipoGrafico = 'line') {
             if (data.success) {
                 const ctx = document.getElementById('consultasChart').getContext('2d');
                 
-                // Destruir gráfico anterior se existir
+                // Destruir gráfico anterior se existir (evita duplicação)
                 if (consultasChart) {
                     consultasChart.destroy();
                 }
                 
-                // Criar novo gráfico
+                // ==========================================
+                // 5. CRIAÇÃO DO GRÁFICO DE CONSULTAS
+                // Usa Chart.js com cores do projeto
+                // ==========================================
+                
+                // Criar gradiente para o gráfico
+                const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+                gradient.addColorStop(0, 'rgba(99, 102, 241, 0.5)');
+                gradient.addColorStop(0.5, 'rgba(99, 102, 241, 0.25)');
+                gradient.addColorStop(1, 'rgba(99, 102, 241, 0.0)');
+
                 consultasChart = new Chart(ctx, {
-                    type: tipoGrafico,
+                    type: tipoGrafico,  // Tipo dinâmico: 'line', 'bar', ou 'area'
                     data: {
-                        labels: data.dados.map(d => d.data),
+                        labels: data.dados.map(d => d.data),  // Datas no eixo X
                         datasets: [{
-                            label: 'Consultas',
-                            data: data.dados.map(d => d.count),
-                            backgroundColor: tipoGrafico === 'line' ? 'rgba(99, 102, 241, 0.1)' : 'rgba(99, 102, 241, 0.8)',
-                            borderColor: '#6366f1',
-                            borderWidth: 2,
-                            tension: 0.4,
-                            fill: true,
+                            label: 'Consultas Realizadas',
+                            data: data.dados.map(d => d.count),  // Quantidade de consultas
+                            // Gradiente moderno para área sob a linha
+                            backgroundColor: tipoGrafico === 'line' ? gradient : 'rgba(99, 102, 241, 0.8)',
+                            borderColor: '#6366f1',  // Azul primário
+                            borderWidth: 3,  // Linha mais grossa
+                            tension: 0.4,  // Suavização da linha (curvas suaves)
+                            fill: true,    // Preenche área sob a linha
+                            // Estilo dos pontos (marcadores)
                             pointBackgroundColor: '#6366f1',
                             pointBorderColor: '#ffffff',
-                            pointBorderWidth: 2,
-                            pointRadius: 5,
-                            pointHoverRadius: 7
+                            pointBorderWidth: 3,
+                            pointRadius: 6,
+                            pointHoverRadius: 9,  // Aumenta significativamente no hover
+                            pointHoverBackgroundColor: '#4f46e5',
+                            pointHoverBorderColor: '#ffffff',
+                            pointHoverBorderWidth: 3,
+                            // Sombra nos pontos
+                            pointStyle: 'circle',
+                            // Borda com gradiente
+                            borderCapStyle: 'round',
+                            borderJoinStyle: 'round'
                         }]
                     },
                     options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
+                        responsive: true,              // Adapta ao tamanho do container
+                        maintainAspectRatio: false,    // Permite altura customizada
+                        // Animação suave ao carregar
+                        animation: {
+                            duration: 1500,  // 1.5 segundos
+                            easing: 'easeInOutQuart',  // Curva de animação suave
+                        },
+                        interaction: {
+                            mode: 'index',  // Mostra todos os dados do mesmo índice
+                            intersect: false,  // Tooltip aparece mesmo sem passar exatamente no ponto
+                        },
                         plugins: {
                             legend: {
-                                display: false
+                                display: true,
+                                position: 'top',
+                                align: 'end',
+                                labels: {
+                                    usePointStyle: true,
+                                    pointStyle: 'circle',
+                                    padding: 15,
+                                    font: {
+                                        size: 12,
+                                        weight: '600'
+                                    },
+                                    color: '#64748b'
+                                }
                             },
+                            // Tooltip avançado com informações detalhadas
                             tooltip: {
-                                backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                                padding: 12,
+                                enabled: true,
+                                backgroundColor: 'rgba(30, 41, 59, 0.95)',  // Fundo escuro semi-transparente
+                                padding: 16,
+                                cornerRadius: 8,
                                 titleFont: {
-                                    size: 14
+                                    size: 15,
+                                    weight: 'bold',
+                                    family: "'Inter', sans-serif"
                                 },
                                 bodyFont: {
-                                    size: 13
+                                    size: 14,
+                                    family: "'Inter', sans-serif"
+                                },
+                                bodySpacing: 8,
+                                borderColor: '#6366f1',
+                                borderWidth: 2,
+                                displayColors: true,
+                                callbacks: {
+                                    title: function(context) {
+                                        return '📅 ' + context[0].label;
+                                    },
+                                    label: function(context) {
+                                        let label = context.dataset.label || '';
+                                        if (label) {
+                                            label += ': ';
+                                        }
+                                        label += context.parsed.y + ' consultas';
+                                        return label;
+                                    },
+                                    afterLabel: function(context) {
+                                        // Calcular porcentagem do total
+                                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                        const percent = ((context.parsed.y / total) * 100).toFixed(1);
+                                        return percent + '% do total';
+                                    }
                                 }
                             }
                         },
@@ -630,14 +962,36 @@ function carregarConsultas(tipoGrafico = 'line') {
                             y: {
                                 beginAtZero: true,
                                 ticks: {
-                                    precision: 0
+                                    precision: 0,
+                                    font: {
+                                        size: 12,
+                                        weight: '500'
+                                    },
+                                    color: '#64748b',
+                                    padding: 10
                                 },
                                 grid: {
-                                    color: 'rgba(0, 0, 0, 0.05)'
+                                    color: 'rgba(148, 163, 184, 0.1)',
+                                    lineWidth: 1,
+                                    drawBorder: false
+                                },
+                                border: {
+                                    display: false
                                 }
                             },
                             x: {
+                                ticks: {
+                                    font: {
+                                        size: 12,
+                                        weight: '500'
+                                    },
+                                    color: '#64748b',
+                                    padding: 10
+                                },
                                 grid: {
+                                    display: false
+                                },
+                                border: {
                                     display: false
                                 }
                             }
@@ -652,13 +1006,18 @@ function carregarConsultas(tipoGrafico = 'line') {
         });
 }
 
-// Função para carregar gráfico de medicamentos
+/**
+ * Função: carregarMedicamentos
+ * Carrega e renderiza gráfico de medicamentos mais recomendados
+ * @param {string} tipoGrafico - Tipo do gráfico ('bar', 'pie', ou 'doughnut')
+ */
 function carregarMedicamentos(tipoGrafico = 'bar') {
     const params = getFiltroParams();
+    // Adiciona limite de medicamentos a exibir (10, 20, 50, etc.)
     params.append('limite', document.getElementById('limite-filter').value);
     
     const loading = document.getElementById('loading-medicamentos');
-    loading.style.display = 'block';
+    loading.style.display = 'block';  // Exibe loading spinner
     
     fetch(`/api/estatisticas/medicamentos?${params}`)
         .then(response => response.json())
@@ -677,45 +1036,107 @@ function carregarMedicamentos(tipoGrafico = 'bar') {
                 const chartType = tipoGrafico === 'horizontalBar' ? 'bar' : tipoGrafico;
                 const indexAxis = tipoGrafico === 'horizontalBar' ? 'y' : 'x';
                 
+                // Paleta de cores moderna e vibrante (gradiente de azul para roxo/laranja)
+                const coresPremium = [
+                    '#6366f1',  // Indigo (primária)
+                    '#8b5cf6',  // Violeta
+                    '#a855f7',  // Roxo
+                    '#d946ef',  // Fúcsia
+                    '#ec4899',  // Rosa
+                    '#f43f5e',  // Vermelho-Rosa
+                    '#f97316',  // Laranja
+                    '#f59e0b',  // Âmbar
+                    '#10b981',  // Verde Esmeralda
+                    '#06b6d4'   // Ciano
+                ];
+                
+                // Criar versões com transparência para hover
+                const coresHover = coresPremium.map(cor => cor + 'dd');
+                
                 // Criar novo gráfico
                 medicamentosChart = new Chart(ctx, {
                     type: chartType,
                     data: {
                         labels: data.dados.map(d => d.medicamento),
                         datasets: [{
-                            label: 'Recomendações',
+                            label: 'Medicamentos Recomendados',
                             data: data.dados.map(d => d.count),
-                            backgroundColor: [
-                                'rgba(249, 115, 22, 0.8)',
-                                'rgba(251, 146, 60, 0.8)',
-                                'rgba(253, 186, 116, 0.8)',
-                                'rgba(254, 215, 170, 0.8)',
-                                'rgba(255, 237, 213, 0.8)',
-                                'rgba(245, 208, 254, 0.8)',
-                                'rgba(233, 213, 255, 0.8)',
-                                'rgba(196, 181, 253, 0.8)',
-                                'rgba(167, 139, 250, 0.8)',
-                                'rgba(139, 92, 246, 0.8)'
-                            ],
-                            borderColor: 'rgba(249, 115, 22, 1)',
-                            borderWidth: 0
+                            backgroundColor: coresPremium,
+                            hoverBackgroundColor: coresHover,
+                            borderColor: '#ffffff',
+                            borderWidth: 2,
+                            borderRadius: 8,  // Bordas arredondadas nas barras
+                            barThickness: 40  // Espessura das barras
                         }]
                     },
                     options: {
                         indexAxis: indexAxis,
                         responsive: true,
                         maintainAspectRatio: false,
+                        // Animação suave ao carregar
+                        animation: {
+                            duration: 1200,
+                            easing: 'easeInOutCubic',
+                            delay: (context) => {
+                                // Animação escalonada: cada barra aparece com delay
+                                return context.dataIndex * 100;
+                            }
+                        },
+                        interaction: {
+                            mode: 'index',
+                            intersect: false
+                        },
                         plugins: {
                             legend: {
-                                display: false
+                                display: true,
+                                position: 'top',
+                                align: 'end',
+                                labels: {
+                                    usePointStyle: true,
+                                    pointStyle: 'rectRounded',
+                                    padding: 15,
+                                    font: {
+                                        size: 12,
+                                        weight: '600'
+                                    },
+                                    color: '#64748b'
+                                }
                             },
+                            // Tooltip avançado e colorido
                             tooltip: {
-                                backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                                padding: 12,
+                                enabled: true,
+                                backgroundColor: 'rgba(30, 41, 59, 0.95)',
+                                padding: 16,
+                                cornerRadius: 8,
+                                titleFont: {
+                                    size: 15,
+                                    weight: 'bold',
+                                    family: "'Inter', sans-serif"
+                                },
+                                bodyFont: {
+                                    size: 14,
+                                    family: "'Inter', sans-serif"
+                                },
+                                bodySpacing: 8,
+                                borderWidth: 2,
+                                borderColor: (context) => {
+                                    return coresPremium[context.dataIndex % coresPremium.length];
+                                },
+                                displayColors: true,
                                 callbacks: {
+                                    title: function(context) {
+                                        return '💊 ' + context[0].label;
+                                    },
+                                    label: function(context) {
+                                        return 'Recomendações: ' + context.parsed.y + 'x';
+                                    },
                                     afterLabel: function(context) {
                                         const percentual = data.dados[context.dataIndex].percentual;
-                                        return `${percentual.toFixed(1)}% do total`;
+                                        return '📊 ' + percentual.toFixed(1) + '% do total';
+                                    },
+                                    footer: function(context) {
+                                        const ranking = context[0].dataIndex + 1;
+                                        return '\n🏆 #' + ranking + '° mais recomendado';
                                     }
                                 }
                             }
@@ -724,14 +1145,36 @@ function carregarMedicamentos(tipoGrafico = 'bar') {
                             [indexAxis === 'y' ? 'x' : 'y']: {
                                 beginAtZero: true,
                                 ticks: {
-                                    precision: 0
+                                    precision: 0,
+                                    font: {
+                                        size: 12,
+                                        weight: '500'
+                                    },
+                                    color: '#64748b',
+                                    padding: 10
                                 },
                                 grid: {
-                                    color: 'rgba(0, 0, 0, 0.05)'
+                                    color: 'rgba(148, 163, 184, 0.1)',
+                                    lineWidth: 1,
+                                    drawBorder: false
+                                },
+                                border: {
+                                    display: false
                                 }
                             },
                             [indexAxis === 'y' ? 'y' : 'x']: {
+                                ticks: {
+                                    font: {
+                                        size: 11,
+                                        weight: '500'
+                                    },
+                                    color: '#64748b',
+                                    padding: 10
+                                },
                                 grid: {
+                                    display: false
+                                },
+                                border: {
                                     display: false
                                 }
                             }
@@ -746,10 +1189,14 @@ function carregarMedicamentos(tipoGrafico = 'bar') {
         });
 }
 
-// Função para carregar gráfico de pacientes
+/**
+ * Função: carregarPacientes
+ * Carrega e renderiza gráfico de distribuição de pacientes
+ * @param {string} agrupamento - Tipo de agrupamento ('faixa_etaria' ou 'genero')
+ */
 function carregarPacientes(agrupamento = 'faixa_etaria') {
     const loading = document.getElementById('loading-pacientes');
-    loading.style.display = 'block';
+    loading.style.display = 'block';  // Exibe loading spinner
     
     fetch(`/api/estatisticas/pacientes?agrupamento=${agrupamento}`)
         .then(response => response.json())
@@ -764,52 +1211,132 @@ function carregarPacientes(agrupamento = 'faixa_etaria') {
                     pacientesChart.destroy();
                 }
                 
+                // Paleta de cores vibrante e moderna
+                const coresPacientes = [
+                    '#6366f1',  // Indigo
+                    '#8b5cf6',  // Violeta
+                    '#06b6d4',  // Ciano
+                    '#10b981',  // Verde
+                    '#f59e0b',  // Âmbar
+                    '#ef4444',  // Vermelho
+                    '#ec4899',  // Rosa
+                    '#a855f7'   // Roxo
+                ];
+                
+                // Versões mais escuras para hover
+                const coresHoverPacientes = [
+                    '#4f46e5',
+                    '#7c3aed',
+                    '#0891b2',
+                    '#059669',
+                    '#d97706',
+                    '#dc2626',
+                    '#db2777',
+                    '#9333ea'
+                ];
+                
                 // Criar novo gráfico
                 pacientesChart = new Chart(ctx, {
                     type: 'doughnut',
                     data: {
                         labels: data.dados.map(d => d.categoria),
                         datasets: [{
+                            label: 'Pacientes',
                             data: data.dados.map(d => d.count),
-                            backgroundColor: [
-                                '#6366f1',
-                                '#8b5cf6',
-                                '#06b6d4',
-                                '#10b981',
-                                '#f59e0b',
-                                '#ef4444'
-                            ],
-                            borderWidth: 0,
-                            hoverOffset: 4
+                            backgroundColor: coresPacientes,
+                            hoverBackgroundColor: coresHoverPacientes,
+                            borderColor: '#ffffff',
+                            borderWidth: 3,
+                            hoverBorderWidth: 4,
+                            hoverOffset: 15,  // Aumenta offset no hover
+                            spacing: 2  // Espaço entre segmentos
                         }]
                     },
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
+                        // Animação suave e rotativa
+                        animation: {
+                            animateRotate: true,
+                            animateScale: true,
+                            duration: 1500,
+                            easing: 'easeInOutQuart'
+                        },
+                        interaction: {
+                            mode: 'nearest',
+                            intersect: true
+                        },
                         plugins: {
                             legend: {
                                 position: 'bottom',
                                 labels: {
-                                    padding: 15,
+                                    padding: 20,
                                     usePointStyle: true,
+                                    pointStyle: 'circle',
                                     font: {
-                                        size: 12
+                                        size: 13,
+                                        weight: '600',
+                                        family: "'Inter', sans-serif"
+                                    },
+                                    color: '#64748b',
+                                    generateLabels: function(chart) {
+                                        const data = chart.data;
+                                        const total = data.datasets[0].data.reduce((a, b) => a + b, 0);
+                                        return data.labels.map((label, i) => {
+                                            const value = data.datasets[0].data[i];
+                                            const percent = ((value / total) * 100).toFixed(1);
+                                            return {
+                                                text: `${label} - ${value} (${percent}%)`,
+                                                fillStyle: data.datasets[0].backgroundColor[i],
+                                                hidden: false,
+                                                index: i
+                                            };
+                                        });
                                     }
                                 }
                             },
+                            // Tooltip avançado e informativo
                             tooltip: {
-                                backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                                padding: 12,
+                                enabled: true,
+                                backgroundColor: 'rgba(30, 41, 59, 0.95)',
+                                padding: 16,
+                                cornerRadius: 8,
+                                titleFont: {
+                                    size: 15,
+                                    weight: 'bold',
+                                    family: "'Inter', sans-serif"
+                                },
+                                bodyFont: {
+                                    size: 14,
+                                    family: "'Inter', sans-serif"
+                                },
+                                bodySpacing: 8,
+                                borderWidth: 3,
+                                borderColor: (context) => {
+                                    return coresPacientes[context.dataIndex];
+                                },
+                                displayColors: true,
                                 callbacks: {
+                                    title: function(context) {
+                                        return '👥 ' + context[0].label;
+                                    },
+                                    label: function(context) {
+                                        return 'Total: ' + context.parsed + ' pacientes';
+                                    },
                                     afterLabel: function(context) {
                                         const total = context.dataset.data.reduce((a, b) => a + b, 0);
                                         const percentual = (context.parsed / total * 100).toFixed(1);
-                                        return `${percentual}% do total`;
+                                        return '📊 ' + percentual + '% do total';
+                                    },
+                                    footer: function(context) {
+                                        const total = context[0].dataset.data.reduce((a, b) => a + b, 0);
+                                        return '\n📋 Total geral: ' + total + ' pacientes';
                                     }
                                 }
                             }
                         },
-                        cutout: '60%'
+                        cutout: '65%',  // Mais fino para visual moderno
+                        radius: '90%'   // Tamanho do gráfico
                     }
                 });
             }
@@ -820,17 +1347,27 @@ function carregarPacientes(agrupamento = 'faixa_etaria') {
         });
 }
 
-// Event listeners para botões de opções de gráfico
+// ==========================================
+// EVENT LISTENERS PARA ALTERNÂNCIA DE GRÁFICOS
+// Permite mudar entre linha/barra/pizza etc
+// ==========================================
+
+/**
+ * Event Listener: Botões de tipo de gráfico
+ * Detecta clique nos botões "Linha", "Barra", "Pizza" etc.
+ * e recarrega o gráfico correspondente com o novo tipo
+ */
 document.querySelectorAll('.chart-option-btn').forEach(btn => {
     btn.addEventListener('click', function() {
-        // Remover classe active de todos os botões do mesmo grupo
-        const chart = this.dataset.chart;
+        const chart = this.dataset.chart;  // Qual gráfico: consultas, medicamentos, pacientes
+        
+        // Remover classe 'active' de todos os botões do mesmo grupo
         document.querySelectorAll(`[data-chart="${chart}"]`).forEach(b => b.classList.remove('active'));
         
-        // Adicionar classe active ao botão clicado
+        // Adicionar classe 'active' ao botão clicado (destaque visual)
         this.classList.add('active');
         
-        // Recarregar gráfico com novo tipo
+        // Recarregar gráfico com novo tipo/agrupamento selecionado
         if (chart === 'consultas') {
             carregarConsultas(this.dataset.type);
         } else if (chart === 'medicamentos') {
@@ -841,8 +1378,18 @@ document.querySelectorAll('.chart-option-btn').forEach(btn => {
     });
 });
 
-// Carregar dados iniciais ao carregar a página
+// ==========================================
+// INICIALIZAÇÃO
+// Carrega todos os dados ao abrir a página
+// ==========================================
+
+/**
+ * Event Listener: DOMContentLoaded
+ * Aguarda carregamento completo do DOM antes de
+ * carregar dados das APIs (evita erros de elementos não encontrados)
+ */
 document.addEventListener('DOMContentLoaded', function() {
+    // Carregar dados iniciais com filtros padrão (último mês)
     aplicarFiltros();
 });
 </script>
