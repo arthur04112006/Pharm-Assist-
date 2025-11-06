@@ -603,11 +603,26 @@
                     </li>
                     
                     <!-- Link para estatísticas e admin -->
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('admin') }}">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="estatisticasDropdown" role="button" data-bs-toggle="dropdown">
                             <i class="bi bi-graph-up"></i> <!-- Ícone de gráfico -->
                             Estatísticas
                         </a>
+                        <ul class="dropdown-menu">
+                            <li>
+                                <a class="dropdown-item" href="{{ url_for('estatisticas_avancadas') }}">
+                                    <i class="bi bi-graph-up-arrow me-2"></i>
+                                    Estatísticas Avançadas
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item" href="{{ url_for('admin') }}">
+                                    <i class="bi bi-gear me-2"></i>
+                                    Painel Admin
+                                </a>
+                            </li>
+                        </ul>
                     </li>
                 </ul>
                 

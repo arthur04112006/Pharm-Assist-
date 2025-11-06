@@ -1,0 +1,850 @@
+{% extends "base.html" %}
+
+{% block title %}Estatísticas Avançadas - Pharm-Assist{% endblock %}
+
+{% block extra_css %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+    /* Painel de Filtros */
+    .filters-panel {
+        background: white;
+        border-radius: 1rem;
+        padding: 1.5rem;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        margin-bottom: 2rem;
+    }
+
+    .filter-group {
+        margin-bottom: 1rem;
+    }
+
+    .filter-group label {
+        font-weight: 600;
+        color: #475569;
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+
+    .filter-group select,
+    .filter-group input {
+        width: 100%;
+        padding: 0.5rem;
+        border: 1px solid #e2e8f0;
+        border-radius: 0.5rem;
+        font-size: 0.95rem;
+    }
+
+    .filter-group select:focus,
+    .filter-group input:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+    }
+
+    .btn-filter {
+        background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+        color: white;
+        border: none;
+        padding: 0.75rem 2rem;
+        border-radius: 0.5rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+
+    .btn-filter:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px rgba(99, 102, 241, 0.3);
+    }
+
+    .btn-reset {
+        background: white;
+        color: var(--text-secondary);
+        border: 2px solid #e2e8f0;
+        padding: 0.75rem 2rem;
+        border-radius: 0.5rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+        margin-left: 0.5rem;
+    }
+
+    .btn-reset:hover {
+        border-color: var(--primary-color);
+        color: var(--primary-color);
+    }
+
+    /* Cards de Métricas */
+    .metric-card {
+        background: white;
+        border-radius: 1rem;
+        padding: 1.5rem;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s;
+        border-left: 4px solid;
+    }
+
+    .metric-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+    }
+
+    .metric-card.primary {
+        border-left-color: #6366f1;
+    }
+
+    .metric-card.success {
+        border-left-color: #10b981;
+    }
+
+    .metric-card.info {
+        border-left-color: #06b6d4;
+    }
+
+    .metric-card.warning {
+        border-left-color: #f59e0b;
+    }
+
+    .metric-value {
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin-bottom: 0.5rem;
+    }
+
+    .metric-label {
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        font-weight: 500;
+    }
+
+    .metric-icon {
+        font-size: 2rem;
+        opacity: 0.3;
+        float: right;
+    }
+
+    /* Cards de Gráficos */
+    .chart-card {
+        background: white;
+        border-radius: 1rem;
+        padding: 1.5rem;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        margin-bottom: 2rem;
+    }
+
+    .chart-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid #f1f5f9;
+    }
+
+    .chart-title {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: var(--text-primary);
+    }
+
+    .chart-subtitle {
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+        margin-top: 0.25rem;
+    }
+
+    .chart-container {
+        position: relative;
+        height: 400px;
+        margin: 1rem 0;
+    }
+
+    .chart-options {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .chart-option-btn {
+        padding: 0.5rem 1rem;
+        border: 1px solid #e2e8f0;
+        background: white;
+        border-radius: 0.5rem;
+        cursor: pointer;
+        font-size: 0.875rem;
+        transition: all 0.2s;
+    }
+
+    .chart-option-btn.active {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+
+    .chart-option-btn:hover:not(.active) {
+        border-color: var(--primary-color);
+        color: var(--primary-color);
+    }
+
+    /* Loading Spinner */
+    .loading-spinner {
+        display: none;
+        text-align: center;
+        padding: 2rem;
+    }
+
+    .spinner {
+        border: 4px solid #f3f4f6;
+        border-top: 4px solid var(--primary-color);
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+        margin: 0 auto;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    /* Status Badge */
+    .status-badge {
+        display: inline-block;
+        padding: 0.25rem 0.75rem;
+        border-radius: 1rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .status-badge.success {
+        background: #d1fae5;
+        color: #065f46;
+    }
+
+    .status-badge.warning {
+        background: #fef3c7;
+        color: #92400e;
+    }
+
+    .status-badge.info {
+        background: #dbeafe;
+        color: #1e40af;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .chart-container {
+            height: 300px;
+        }
+
+        .metric-value {
+            font-size: 1.5rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Cabeçalho -->
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">
+        <i class="bi bi-graph-up text-primary"></i>
+        Estatísticas Avançadas
+    </h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Voltar ao Dashboard
+        </a>
+    </div>
+</div>
+
+<!-- Painel de Filtros -->
+<div class="filters-panel">
+    <div class="row">
+        <div class="col-md-3">
+            <div class="filter-group">
+                <label for="periodo-filter">
+                    <i class="bi bi-calendar3"></i> Período
+                </label>
+                <select id="periodo-filter" class="form-select">
+                    <option value="dia">Hoje</option>
+                    <option value="semana">Última Semana</option>
+                    <option value="mes" selected>Último Mês</option>
+                    <option value="ano">Último Ano</option>
+                    <option value="personalizado">Personalizado</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="col-md-3" id="data-inicio-group" style="display: none;">
+            <div class="filter-group">
+                <label for="data-inicio">
+                    <i class="bi bi-calendar-check"></i> Data Início
+                </label>
+                <input type="date" id="data-inicio" class="form-control">
+            </div>
+        </div>
+        
+        <div class="col-md-3" id="data-fim-group" style="display: none;">
+            <div class="filter-group">
+                <label for="data-fim">
+                    <i class="bi bi-calendar-check"></i> Data Fim
+                </label>
+                <input type="date" id="data-fim" class="form-control">
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="filter-group">
+                <label for="limite-filter">
+                    <i class="bi bi-list-ol"></i> Limite de Resultados
+                </label>
+                <select id="limite-filter" class="form-select">
+                    <option value="5">Top 5</option>
+                    <option value="10" selected>Top 10</option>
+                    <option value="15">Top 15</option>
+                    <option value="20">Top 20</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="col-md-3 d-flex align-items-end">
+            <button class="btn-filter" onclick="aplicarFiltros()">
+                <i class="bi bi-funnel"></i> Aplicar Filtros
+            </button>
+            <button class="btn-reset" onclick="resetarFiltros()">
+                <i class="bi bi-x-circle"></i> Limpar
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Cards de Métricas -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="metric-card primary">
+            <i class="bi bi-clipboard-pulse metric-icon"></i>
+            <div class="metric-value" id="metric-consultas">--</div>
+            <div class="metric-label">Total de Consultas</div>
+            <div class="mt-2">
+                <span class="status-badge info" id="periodo-badge">Último Mês</span>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="metric-card warning">
+            <i class="bi bi-exclamation-triangle metric-icon"></i>
+            <div class="metric-value" id="metric-encaminhamentos">--</div>
+            <div class="metric-label">Encaminhamentos</div>
+            <div class="mt-2">
+                <span class="status-badge warning" id="taxa-encaminhamento">--</span>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="metric-card success">
+            <i class="bi bi-check-circle metric-icon"></i>
+            <div class="metric-value" id="metric-resolucao">--</div>
+            <div class="metric-label">Taxa de Resolução</div>
+            <div class="mt-2">
+                <span class="status-badge success" id="taxa-resolucao-badge">--</span>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="metric-card info">
+            <i class="bi bi-people metric-icon"></i>
+            <div class="metric-value" id="metric-pacientes">--</div>
+            <div class="metric-label">Pacientes Atendidos</div>
+            <div class="mt-2">
+                <span class="status-badge info" id="media-dia">--</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Gráficos -->
+<div class="row">
+    <!-- Gráfico de Consultas por Dia -->
+    <div class="col-lg-8 mb-4">
+        <div class="chart-card">
+            <div class="chart-header">
+                <div>
+                    <div class="chart-title">
+                        <i class="bi bi-graph-up-arrow text-primary"></i>
+                        Consultas por Período
+                    </div>
+                    <div class="chart-subtitle">Evolução temporal das consultas realizadas</div>
+                </div>
+                <div class="chart-options">
+                    <button class="chart-option-btn active" data-chart="consultas" data-type="line">
+                        <i class="bi bi-graph-up"></i> Linha
+                    </button>
+                    <button class="chart-option-btn" data-chart="consultas" data-type="bar">
+                        <i class="bi bi-bar-chart"></i> Barras
+                    </button>
+                </div>
+            </div>
+            <div class="loading-spinner" id="loading-consultas">
+                <div class="spinner"></div>
+                <p class="mt-2 text-muted">Carregando dados...</p>
+            </div>
+            <div class="chart-container">
+                <canvas id="consultasChart"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Gráfico de Pacientes -->
+    <div class="col-lg-4 mb-4">
+        <div class="chart-card">
+            <div class="chart-header">
+                <div>
+                    <div class="chart-title">
+                        <i class="bi bi-people-fill text-success"></i>
+                        Distribuição de Pacientes
+                    </div>
+                    <div class="chart-subtitle">Por faixa etária</div>
+                </div>
+                <div class="chart-options">
+                    <button class="chart-option-btn active" data-chart="pacientes" data-agrupamento="faixa_etaria">
+                        <i class="bi bi-person"></i> Idade
+                    </button>
+                    <button class="chart-option-btn" data-chart="pacientes" data-agrupamento="genero">
+                        <i class="bi bi-gender-ambiguous"></i> Gênero
+                    </button>
+                </div>
+            </div>
+            <div class="loading-spinner" id="loading-pacientes">
+                <div class="spinner"></div>
+                <p class="mt-2 text-muted">Carregando dados...</p>
+            </div>
+            <div class="chart-container">
+                <canvas id="pacientesChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Gráfico de Medicamentos -->
+    <div class="col-lg-12 mb-4">
+        <div class="chart-card">
+            <div class="chart-header">
+                <div>
+                    <div class="chart-title">
+                        <i class="bi bi-capsule text-warning"></i>
+                        Medicamentos Mais Recomendados
+                    </div>
+                    <div class="chart-subtitle">Ranking de medicamentos por frequência de recomendação</div>
+                </div>
+                <div class="chart-options">
+                    <button class="chart-option-btn active" data-chart="medicamentos" data-type="bar">
+                        <i class="bi bi-bar-chart-fill"></i> Barras
+                    </button>
+                    <button class="chart-option-btn" data-chart="medicamentos" data-type="horizontalBar">
+                        <i class="bi bi-bar-chart"></i> Horizontal
+                    </button>
+                </div>
+            </div>
+            <div class="loading-spinner" id="loading-medicamentos">
+                <div class="spinner"></div>
+                <p class="mt-2 text-muted">Carregando dados...</p>
+            </div>
+            <div class="chart-container">
+                <canvas id="medicamentosChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Variáveis globais para os gráficos
+let consultasChart = null;
+let medicamentosChart = null;
+let pacientesChart = null;
+
+// Configurações padrão do Chart.js
+Chart.defaults.font.family = 'Inter, sans-serif';
+Chart.defaults.color = '#64748b';
+
+// Mostrar/ocultar campos de data personalizada
+document.getElementById('periodo-filter').addEventListener('change', function() {
+    const periodo = this.value;
+    const dataInicioGroup = document.getElementById('data-inicio-group');
+    const dataFimGroup = document.getElementById('data-fim-group');
+    
+    if (periodo === 'personalizado') {
+        dataInicioGroup.style.display = 'block';
+        dataFimGroup.style.display = 'block';
+        
+        // Definir datas padrão
+        const hoje = new Date();
+        const umMesAtras = new Date();
+        umMesAtras.setMonth(umMesAtras.getMonth() - 1);
+        
+        document.getElementById('data-fim').valueAsDate = hoje;
+        document.getElementById('data-inicio').valueAsDate = umMesAtras;
+    } else {
+        dataInicioGroup.style.display = 'none';
+        dataFimGroup.style.display = 'none';
+    }
+});
+
+// Função para aplicar filtros
+function aplicarFiltros() {
+    carregarDesempenho();
+    carregarConsultas();
+    carregarMedicamentos();
+    carregarPacientes('faixa_etaria');
+}
+
+// Função para resetar filtros
+function resetarFiltros() {
+    document.getElementById('periodo-filter').value = 'mes';
+    document.getElementById('limite-filter').value = '10';
+    document.getElementById('data-inicio-group').style.display = 'none';
+    document.getElementById('data-fim-group').style.display = 'none';
+    aplicarFiltros();
+}
+
+// Função para obter parâmetros de filtro
+function getFiltroParams() {
+    const periodo = document.getElementById('periodo-filter').value;
+    const params = new URLSearchParams();
+    
+    if (periodo === 'personalizado') {
+        const dataInicio = document.getElementById('data-inicio').value;
+        const dataFim = document.getElementById('data-fim').value;
+        if (dataInicio && dataFim) {
+            params.append('data_inicio', dataInicio);
+            params.append('data_fim', dataFim);
+        }
+    } else {
+        params.append('periodo', periodo);
+    }
+    
+    return params;
+}
+
+// Função para carregar métricas de desempenho
+function carregarDesempenho() {
+    const params = getFiltroParams();
+    
+    fetch(`/api/estatisticas/desempenho?${params}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const m = data.metricas;
+                document.getElementById('metric-consultas').textContent = m.total_consultas;
+                document.getElementById('metric-encaminhamentos').textContent = m.total_encaminhamentos;
+                document.getElementById('metric-resolucao').textContent = m.taxa_resolucao + '%';
+                document.getElementById('metric-pacientes').textContent = m.total_pacientes_atendidos;
+                
+                document.getElementById('taxa-encaminhamento').textContent = m.taxa_encaminhamento + '% encaminhados';
+                document.getElementById('taxa-resolucao-badge').textContent = m.taxa_resolucao + '% resolvidos';
+                document.getElementById('media-dia').textContent = m.media_consultas_dia + ' consultas/dia';
+                
+                // Atualizar badge de período
+                const periodoTexto = {
+                    'dia': 'Hoje',
+                    'semana': 'Última Semana',
+                    'mes': 'Último Mês',
+                    'ano': 'Último Ano',
+                    'personalizado': 'Período Personalizado'
+                };
+                document.getElementById('periodo-badge').textContent = periodoTexto[data.periodo] || 'Último Mês';
+            }
+        })
+        .catch(error => console.error('Erro ao carregar desempenho:', error));
+}
+
+// Função para carregar gráfico de consultas
+function carregarConsultas(tipoGrafico = 'line') {
+    const params = getFiltroParams();
+    const loading = document.getElementById('loading-consultas');
+    loading.style.display = 'block';
+    
+    fetch(`/api/estatisticas/consultas?${params}`)
+        .then(response => response.json())
+        .then(data => {
+            loading.style.display = 'none';
+            
+            if (data.success) {
+                const ctx = document.getElementById('consultasChart').getContext('2d');
+                
+                // Destruir gráfico anterior se existir
+                if (consultasChart) {
+                    consultasChart.destroy();
+                }
+                
+                // Criar novo gráfico
+                consultasChart = new Chart(ctx, {
+                    type: tipoGrafico,
+                    data: {
+                        labels: data.dados.map(d => d.data),
+                        datasets: [{
+                            label: 'Consultas',
+                            data: data.dados.map(d => d.count),
+                            backgroundColor: tipoGrafico === 'line' ? 'rgba(99, 102, 241, 0.1)' : 'rgba(99, 102, 241, 0.8)',
+                            borderColor: '#6366f1',
+                            borderWidth: 2,
+                            tension: 0.4,
+                            fill: true,
+                            pointBackgroundColor: '#6366f1',
+                            pointBorderColor: '#ffffff',
+                            pointBorderWidth: 2,
+                            pointRadius: 5,
+                            pointHoverRadius: 7
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            tooltip: {
+                                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                                padding: 12,
+                                titleFont: {
+                                    size: 14
+                                },
+                                bodyFont: {
+                                    size: 13
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    precision: 0
+                                },
+                                grid: {
+                                    color: 'rgba(0, 0, 0, 0.05)'
+                                }
+                            },
+                            x: {
+                                grid: {
+                                    display: false
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        })
+        .catch(error => {
+            loading.style.display = 'none';
+            console.error('Erro ao carregar consultas:', error);
+        });
+}
+
+// Função para carregar gráfico de medicamentos
+function carregarMedicamentos(tipoGrafico = 'bar') {
+    const params = getFiltroParams();
+    params.append('limite', document.getElementById('limite-filter').value);
+    
+    const loading = document.getElementById('loading-medicamentos');
+    loading.style.display = 'block';
+    
+    fetch(`/api/estatisticas/medicamentos?${params}`)
+        .then(response => response.json())
+        .then(data => {
+            loading.style.display = 'none';
+            
+            if (data.success) {
+                const ctx = document.getElementById('medicamentosChart').getContext('2d');
+                
+                // Destruir gráfico anterior se existir
+                if (medicamentosChart) {
+                    medicamentosChart.destroy();
+                }
+                
+                // Configurar tipo de gráfico
+                const chartType = tipoGrafico === 'horizontalBar' ? 'bar' : tipoGrafico;
+                const indexAxis = tipoGrafico === 'horizontalBar' ? 'y' : 'x';
+                
+                // Criar novo gráfico
+                medicamentosChart = new Chart(ctx, {
+                    type: chartType,
+                    data: {
+                        labels: data.dados.map(d => d.medicamento),
+                        datasets: [{
+                            label: 'Recomendações',
+                            data: data.dados.map(d => d.count),
+                            backgroundColor: [
+                                'rgba(249, 115, 22, 0.8)',
+                                'rgba(251, 146, 60, 0.8)',
+                                'rgba(253, 186, 116, 0.8)',
+                                'rgba(254, 215, 170, 0.8)',
+                                'rgba(255, 237, 213, 0.8)',
+                                'rgba(245, 208, 254, 0.8)',
+                                'rgba(233, 213, 255, 0.8)',
+                                'rgba(196, 181, 253, 0.8)',
+                                'rgba(167, 139, 250, 0.8)',
+                                'rgba(139, 92, 246, 0.8)'
+                            ],
+                            borderColor: 'rgba(249, 115, 22, 1)',
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        indexAxis: indexAxis,
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            tooltip: {
+                                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                                padding: 12,
+                                callbacks: {
+                                    afterLabel: function(context) {
+                                        const percentual = data.dados[context.dataIndex].percentual;
+                                        return `${percentual.toFixed(1)}% do total`;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            [indexAxis === 'y' ? 'x' : 'y']: {
+                                beginAtZero: true,
+                                ticks: {
+                                    precision: 0
+                                },
+                                grid: {
+                                    color: 'rgba(0, 0, 0, 0.05)'
+                                }
+                            },
+                            [indexAxis === 'y' ? 'y' : 'x']: {
+                                grid: {
+                                    display: false
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        })
+        .catch(error => {
+            loading.style.display = 'none';
+            console.error('Erro ao carregar medicamentos:', error);
+        });
+}
+
+// Função para carregar gráfico de pacientes
+function carregarPacientes(agrupamento = 'faixa_etaria') {
+    const loading = document.getElementById('loading-pacientes');
+    loading.style.display = 'block';
+    
+    fetch(`/api/estatisticas/pacientes?agrupamento=${agrupamento}`)
+        .then(response => response.json())
+        .then(data => {
+            loading.style.display = 'none';
+            
+            if (data.success) {
+                const ctx = document.getElementById('pacientesChart').getContext('2d');
+                
+                // Destruir gráfico anterior se existir
+                if (pacientesChart) {
+                    pacientesChart.destroy();
+                }
+                
+                // Criar novo gráfico
+                pacientesChart = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: data.dados.map(d => d.categoria),
+                        datasets: [{
+                            data: data.dados.map(d => d.count),
+                            backgroundColor: [
+                                '#6366f1',
+                                '#8b5cf6',
+                                '#06b6d4',
+                                '#10b981',
+                                '#f59e0b',
+                                '#ef4444'
+                            ],
+                            borderWidth: 0,
+                            hoverOffset: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    padding: 15,
+                                    usePointStyle: true,
+                                    font: {
+                                        size: 12
+                                    }
+                                }
+                            },
+                            tooltip: {
+                                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                                padding: 12,
+                                callbacks: {
+                                    afterLabel: function(context) {
+                                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                        const percentual = (context.parsed / total * 100).toFixed(1);
+                                        return `${percentual}% do total`;
+                                    }
+                                }
+                            }
+                        },
+                        cutout: '60%'
+                    }
+                });
+            }
+        })
+        .catch(error => {
+            loading.style.display = 'none';
+            console.error('Erro ao carregar pacientes:', error);
+        });
+}
+
+// Event listeners para botões de opções de gráfico
+document.querySelectorAll('.chart-option-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        // Remover classe active de todos os botões do mesmo grupo
+        const chart = this.dataset.chart;
+        document.querySelectorAll(`[data-chart="${chart}"]`).forEach(b => b.classList.remove('active'));
+        
+        // Adicionar classe active ao botão clicado
+        this.classList.add('active');
+        
+        // Recarregar gráfico com novo tipo
+        if (chart === 'consultas') {
+            carregarConsultas(this.dataset.type);
+        } else if (chart === 'medicamentos') {
+            carregarMedicamentos(this.dataset.type);
+        } else if (chart === 'pacientes') {
+            carregarPacientes(this.dataset.agrupamento);
+        }
+    });
+});
+
+// Carregar dados iniciais ao carregar a página
+document.addEventListener('DOMContentLoaded', function() {
+    aplicarFiltros();
+});
+</script>
+{% endblock %}
+

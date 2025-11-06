@@ -1396,6 +1396,12 @@ def gerar_relatorio(consulta_id):
         flash(f'Erro ao gerar relatório: {str(e)}', 'error')
         return redirect(url_for('resultado_triagem', consulta_id=consulta_id))
 
+@app.route('/estatisticas')
+@login_required
+def estatisticas_avancadas():
+    """Página de estatísticas avançadas com filtros e gráficos interativos"""
+    return render_template('estatisticas_avancadas.html')
+
 @app.route('/admin')
 @admin_required
 def admin():
@@ -1671,6 +1677,275 @@ def api_medicamentos_adicionais(consulta_id):
             'success': False,
             'error': str(e)
         }), 500
+
+@app.route('/api/estatisticas/consultas')
+@login_required
+def api_estatisticas_consultas():
+    """API para dados de consultas com filtros dinâmicos"""
+    try:
+        # Parâmetros de filtro
+        periodo = request.args.get('periodo', 'mes')  # dia, semana, mes, ano
+        data_inicio = request.args.get('data_inicio')
+        data_fim = request.args.get('data_fim')
+        
+        # Query base
+        query = Consulta.query
+        
+        # Aplicar filtros de data
+        if data_inicio and data_fim:
+            try:
+                inicio = datetime.strptime(data_inicio, '%Y-%m-%d')
+                fim = datetime.strptime(data_fim, '%Y-%m-%d')
+                fim = fim.replace(hour=23, minute=59, second=59)
+                query = query.filter(Consulta.data >= inicio, Consulta.data <= fim)
+            except ValueError:
+                return jsonify({'success': False, 'error': 'Formato de data inválido'}), 400
+        else:
+            # Aplicar período padrão
+            hoje = datetime.now()
+            if periodo == 'dia':
+                inicio = hoje.replace(hour=0, minute=0, second=0, microsecond=0)
+            elif periodo == 'semana':
+                inicio = hoje - timedelta(days=7)
+            elif periodo == 'mes':
+                inicio = hoje - timedelta(days=30)
+            elif periodo == 'ano':
+                inicio = hoje - timedelta(days=365)
+            else:
+                inicio = hoje - timedelta(days=30)  # padrão: mês
+            
+            query = query.filter(Consulta.data >= inicio)
+        
+        # Buscar consultas
+        consultas = query.order_by(Consulta.data.desc()).all()
+        
+        # Preparar dados por dia
+        consultas_por_dia = {}
+        for consulta in consultas:
+            data_str = consulta.data.strftime('%Y-%m-%d')
+            if data_str not in consultas_por_dia:
+                consultas_por_dia[data_str] = {
+                    'data': consulta.data.strftime('%d/%m'),
+                    'data_completa': data_str,
+                    'count': 0,
+                    'encaminhamentos': 0
+                }
+            consultas_por_dia[data_str]['count'] += 1
+            if consulta.encaminhamento:
+                consultas_por_dia[data_str]['encaminhamentos'] += 1
+        
+        # Ordenar por data
+        dados_ordenados = sorted(consultas_por_dia.values(), key=lambda x: x['data_completa'])
+        
+        return jsonify({
+            'success': True,
+            'periodo': periodo,
+            'total_consultas': len(consultas),
+            'dados': dados_ordenados
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/estatisticas/medicamentos')
+@login_required
+def api_estatisticas_medicamentos():
+    """API para dados de medicamentos mais recomendados com filtros"""
+    try:
+        # Parâmetros de filtro
+        periodo = request.args.get('periodo', 'mes')
+        limite = request.args.get('limite', 10, type=int)
+        data_inicio = request.args.get('data_inicio')
+        data_fim = request.args.get('data_fim')
+        
+        # Query base
+        query = ConsultaRecomendacao.query.join(Consulta).filter(
+            ConsultaRecomendacao.tipo == 'medicamento'
+        )
+        
+        # Aplicar filtros de data
+        if data_inicio and data_fim:
+            try:
+                inicio = datetime.strptime(data_inicio, '%Y-%m-%d')
+                fim = datetime.strptime(data_fim, '%Y-%m-%d')
+                fim = fim.replace(hour=23, minute=59, second=59)
+                query = query.filter(Consulta.data >= inicio, Consulta.data <= fim)
+            except ValueError:
+                return jsonify({'success': False, 'error': 'Formato de data inválido'}), 400
+        else:
+            # Aplicar período padrão
+            hoje = datetime.now()
+            if periodo == 'dia':
+                inicio = hoje.replace(hour=0, minute=0, second=0, microsecond=0)
+            elif periodo == 'semana':
+                inicio = hoje - timedelta(days=7)
+            elif periodo == 'mes':
+                inicio = hoje - timedelta(days=30)
+            elif periodo == 'ano':
+                inicio = hoje - timedelta(days=365)
+            else:
+                inicio = hoje - timedelta(days=30)
+            
+            query = query.filter(Consulta.data >= inicio)
+        
+        # Buscar medicamentos
+        medicamentos_raw = query.all()
+        
+        # Processar e agrupar por nome base
+        medicamentos_dict = {}
+        for rec in medicamentos_raw:
+            nome_base = rec.descricao.split(' - ')[0].split(' | ')[0].strip()
+            if nome_base in medicamentos_dict:
+                medicamentos_dict[nome_base] += 1
+            else:
+                medicamentos_dict[nome_base] = 1
+        
+        # Ordenar e limitar
+        medicamentos_ordenados = sorted(
+            medicamentos_dict.items(),
+            key=lambda x: x[1],
+            reverse=True
+        )[:limite]
+        
+        # Preparar dados para o gráfico
+        dados = [
+            {
+                'medicamento': nome,
+                'count': count,
+                'percentual': (count / len(medicamentos_raw) * 100) if medicamentos_raw else 0
+            }
+            for nome, count in medicamentos_ordenados
+        ]
+        
+        return jsonify({
+            'success': True,
+            'periodo': periodo,
+            'total_recomendacoes': len(medicamentos_raw),
+            'medicamentos_unicos': len(medicamentos_dict),
+            'dados': dados
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/estatisticas/pacientes')
+@login_required
+def api_estatisticas_pacientes():
+    """API para dados de pacientes com filtros"""
+    try:
+        # Parâmetros de filtro
+        agrupamento = request.args.get('agrupamento', 'faixa_etaria')  # faixa_etaria, genero, doencas
+        
+        if agrupamento == 'faixa_etaria':
+            faixas = [
+                {'faixa': '0-18', 'min': 0, 'max': 18},
+                {'faixa': '19-30', 'min': 19, 'max': 30},
+                {'faixa': '31-50', 'min': 31, 'max': 50},
+                {'faixa': '51-65', 'min': 51, 'max': 65},
+                {'faixa': '65+', 'min': 65, 'max': 120}
+            ]
+            
+            dados = []
+            for faixa in faixas:
+                count = Paciente.query.filter(
+                    Paciente.idade >= faixa['min'],
+                    Paciente.idade <= faixa['max']
+                ).count()
+                dados.append({
+                    'categoria': faixa['faixa'] + ' anos',
+                    'count': count
+                })
+        
+        elif agrupamento == 'genero':
+            masculino = Paciente.query.filter_by(sexo='M').count()
+            feminino = Paciente.query.filter_by(sexo='F').count()
+            total = Paciente.query.count()
+            outros = total - masculino - feminino
+            
+            dados = [
+                {'categoria': 'Masculino', 'count': masculino},
+                {'categoria': 'Feminino', 'count': feminino}
+            ]
+            if outros > 0:
+                dados.append({'categoria': 'Outros', 'count': outros})
+        
+        else:
+            return jsonify({'success': False, 'error': 'Agrupamento inválido'}), 400
+        
+        return jsonify({
+            'success': True,
+            'agrupamento': agrupamento,
+            'total_pacientes': Paciente.query.count(),
+            'dados': dados
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/estatisticas/desempenho')
+@login_required
+def api_estatisticas_desempenho():
+    """API para métricas de desempenho do sistema"""
+    try:
+        periodo = request.args.get('periodo', 'mes')
+        
+        # Calcular período
+        hoje = datetime.now()
+        if periodo == 'dia':
+            inicio = hoje.replace(hour=0, minute=0, second=0, microsecond=0)
+        elif periodo == 'semana':
+            inicio = hoje - timedelta(days=7)
+        elif periodo == 'mes':
+            inicio = hoje - timedelta(days=30)
+        elif periodo == 'ano':
+            inicio = hoje - timedelta(days=365)
+        else:
+            inicio = hoje - timedelta(days=30)
+        
+        # Métricas
+        total_consultas = Consulta.query.filter(Consulta.data >= inicio).count()
+        total_encaminhamentos = Consulta.query.filter(
+            Consulta.data >= inicio,
+            Consulta.encaminhamento == True
+        ).count()
+        total_pacientes_atendidos = db.session.query(Consulta.id_paciente).filter(
+            Consulta.data >= inicio
+        ).distinct().count()
+        
+        # Taxa de encaminhamentos
+        taxa_encaminhamento = (total_encaminhamentos / total_consultas * 100) if total_consultas > 0 else 0
+        
+        # Taxa de resolução (consultas que não precisaram de encaminhamento)
+        taxa_resolucao = 100 - taxa_encaminhamento
+        
+        # Média de consultas por dia
+        dias = (hoje - inicio).days + 1
+        media_consultas_dia = total_consultas / dias if dias > 0 else 0
+        
+        # Medicamentos mais recomendados
+        medicamentos_raw = db.session.query(ConsultaRecomendacao.descricao).join(Consulta).filter(
+            Consulta.data >= inicio,
+            ConsultaRecomendacao.tipo == 'medicamento'
+        ).all()
+        
+        total_recomendacoes = len(medicamentos_raw)
+        
+        return jsonify({
+            'success': True,
+            'periodo': periodo,
+            'metricas': {
+                'total_consultas': total_consultas,
+                'total_encaminhamentos': total_encaminhamentos,
+                'total_pacientes_atendidos': total_pacientes_atendidos,
+                'total_recomendacoes': total_recomendacoes,
+                'taxa_encaminhamento': round(taxa_encaminhamento, 1),
+                'taxa_resolucao': round(taxa_resolucao, 1),
+                'media_consultas_dia': round(media_consultas_dia, 1)
+            }
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.errorhandler(404)
 def not_found_error(error):
