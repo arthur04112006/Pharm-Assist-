@@ -1681,12 +1681,14 @@ def api_medicamentos_adicionais(consulta_id):
 @app.route('/api/estatisticas/consultas')
 @login_required
 def api_estatisticas_consultas():
-    """API para dados de consultas com filtros dinâmicos"""
+    """API para dados de consultas com filtros dinâmicos e cálculo de médias"""
     try:
         # Parâmetros de filtro
-        periodo = request.args.get('periodo', 'mes')  # dia, semana, mes, ano
+        periodo = request.args.get('periodo', 'mes')  # dia, semana, mes, ano, 7dias, 30dias, 90dias
         data_inicio = request.args.get('data_inicio')
         data_fim = request.args.get('data_fim')
+        tipo_media = request.args.get('tipo_media', 'simples')  # simples ou movel
+        janela_media = int(request.args.get('janela_media', '7'))  # Janela para média móvel (padrão: 7 dias)
         
         # Query base
         query = Consulta.query
@@ -1705,8 +1707,12 @@ def api_estatisticas_consultas():
             hoje = datetime.now()
             if periodo == 'dia':
                 inicio = hoje.replace(hour=0, minute=0, second=0, microsecond=0)
-            elif periodo == 'semana':
+            elif periodo == 'semana' or periodo == '7dias':
                 inicio = hoje - timedelta(days=7)
+            elif periodo == '30dias':
+                inicio = hoje - timedelta(days=30)
+            elif periodo == '90dias':
+                inicio = hoje - timedelta(days=90)
             elif periodo == 'mes':
                 inicio = hoje - timedelta(days=30)
             elif periodo == 'ano':
@@ -1717,7 +1723,7 @@ def api_estatisticas_consultas():
             query = query.filter(Consulta.data >= inicio)
         
         # Buscar consultas
-        consultas = query.order_by(Consulta.data.desc()).all()
+        consultas = query.order_by(Consulta.data.asc()).all()  # Ordenar crescente para cálculos
         
         # Preparar dados por dia
         consultas_por_dia = {}
@@ -1737,10 +1743,37 @@ def api_estatisticas_consultas():
         # Ordenar por data
         dados_ordenados = sorted(consultas_por_dia.values(), key=lambda x: x['data_completa'])
         
+        # Calcular média
+        valores = [d['count'] for d in dados_ordenados]
+        media_dados = []
+        
+        if tipo_media == 'simples':
+            # Média simples: mesmo valor para todos os pontos
+            media_simples = sum(valores) / len(valores) if len(valores) > 0 else 0
+            media_dados = [round(media_simples, 2) for _ in valores]
+        
+        elif tipo_media == 'movel':
+            # Média móvel: média dos últimos N dias
+            for i in range(len(valores)):
+                if i < janela_media - 1:
+                    # Para os primeiros pontos, usa média dos valores disponíveis até ali
+                    media_dados.append(round(sum(valores[:i+1]) / (i+1), 2))
+                else:
+                    # Média móvel dos últimos N dias
+                    janela = valores[i-janela_media+1:i+1]
+                    media_dados.append(round(sum(janela) / janela_media, 2))
+        
+        # Adicionar média aos dados
+        for i, dado in enumerate(dados_ordenados):
+            dado['media'] = media_dados[i] if i < len(media_dados) else 0
+        
         return jsonify({
             'success': True,
             'periodo': periodo,
             'total_consultas': len(consultas),
+            'tipo_media': tipo_media,
+            'janela_media': janela_media,
+            'media_geral': round(sum(valores) / len(valores), 2) if len(valores) > 0 else 0,
             'dados': dados_ordenados
         })
         
@@ -1887,14 +1920,18 @@ def api_estatisticas_pacientes():
 def api_estatisticas_desempenho():
     """API para métricas de desempenho do sistema"""
     try:
-        periodo = request.args.get('periodo', 'mes')
+        periodo = request.args.get('periodo', '30dias')
         
         # Calcular período
         hoje = datetime.now()
         if periodo == 'dia':
             inicio = hoje.replace(hour=0, minute=0, second=0, microsecond=0)
-        elif periodo == 'semana':
+        elif periodo == 'semana' or periodo == '7dias':
             inicio = hoje - timedelta(days=7)
+        elif periodo == '30dias':
+            inicio = hoje - timedelta(days=30)
+        elif periodo == '90dias':
+            inicio = hoje - timedelta(days=90)
         elif periodo == 'mes':
             inicio = hoje - timedelta(days=30)
         elif periodo == 'ano':

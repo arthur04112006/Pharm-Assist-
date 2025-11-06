@@ -463,8 +463,9 @@
                 </label>
                 <select id="periodo-filter" class="form-select">
                     <option value="dia">Hoje</option>
-                    <option value="semana">Última Semana</option>
-                    <option value="mes" selected>Último Mês</option>
+                    <option value="7dias">Últimos 7 Dias</option>
+                    <option value="30dias" selected>Últimos 30 Dias</option>
+                    <option value="90dias">Últimos 90 Dias</option>
                     <option value="ano">Último Ano</option>
                     <option value="personalizado">Personalizado</option>
                 </select>
@@ -503,7 +504,7 @@
             </div>
         </div>
         
-        <div class="col-md-3 d-flex align-items-end">
+        <div class="col-md-12 d-flex justify-content-center mt-3">
             <button class="btn-filter" onclick="aplicarFiltros()">
                 <i class="bi bi-funnel"></i> Aplicar Filtros
             </button>
@@ -722,6 +723,7 @@ document.getElementById('periodo-filter').addEventListener('change', function() 
     }
 });
 
+
 // ==========================================
 // 3. FUNÇÕES DE FILTROS
 // Gerenciam aplicação e reset de filtros
@@ -746,7 +748,7 @@ function aplicarFiltros() {
  */
 function resetarFiltros() {
     // Restaurar valores padrão
-    document.getElementById('periodo-filter').value = 'mes';
+    document.getElementById('periodo-filter').value = '30dias';
     document.getElementById('limite-filter').value = '10';
     
     // Ocultar campos de data personalizada
@@ -778,6 +780,10 @@ function getFiltroParams() {
         // Caso contrário, usa período pré-definido
         params.append('periodo', periodo);
     }
+    
+    // Usar média móvel de 7 dias por padrão (acompanha a tendência)
+    params.append('tipo_media', 'movel');
+    params.append('janela_media', '7');
     
     return params;
 }
@@ -816,12 +822,15 @@ function carregarDesempenho() {
                 // Atualizar badge de período selecionado
                 const periodoTexto = {
                     'dia': 'Hoje',
+                    '7dias': 'Últimos 7 Dias',
+                    '30dias': 'Últimos 30 Dias',
+                    '90dias': 'Últimos 90 Dias',
                     'semana': 'Última Semana',
                     'mes': 'Último Mês',
                     'ano': 'Último Ano',
                     'personalizado': 'Período Personalizado'
                 };
-                document.getElementById('periodo-badge').textContent = periodoTexto[data.periodo] || 'Último Mês';
+                document.getElementById('periodo-badge').textContent = periodoTexto[data.periodo] || 'Últimos 30 Dias';
             }
         })
         .catch(error => console.error('Erro ao carregar desempenho:', error));
@@ -861,34 +870,70 @@ function carregarConsultas(tipoGrafico = 'line') {
                 gradient.addColorStop(0.5, 'rgba(99, 102, 241, 0.25)');
                 gradient.addColorStop(1, 'rgba(99, 102, 241, 0.0)');
 
+                // Criar datasets para o gráfico
+                const datasets = [{
+                    label: 'Consultas Realizadas',
+                    data: data.dados.map(d => d.count),  // Quantidade de consultas
+                    // Gradiente moderno para área sob a linha
+                    backgroundColor: tipoGrafico === 'line' ? gradient : 'rgba(99, 102, 241, 0.8)',
+                    borderColor: '#6366f1',  // Azul primário
+                    borderWidth: 3,  // Linha mais grossa
+                    tension: 0.4,  // Suavização da linha (curvas suaves)
+                    fill: true,    // Preenche área sob a linha
+                    // Estilo dos pontos (marcadores)
+                    pointBackgroundColor: '#6366f1',
+                    pointBorderColor: '#ffffff',
+                    pointBorderWidth: 3,
+                    pointRadius: 6,
+                    pointHoverRadius: 9,  // Aumenta significativamente no hover
+                    pointHoverBackgroundColor: '#4f46e5',
+                    pointHoverBorderColor: '#ffffff',
+                    pointHoverBorderWidth: 3,
+                    // Sombra nos pontos
+                    pointStyle: 'circle',
+                    // Borda com gradiente
+                    borderCapStyle: 'round',
+                    borderJoinStyle: 'round',
+                    order: 1  // Desenha primeiro (atrás)
+                }];
+                
+                // Adicionar linha de média se disponível
+                if (data.dados.length > 0 && data.dados[0].media !== undefined) {
+                    // Criar gradiente para a linha de média
+                    const gradientMedia = ctx.createLinearGradient(0, 0, 0, 400);
+                    gradientMedia.addColorStop(0, 'rgba(239, 68, 68, 0.2)');
+                    gradientMedia.addColorStop(1, 'rgba(239, 68, 68, 0.0)');
+                    
+                    datasets.push({
+                        label: data.tipo_media === 'movel' 
+                            ? `Média Móvel (${data.janela_media} dias)` 
+                            : 'Média do Período',
+                        data: data.dados.map(d => d.media),  // Valores da média
+                        backgroundColor: gradientMedia,
+                        borderColor: '#ef4444',  // Vermelho
+                        borderWidth: 3,
+                        tension: 0.4,
+                        fill: tipoGrafico === 'line',  // Preenche apenas em linha
+                        // Estilo dos pontos da média
+                        pointBackgroundColor: '#ef4444',
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 2,
+                        pointRadius: 4,
+                        pointHoverRadius: 7,
+                        pointHoverBackgroundColor: '#dc2626',
+                        pointHoverBorderColor: '#ffffff',
+                        pointHoverBorderWidth: 3,
+                        pointStyle: 'rectRot',  // Formato diferente para distinguir
+                        borderDash: [5, 5],  // Linha tracejada
+                        order: 0  // Desenha por último (na frente)
+                    });
+                }
+
                 consultasChart = new Chart(ctx, {
                     type: tipoGrafico,  // Tipo dinâmico: 'line', 'bar', ou 'area'
                     data: {
                         labels: data.dados.map(d => d.data),  // Datas no eixo X
-                        datasets: [{
-                            label: 'Consultas Realizadas',
-                            data: data.dados.map(d => d.count),  // Quantidade de consultas
-                            // Gradiente moderno para área sob a linha
-                            backgroundColor: tipoGrafico === 'line' ? gradient : 'rgba(99, 102, 241, 0.8)',
-                            borderColor: '#6366f1',  // Azul primário
-                            borderWidth: 3,  // Linha mais grossa
-                            tension: 0.4,  // Suavização da linha (curvas suaves)
-                            fill: true,    // Preenche área sob a linha
-                            // Estilo dos pontos (marcadores)
-                            pointBackgroundColor: '#6366f1',
-                            pointBorderColor: '#ffffff',
-                            pointBorderWidth: 3,
-                            pointRadius: 6,
-                            pointHoverRadius: 9,  // Aumenta significativamente no hover
-                            pointHoverBackgroundColor: '#4f46e5',
-                            pointHoverBorderColor: '#ffffff',
-                            pointHoverBorderWidth: 3,
-                            // Sombra nos pontos
-                            pointStyle: 'circle',
-                            // Borda com gradiente
-                            borderCapStyle: 'round',
-                            borderJoinStyle: 'round'
-                        }]
+                        datasets: datasets
                     },
                     options: {
                         responsive: true,              // Adapta ao tamanho do container
