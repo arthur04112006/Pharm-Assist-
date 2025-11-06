@@ -1984,6 +1984,120 @@ def api_estatisticas_desempenho():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@app.route('/api/estatisticas/sintomas-faixa-etaria')
+@login_required
+def api_estatisticas_sintomas_faixa_etaria():
+    """API para distribuição de sintomas por faixa etária"""
+    try:
+        # Parâmetros de filtro
+        sintoma = request.args.get('sintoma', 'todos')
+        periodo = request.args.get('periodo', '30dias')
+        
+        # Calcular período
+        hoje = datetime.now()
+        if periodo == 'dia':
+            inicio = hoje.replace(hour=0, minute=0, second=0, microsecond=0)
+        elif periodo == 'semana' or periodo == '7dias':
+            inicio = hoje - timedelta(days=7)
+        elif periodo == '30dias':
+            inicio = hoje - timedelta(days=30)
+        elif periodo == '90dias':
+            inicio = hoje - timedelta(days=90)
+        elif periodo == 'mes':
+            inicio = hoje - timedelta(days=30)
+        elif periodo == 'ano':
+            inicio = hoje - timedelta(days=365)
+        else:
+            inicio = hoje - timedelta(days=30)
+        
+        # Query base: buscar consultas com pacientes
+        query = db.session.query(
+            Consulta.observacoes,
+            Paciente.idade
+        ).join(
+            Paciente, Consulta.id_paciente == Paciente.id
+        ).filter(
+            Consulta.data >= inicio
+        )
+        
+        consultas_data = query.all()
+        
+        # Extrair sintomas das observações
+        sintomas_disponiveis = set()
+        dados_sintomas = []
+        
+        for observacoes, idade in consultas_data:
+            if not observacoes:
+                continue
+            
+            # Primeira linha das observações contém o módulo/sintoma
+            linhas = observacoes.split('\n')
+            if linhas and linhas[0].startswith('MODULO:'):
+                sintoma_consulta = linhas[0].replace('MODULO:', '').strip()
+                sintomas_disponiveis.add(sintoma_consulta)
+                
+                # Se filtro de sintoma está ativo e não corresponde, pular
+                if sintoma != 'todos' and sintoma_consulta != sintoma:
+                    continue
+                
+                dados_sintomas.append({
+                    'sintoma': sintoma_consulta,
+                    'idade': idade
+                })
+        
+        # Definir faixas etárias
+        faixas_etarias = [
+            {'nome': '0-17 anos', 'min': 0, 'max': 17},
+            {'nome': '18-34 anos', 'min': 18, 'max': 34},
+            {'nome': '35-54 anos', 'min': 35, 'max': 54},
+            {'nome': '55+ anos', 'min': 55, 'max': 150}
+        ]
+        
+        # Agrupar por faixa etária
+        distribuicao = {}
+        for faixa in faixas_etarias:
+            distribuicao[faixa['nome']] = 0
+        
+        total_ocorrencias = 0
+        for dado in dados_sintomas:
+            idade = dado['idade']
+            for faixa in faixas_etarias:
+                if faixa['min'] <= idade <= faixa['max']:
+                    distribuicao[faixa['nome']] += 1
+                    total_ocorrencias += 1
+                    break
+        
+        # Preparar dados para o gráfico
+        dados_grafico = []
+        for faixa_nome, count in distribuicao.items():
+            percentual = (count / total_ocorrencias * 100) if total_ocorrencias > 0 else 0
+            dados_grafico.append({
+                'faixa_etaria': faixa_nome,
+                'count': count,
+                'percentual': round(percentual, 1)
+            })
+        
+        # Validação de consistência
+        soma_faixas = sum(d['count'] for d in dados_grafico)
+        consistente = (soma_faixas == total_ocorrencias)
+        
+        return jsonify({
+            'success': True,
+            'sintoma': sintoma,
+            'periodo': periodo,
+            'total_ocorrencias': total_ocorrencias,
+            'dados': dados_grafico,
+            'sintomas_disponiveis': sorted(list(sintomas_disponiveis)),
+            'validacao': {
+                'consistente': consistente,
+                'soma_faixas': soma_faixas,
+                'total_esperado': total_ocorrencias
+            }
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 @app.errorhandler(404)
 def not_found_error(error):
     return render_template('404.html'), 404
