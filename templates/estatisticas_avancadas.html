@@ -709,6 +709,59 @@
         </div>
     </div>
 </div>
+
+<!-- Novo: Gráfico de Sintomas por Gênero -->
+<div class="row">
+    <div class="col-lg-12 mb-4">
+        <div class="chart-card">
+            <div class="chart-header">
+                <div style="flex: 1;">
+                    <div class="chart-title">
+                        <i class="bi bi-gender-ambiguous text-success"></i>
+                        Sintomas por Gênero
+                    </div>
+                    <div class="chart-subtitle">Distribuição de sintomas por gênero (Masculino, Feminino, Outro)</div>
+                </div>
+                <div class="d-flex gap-2 flex-wrap align-items-center">
+                    <!-- Filtro de Sintoma -->
+                    <select id="sintoma-genero-filter" class="form-select" style="width: auto; min-width: 200px;">
+                        <option value="todos">Todos os Sintomas</option>
+                        <!-- Opções serão carregadas dinamicamente -->
+                    </select>
+                    
+                    <!-- Filtro de Período -->
+                    <select id="genero-periodo-filter" class="form-select" style="width: auto; min-width: 150px;">
+                        <option value="7dias">Últimos 7 Dias</option>
+                        <option value="30dias" selected>Últimos 30 Dias</option>
+                        <option value="90dias">Últimos 90 Dias</option>
+                        <option value="ano">Último Ano</option>
+                    </select>
+                    
+                    <!-- Tipo de Gráfico -->
+                    <div class="chart-options">
+                        <button class="chart-option-btn active" data-chart="genero" data-type="bar">
+                            <i class="bi bi-bar-chart-fill"></i> Barras
+                        </button>
+                        <button class="chart-option-btn" data-chart="genero" data-type="doughnut">
+                            <i class="bi bi-pie-chart-fill"></i> Pizza
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="loading-spinner" id="loading-genero">
+                <div class="spinner"></div>
+                <p class="mt-2 text-muted">Carregando dados...</p>
+            </div>
+            <div class="chart-container">
+                <canvas id="generoChart"></canvas>
+            </div>
+            <!-- Badge de validação e limitações -->
+            <div class="mt-3 text-center">
+                <span id="validacao-genero-badge" class="status-badge info" style="display: none;"></span>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
@@ -739,6 +792,7 @@ let consultasChart = null;      // Gráfico de consultas por período
 let medicamentosChart = null;   // Gráfico de medicamentos mais recomendados
 let pacientesChart = null;      // Gráfico de distribuição de pacientes
 let sintomasChart = null;       // Gráfico de sintomas por faixa etária
+let generoChart = null;         // Gráfico de sintomas por gênero
 
 // Configurações padrão do Chart.js (aplica-se a todos os gráficos)
 Chart.defaults.font.family = 'Inter, sans-serif';  // Fonte consistente com o projeto
@@ -794,6 +848,7 @@ function aplicarFiltros() {
     carregarMedicamentos();             // Atualiza gráfico de medicamentos
     carregarPacientes('faixa_etaria');  // Atualiza gráfico de pacientes
     carregarSintomas();                 // Atualiza gráfico de sintomas
+    carregarGenero();                   // Atualiza gráfico de gênero
 }
 
 /**
@@ -1650,6 +1705,8 @@ document.querySelectorAll('.chart-option-btn').forEach(btn => {
             carregarPacientes(this.dataset.agrupamento);
         } else if (chart === 'sintomas') {
             carregarSintomas(this.dataset.type);
+        } else if (chart === 'genero') {
+            carregarGenero(this.dataset.type);
         }
     });
 });
@@ -1674,6 +1731,215 @@ document.getElementById('sintoma-filter').addEventListener('change', function() 
 document.getElementById('sintoma-periodo-filter').addEventListener('change', function() {
     carregarSintomas();
 });
+
+// ==========================================
+// EVENT LISTENERS PARA FILTROS DE GÊNERO
+// Atualiza gráfico quando sintoma ou período mudam
+// ==========================================
+
+/**
+ * Event Listener: Mudança no filtro de sintoma (gênero)
+ * Recarrega o gráfico quando o usuário seleciona outro sintoma
+ */
+document.getElementById('sintoma-genero-filter').addEventListener('change', function() {
+    carregarGenero();
+});
+
+/**
+ * Event Listener: Mudança no filtro de período de gênero
+ * Recarrega o gráfico quando o usuário seleciona outro período
+ */
+document.getElementById('genero-periodo-filter').addEventListener('change', function() {
+    carregarGenero();
+});
+
+/**
+ * Função: carregarGenero
+ * Carrega e renderiza gráfico de sintomas por gênero
+ * @param {string} tipoGrafico - Tipo do gráfico ('bar' ou 'doughnut')
+ */
+function carregarGenero(tipoGrafico = 'bar') {
+    const sintoma = document.getElementById('sintoma-genero-filter').value;
+    const periodo = document.getElementById('genero-periodo-filter').value;
+    const loading = document.getElementById('loading-genero');
+    
+    loading.style.display = 'block';
+    
+    fetch(`/api/estatisticas/sintomas-genero?sintoma=${sintoma}&periodo=${periodo}`)
+        .then(response => response.json())
+        .then(data => {
+            loading.style.display = 'none';
+            
+            if (data.success) {
+                const ctx = document.getElementById('generoChart').getContext('2d');
+                
+                // Destruir gráfico anterior
+                if (generoChart) {
+                    generoChart.destroy();
+                }
+                
+                // Atualizar dropdown de sintomas se necessário
+                const sintomaFilter = document.getElementById('sintoma-genero-filter');
+                const optionsAtuais = Array.from(sintomaFilter.options).map(opt => opt.value);
+                
+                // Adicionar novos sintomas ao dropdown
+                data.sintomas_disponiveis.forEach(sint => {
+                    if (!optionsAtuais.includes(sint)) {
+                        const option = document.createElement('option');
+                        option.value = sint;
+                        option.textContent = sint.charAt(0).toUpperCase() + sint.slice(1).replace(/_/g, ' ');
+                        sintomaFilter.appendChild(option);
+                    }
+                });
+                
+                // Paleta de cores para gênero (consistente e clara)
+                const coresGenero = ['#3b82f6', '#ec4899', '#a855f7'];  // Azul, Rosa, Roxo
+                const coresHover = ['#2563eb', '#db2777', '#9333ea'];
+                
+                // Criar gráfico
+                generoChart = new Chart(ctx, {
+                    type: tipoGrafico,
+                    data: {
+                        labels: data.dados.map(d => d.genero),
+                        datasets: [{
+                            label: sintoma === 'todos' ? 'Todos os Sintomas' : sintoma,
+                            data: data.dados.map(d => d.count),
+                            backgroundColor: coresGenero,
+                            hoverBackgroundColor: coresHover,
+                            borderColor: '#ffffff',
+                            borderWidth: 3,
+                            borderRadius: tipoGrafico === 'bar' ? 8 : 0,
+                            barThickness: tipoGrafico === 'bar' ? 60 : undefined,
+                            hoverOffset: tipoGrafico === 'doughnut' ? 15 : 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        animation: {
+                            duration: 1200,
+                            easing: 'easeInOutQuart'
+                        },
+                        plugins: {
+                            legend: {
+                                display: tipoGrafico === 'doughnut',
+                                position: 'bottom',
+                                labels: {
+                                    padding: 20,
+                                    usePointStyle: true,
+                                    font: {
+                                        size: 13,
+                                        weight: '600'
+                                    },
+                                    color: '#64748b',
+                                    generateLabels: function(chart) {
+                                        const data = chart.data;
+                                        const total = data.datasets[0].data.reduce((a, b) => a + b, 0);
+                                        return data.labels.map((label, i) => {
+                                            const value = data.datasets[0].data[i];
+                                            const percent = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                                            return {
+                                                text: `${label} - ${value} (${percent}%)`,
+                                                fillStyle: data.datasets[0].backgroundColor[i],
+                                                hidden: false,
+                                                index: i
+                                            };
+                                        });
+                                    }
+                                }
+                            },
+                            tooltip: {
+                                enabled: true,
+                                backgroundColor: 'rgba(30, 41, 59, 0.95)',
+                                padding: 16,
+                                cornerRadius: 8,
+                                titleFont: {
+                                    size: 15,
+                                    weight: 'bold'
+                                },
+                                bodyFont: {
+                                    size: 14
+                                },
+                                borderWidth: 2,
+                                borderColor: (context) => coresGenero[context.dataIndex % coresGenero.length],
+                                displayColors: true,
+                                callbacks: {
+                                    title: function(context) {
+                                        const icons = {'Masculino': '♂️', 'Feminino': '♀️', 'Outro': '⚧'};
+                                        return icons[context[0].label] + ' ' + context[0].label;
+                                    },
+                                    label: function(context) {
+                                        return 'Ocorrências: ' + context.parsed + (tipoGrafico === 'bar' ? '' : ' casos');
+                                    },
+                                    afterLabel: function(context) {
+                                        const percentual = data.dados[context.dataIndex].percentual;
+                                        return '📊 ' + percentual + '% do total';
+                                    },
+                                    footer: function(context) {
+                                        return '\n📋 Total: ' + data.total_ocorrencias + ' casos';
+                                    }
+                                }
+                            }
+                        },
+                        scales: tipoGrafico === 'bar' ? {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    precision: 0,
+                                    font: { size: 12, weight: '500' },
+                                    color: '#64748b'
+                                },
+                                grid: {
+                                    color: 'rgba(148, 163, 184, 0.1)',
+                                    drawBorder: false
+                                },
+                                border: { display: false }
+                            },
+                            x: {
+                                ticks: {
+                                    font: { size: 12, weight: '500' },
+                                    color: '#64748b'
+                                },
+                                grid: { display: false },
+                                border: { display: false }
+                            }
+                        } : {},
+                        cutout: tipoGrafico === 'doughnut' ? '65%' : undefined,
+                        radius: tipoGrafico === 'doughnut' ? '90%' : undefined
+                    }
+                });
+                
+                // Exibir badge de validação e limitações
+                const validacaoBadge = document.getElementById('validacao-genero-badge');
+                let badgeText = '';
+                
+                if (data.validacao.consistente) {
+                    validacaoBadge.className = 'status-badge success';
+                    badgeText = `✓ Dados consistentes (${data.validacao.soma_generos} de ${data.validacao.total_esperado})`;
+                } else {
+                    validacaoBadge.className = 'status-badge warning';
+                    badgeText = `⚠ Inconsistência detectada (${data.validacao.soma_generos} ≠ ${data.validacao.total_esperado})`;
+                }
+                
+                // Adicionar informação sobre dados sem gênero se houver
+                if (data.validacao.dados_sem_genero > 0) {
+                    badgeText += ` | ${data.validacao.dados_sem_genero} registros sem gênero`;
+                }
+                
+                // Adicionar informação sobre campo obrigatório
+                if (data.limitacoes.campo_obrigatorio) {
+                    badgeText += ' | Campo gênero: OBRIGATÓRIO ✓';
+                }
+                
+                validacaoBadge.textContent = badgeText;
+                validacaoBadge.style.display = 'inline-block';
+            }
+        })
+        .catch(error => {
+            loading.style.display = 'none';
+            console.error('Erro ao carregar gênero:', error);
+        });
+}
 
 // ==========================================
 // INICIALIZAÇÃO

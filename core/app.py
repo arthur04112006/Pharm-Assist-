@@ -2098,6 +2098,130 @@ def api_estatisticas_sintomas_faixa_etaria():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@app.route('/api/estatisticas/sintomas-genero')
+@login_required
+def api_estatisticas_sintomas_genero():
+    """API para distribuição de sintomas por gênero"""
+    try:
+        # Parâmetros de filtro
+        sintoma = request.args.get('sintoma', 'todos')
+        periodo = request.args.get('periodo', '30dias')
+        
+        # Calcular período
+        hoje = datetime.now()
+        if periodo == 'dia':
+            inicio = hoje.replace(hour=0, minute=0, second=0, microsecond=0)
+        elif periodo == 'semana' or periodo == '7dias':
+            inicio = hoje - timedelta(days=7)
+        elif periodo == '30dias':
+            inicio = hoje - timedelta(days=30)
+        elif periodo == '90dias':
+            inicio = hoje - timedelta(days=90)
+        elif periodo == 'mes':
+            inicio = hoje - timedelta(days=30)
+        elif periodo == 'ano':
+            inicio = hoje - timedelta(days=365)
+        else:
+            inicio = hoje - timedelta(days=30)
+        
+        # Query base: buscar consultas com pacientes
+        query = db.session.query(
+            Consulta.observacoes,
+            Paciente.sexo
+        ).join(
+            Paciente, Consulta.id_paciente == Paciente.id
+        ).filter(
+            Consulta.data >= inicio
+        )
+        
+        consultas_data = query.all()
+        
+        # Extrair sintomas das observações
+        sintomas_disponiveis = set()
+        dados_sintomas = []
+        
+        for observacoes, sexo in consultas_data:
+            if not observacoes:
+                continue
+            
+            # Primeira linha das observações contém o módulo/sintoma
+            linhas = observacoes.split('\n')
+            if linhas and linhas[0].startswith('MODULO:'):
+                sintoma_consulta = linhas[0].replace('MODULO:', '').strip()
+                sintomas_disponiveis.add(sintoma_consulta)
+                
+                # Se filtro de sintoma está ativo e não corresponde, pular
+                if sintoma != 'todos' and sintoma_consulta != sintoma:
+                    continue
+                
+                dados_sintomas.append({
+                    'sintoma': sintoma_consulta,
+                    'sexo': sexo
+                })
+        
+        # Agrupar por gênero
+        distribuicao = {
+            'Masculino': 0,
+            'Feminino': 0,
+            'Outro': 0
+        }
+        
+        total_ocorrencias = 0
+        for dado in dados_sintomas:
+            sexo = dado['sexo']
+            if sexo == 'M':
+                distribuicao['Masculino'] += 1
+            elif sexo == 'F':
+                distribuicao['Feminino'] += 1
+            elif sexo == 'O':
+                distribuicao['Outro'] += 1
+            total_ocorrencias += 1
+        
+        # Preparar dados para o gráfico
+        dados_grafico = []
+        for genero, count in distribuicao.items():
+            # Só incluir se houver dados
+            if count > 0 or total_ocorrencias == 0:
+                percentual = (count / total_ocorrencias * 100) if total_ocorrencias > 0 else 0
+                dados_grafico.append({
+                    'genero': genero,
+                    'count': count,
+                    'percentual': round(percentual, 1)
+                })
+        
+        # Validação de consistência
+        soma_generos = sum(d['count'] for d in dados_grafico)
+        consistente = (soma_generos == total_ocorrencias)
+        
+        # Verificar se há dados sem gênero (NULL)
+        total_consultas = len(consultas_data)
+        consultas_com_sintoma = len([d for d in consultas_data if d[0] and 'MODULO:' in d[0]])
+        dados_sem_genero = consultas_com_sintoma - total_ocorrencias
+        
+        return jsonify({
+            'success': True,
+            'sintoma': sintoma,
+            'periodo': periodo,
+            'total_ocorrencias': total_ocorrencias,
+            'dados': dados_grafico,
+            'sintomas_disponiveis': sorted(list(sintomas_disponiveis)),
+            'validacao': {
+                'consistente': consistente,
+                'soma_generos': soma_generos,
+                'total_esperado': total_ocorrencias,
+                'dados_sem_genero': dados_sem_genero
+            },
+            'limitacoes': {
+                'campo_genero_disponivel': True,
+                'valores_possiveis': ['Masculino', 'Feminino', 'Outro'],
+                'campo_obrigatorio': True,
+                'observacao': 'Campo gênero é obrigatório no cadastro do paciente'
+            }
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 @app.errorhandler(404)
 def not_found_error(error):
     return render_template('404.html'), 404
