@@ -87,6 +87,7 @@
                         <th>Nome</th>
                         <th>Idade</th>
                         <th>Sexo</th>
+                        <th>Localização</th>
                         <th>Peso/Altura</th>
                         <th>Hábitos</th>
                         <th>Última Consulta</th>
@@ -108,6 +109,13 @@
                                 <span class="badge bg-pink">Feminino</span>
                             {% else %}
                                 <span class="badge bg-secondary">Outro</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if paciente.cidade or paciente.bairro %}
+                                {% if paciente.bairro %}{{ paciente.bairro }}{% endif %}{% if paciente.bairro and paciente.cidade %}, {% endif %}{% if paciente.cidade %}{{ paciente.cidade }}{% endif %}
+                            {% else %}
+                                <span class="text-muted">-</span>
                             {% endif %}
                         </td>
                         <td>

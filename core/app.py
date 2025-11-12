@@ -450,7 +450,9 @@ def novo_paciente():
                 altura=float(request.form['altura']) if request.form['altura'] else None,
                 sexo=request.form['sexo'],
                 fuma=request.form.get('fuma') == 'on',
-                bebe=request.form.get('bebe') == 'on'
+                bebe=request.form.get('bebe') == 'on',
+                bairro=request.form.get('bairro').strip() if request.form.get('bairro') and request.form.get('bairro').strip() else None,
+                cidade=request.form.get('cidade').strip() if request.form.get('cidade') and request.form.get('cidade').strip() else None
             )
             
             db.session.add(paciente)
@@ -520,6 +522,8 @@ def editar_paciente(id):
             paciente.sexo = request.form['sexo']
             paciente.fuma = request.form.get('fuma') == 'on'
             paciente.bebe = request.form.get('bebe') == 'on'
+            paciente.bairro = request.form.get('bairro').strip() if request.form.get('bairro') and request.form.get('bairro').strip() else None
+            paciente.cidade = request.form.get('cidade').strip() if request.form.get('cidade') and request.form.get('cidade').strip() else None
             
             # Atualizar doenças crônicas
             PacienteDoenca.query.filter_by(id_paciente=id).delete()
@@ -798,7 +802,9 @@ def novo_paciente_triagem():
                 altura=float(request.form['altura']) if request.form['altura'] else None,
                 sexo=request.form['sexo'],
                 fuma=request.form.get('fuma') == 'on',
-                bebe=request.form.get('bebe') == 'on'
+                bebe=request.form.get('bebe') == 'on',
+                bairro=request.form.get('bairro').strip() if request.form.get('bairro') and request.form.get('bairro').strip() else None,
+                cidade=request.form.get('cidade').strip() if request.form.get('cidade') and request.form.get('cidade').strip() else None
             )
             
             db.session.add(paciente)

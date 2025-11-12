@@ -95,6 +95,11 @@
                         <p class="mb-1"><strong>Sexo:</strong> 
                             {% if paciente.sexo == 'M' %}Masculino{% elif paciente.sexo == 'F' %}Feminino{% else %}Outro{% endif %}
                         </p>
+                        {% if paciente.cidade or paciente.bairro %}
+                        <p class="mb-1"><strong>Localização:</strong> 
+                            {% if paciente.bairro %}{{ paciente.bairro }}{% endif %}{% if paciente.bairro and paciente.cidade %}, {% endif %}{% if paciente.cidade %}{{ paciente.cidade }}{% endif %}
+                        </p>
+                        {% endif %}
                     </div>
                     <div class="col-md-6">
                         <p class="mb-1"><strong>Peso:</strong> {{ paciente.peso|default('N/A') }} kg</p>

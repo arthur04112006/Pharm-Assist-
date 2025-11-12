@@ -69,6 +69,21 @@
                 
                 <div class="row">
                     <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">Bairro</label>
+                        <p class="form-control-plaintext">
+                            {% if paciente.bairro %}{{ paciente.bairro }}{% else %}Não informado{% endif %}
+                        </p>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">Cidade</label>
+                        <p class="form-control-plaintext">
+                            {% if paciente.cidade %}{{ paciente.cidade }}{% else %}Não informado{% endif %}
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6 mb-3">
                         <label class="form-label fw-bold">Hábitos</label>
                         <p class="form-control-plaintext">
                             {% if paciente.fuma and paciente.bebe %}Fuma e bebe

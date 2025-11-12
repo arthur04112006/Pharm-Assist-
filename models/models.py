@@ -101,6 +101,8 @@ class Paciente(db.Model):
     - sexo: Sexo biológico (M/F/O - obrigatório)
     - fuma: Indica se o paciente fuma (padrão: False)
     - bebe: Indica se o paciente consome álcool (padrão: False)
+    - bairro: Bairro onde o paciente reside (opcional, máximo 100 caracteres)
+    - cidade: Cidade onde o paciente reside (opcional, máximo 100 caracteres)
     - created_at: Data de criação do registro
     - updated_at: Data da última atualização
     
@@ -119,6 +121,8 @@ class Paciente(db.Model):
     sexo = db.Column(db.Enum('M', 'F', 'O'), nullable=False, index=True)  # Índice para estatísticas
     fuma = db.Column(db.Boolean, default=False)
     bebe = db.Column(db.Boolean, default=False)
+    bairro = db.Column(db.String(100), index=True)  # Índice para análises geográficas
+    cidade = db.Column(db.String(100), index=True)  # Índice para análises geográficas
     
     # Timestamps para auditoria
     created_at = db.Column(db.TIMESTAMP, default=datetime.utcnow, index=True)
@@ -138,6 +142,8 @@ class Paciente(db.Model):
             'sexo': self.sexo,
             'fuma': self.fuma,
             'bebe': self.bebe,
+            'bairro': self.bairro,
+            'cidade': self.cidade,
             'created_at': self.created_at.isoformat() if self.created_at else None
         }
 
