@@ -2228,6 +2228,138 @@ def api_estatisticas_sintomas_genero():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@app.route('/api/estatisticas/sintomas-localizacao')
+@login_required
+def api_estatisticas_sintomas_localizacao():
+    """API para distribuição de sintomas por bairro ou cidade"""
+    try:
+        # Parâmetros de filtro
+        sintoma = request.args.get('sintoma', 'todos')
+        periodo = request.args.get('periodo', '30dias')
+        agrupamento = request.args.get('agrupamento', 'bairro')  # 'bairro' ou 'cidade'
+        
+        # Calcular período
+        hoje = datetime.now()
+        if periodo == 'dia':
+            inicio = hoje.replace(hour=0, minute=0, second=0, microsecond=0)
+        elif periodo == 'semana' or periodo == '7dias':
+            inicio = hoje - timedelta(days=7)
+        elif periodo == '30dias':
+            inicio = hoje - timedelta(days=30)
+        elif periodo == '90dias':
+            inicio = hoje - timedelta(days=90)
+        elif periodo == 'mes':
+            inicio = hoje - timedelta(days=30)
+        elif periodo == 'ano':
+            inicio = hoje - timedelta(days=365)
+        else:
+            inicio = hoje - timedelta(days=30)
+        
+        # Query base: buscar consultas com pacientes e localização
+        query = db.session.query(
+            Consulta.observacoes,
+            Paciente.bairro,
+            Paciente.cidade
+        ).join(
+            Paciente, Consulta.id_paciente == Paciente.id
+        ).filter(
+            Consulta.data >= inicio
+        )
+        
+        # Filtrar apenas pacientes com localização preenchida
+        if agrupamento == 'bairro':
+            query = query.filter(Paciente.bairro.isnot(None), Paciente.bairro != '')
+        else:  # cidade
+            query = query.filter(Paciente.cidade.isnot(None), Paciente.cidade != '')
+        
+        consultas_data = query.all()
+        
+        # Extrair sintomas das observações
+        sintomas_disponiveis = set()
+        dados_sintomas = []
+        
+        for observacoes, bairro, cidade in consultas_data:
+            if not observacoes:
+                continue
+            
+            # Primeira linha das observações contém o módulo/sintoma
+            linhas = observacoes.split('\n')
+            if linhas and linhas[0].startswith('MODULO:'):
+                sintoma_consulta = linhas[0].replace('MODULO:', '').strip()
+                sintomas_disponiveis.add(sintoma_consulta)
+                
+                # Se filtro de sintoma está ativo e não corresponde, pular
+                if sintoma != 'todos' and sintoma_consulta != sintoma:
+                    continue
+                
+                # Determinar localização baseado no agrupamento
+                localizacao = bairro if agrupamento == 'bairro' else cidade
+                
+                dados_sintomas.append({
+                    'sintoma': sintoma_consulta,
+                    'localizacao': localizacao
+                })
+        
+        # Agrupar por localização
+        distribuicao = {}
+        total_ocorrencias = 0
+        
+        for dado in dados_sintomas:
+            localizacao = dado['localizacao']
+            if not localizacao:
+                continue
+            
+            if localizacao not in distribuicao:
+                distribuicao[localizacao] = 0
+            distribuicao[localizacao] += 1
+            total_ocorrencias += 1
+        
+        # Ordenar por quantidade (maior para menor) e limitar aos top 15
+        distribuicao_ordenada = sorted(distribuicao.items(), key=lambda x: x[1], reverse=True)[:15]
+        
+        # Preparar dados para o gráfico
+        dados_grafico = []
+        for localizacao, count in distribuicao_ordenada:
+            percentual = (count / total_ocorrencias * 100) if total_ocorrencias > 0 else 0
+            dados_grafico.append({
+                'localizacao': localizacao,
+                'count': count,
+                'percentual': round(percentual, 1)
+            })
+        
+        # Validação de consistência
+        soma_localizacoes = sum(d['count'] for d in dados_grafico)
+        consistente = (soma_localizacoes == total_ocorrencias)
+        
+        # Contar dados sem localização
+        total_consultas_com_sintoma = len([d for d in consultas_data if d[0] and 'MODULO:' in d[0]])
+        dados_sem_localizacao = total_consultas_com_sintoma - total_ocorrencias
+        
+        return jsonify({
+            'success': True,
+            'sintoma': sintoma,
+            'periodo': periodo,
+            'agrupamento': agrupamento,
+            'total_ocorrencias': total_ocorrencias,
+            'dados': dados_grafico,
+            'sintomas_disponiveis': sorted(list(sintomas_disponiveis)),
+            'validacao': {
+                'consistente': consistente,
+                'soma_localizacoes': soma_localizacoes,
+                'total_esperado': total_ocorrencias,
+                'dados_sem_localizacao': dados_sem_localizacao
+            },
+            'limitacoes': {
+                'campo_localizacao_disponivel': True,
+                'agrupamento_possivel': ['bairro', 'cidade'],
+                'campo_opcional': True,
+                'observacao': 'Campos bairro e cidade são opcionais no cadastro do paciente'
+            }
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 @app.errorhandler(404)
 def not_found_error(error):
     return render_template('404.html'), 404

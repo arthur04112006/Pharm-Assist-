@@ -683,16 +683,6 @@
                         <option value="90dias">Últimos 90 Dias</option>
                         <option value="ano">Último Ano</option>
                     </select>
-                    
-                    <!-- Tipo de Gráfico -->
-                    <div class="chart-options">
-                        <button class="chart-option-btn active" data-chart="sintomas" data-type="bar">
-                            <i class="bi bi-bar-chart-fill"></i> Barras
-                        </button>
-                        <button class="chart-option-btn" data-chart="sintomas" data-type="doughnut">
-                            <i class="bi bi-pie-chart-fill"></i> Pizza
-                        </button>
-                    </div>
                 </div>
             </div>
             <div class="loading-spinner" id="loading-sintomas">
@@ -736,16 +726,6 @@
                         <option value="90dias">Últimos 90 Dias</option>
                         <option value="ano">Último Ano</option>
                     </select>
-                    
-                    <!-- Tipo de Gráfico -->
-                    <div class="chart-options">
-                        <button class="chart-option-btn active" data-chart="genero" data-type="bar">
-                            <i class="bi bi-bar-chart-fill"></i> Barras
-                        </button>
-                        <button class="chart-option-btn" data-chart="genero" data-type="doughnut">
-                            <i class="bi bi-pie-chart-fill"></i> Pizza
-                        </button>
-                    </div>
                 </div>
             </div>
             <div class="loading-spinner" id="loading-genero">
@@ -758,6 +738,55 @@
             <!-- Badge de validação e limitações -->
             <div class="mt-3 text-center">
                 <span id="validacao-genero-badge" class="status-badge info" style="display: none;"></span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Novo: Gráfico de Sintomas por Localização (Bairro/Cidade) -->
+<div class="row">
+    <div class="col-lg-12 mb-4">
+        <div class="chart-card">
+            <div class="chart-header">
+                <div style="flex: 1;">
+                    <div class="chart-title">
+                        <i class="bi bi-geo-alt-fill text-primary"></i>
+                        Sintomas por Localização
+                    </div>
+                    <div class="chart-subtitle">Distribuição de sintomas por bairro ou cidade</div>
+                </div>
+                <div class="d-flex gap-2 flex-wrap align-items-center">
+                    <!-- Filtro de Agrupamento -->
+                    <select id="localizacao-agrupamento-filter" class="form-select" style="width: auto; min-width: 150px;">
+                        <option value="bairro">Por Bairro</option>
+                        <option value="cidade">Por Cidade</option>
+                    </select>
+                    
+                    <!-- Filtro de Sintoma -->
+                    <select id="sintoma-localizacao-filter" class="form-select" style="width: auto; min-width: 200px;">
+                        <option value="todos">Todos os Sintomas</option>
+                        <!-- Opções serão carregadas dinamicamente -->
+                    </select>
+                    
+                    <!-- Filtro de Período -->
+                    <select id="localizacao-periodo-filter" class="form-select" style="width: auto; min-width: 150px;">
+                        <option value="7dias">Últimos 7 Dias</option>
+                        <option value="30dias" selected>Últimos 30 Dias</option>
+                        <option value="90dias">Últimos 90 Dias</option>
+                        <option value="ano">Último Ano</option>
+                    </select>
+                </div>
+            </div>
+            <div class="loading-spinner" id="loading-localizacao">
+                <div class="spinner"></div>
+                <p class="mt-2 text-muted">Carregando dados...</p>
+            </div>
+            <div class="chart-container">
+                <canvas id="localizacaoChart"></canvas>
+            </div>
+            <!-- Badge de validação -->
+            <div class="mt-3 text-center">
+                <span id="validacao-localizacao-badge" class="status-badge info" style="display: none;"></span>
             </div>
         </div>
     </div>
@@ -793,6 +822,7 @@ let medicamentosChart = null;   // Gráfico de medicamentos mais recomendados
 let pacientesChart = null;      // Gráfico de distribuição de pacientes
 let sintomasChart = null;       // Gráfico de sintomas por faixa etária
 let generoChart = null;         // Gráfico de sintomas por gênero
+let localizacaoChart = null;    // Gráfico de sintomas por localização
 
 // Configurações padrão do Chart.js (aplica-se a todos os gráficos)
 Chart.defaults.font.family = 'Inter, sans-serif';  // Fonte consistente com o projeto
@@ -849,6 +879,7 @@ function aplicarFiltros() {
     carregarPacientes('faixa_etaria');  // Atualiza gráfico de pacientes
     carregarSintomas();                 // Atualiza gráfico de sintomas
     carregarGenero();                   // Atualiza gráfico de gênero
+    carregarLocalizacao();              // Atualiza gráfico de localização
 }
 
 /**
@@ -1505,9 +1536,10 @@ function carregarPacientes(agrupamento = 'faixa_etaria') {
 /**
  * Função: carregarSintomas
  * Carrega e renderiza gráfico de sintomas por faixa etária
- * @param {string} tipoGrafico - Tipo do gráfico ('bar' ou 'doughnut')
+ * Sempre usa gráfico tipo pizza (doughnut)
  */
-function carregarSintomas(tipoGrafico = 'bar') {
+function carregarSintomas() {
+    const tipoGrafico = 'doughnut'; // Sempre pizza
     const sintoma = document.getElementById('sintoma-filter').value;
     const periodo = document.getElementById('sintoma-periodo-filter').value;
     const loading = document.getElementById('loading-sintomas');
@@ -1547,7 +1579,7 @@ function carregarSintomas(tipoGrafico = 'bar') {
                 
                 // Criar gráfico
                 sintomasChart = new Chart(ctx, {
-                    type: tipoGrafico,
+                    type: tipoGrafico, // Sempre 'doughnut' (pizza)
                     data: {
                         labels: data.dados.map(d => d.faixa_etaria),
                         datasets: [{
@@ -1557,9 +1589,8 @@ function carregarSintomas(tipoGrafico = 'bar') {
                             hoverBackgroundColor: coresHover,
                             borderColor: '#ffffff',
                             borderWidth: 3,
-                            borderRadius: tipoGrafico === 'bar' ? 8 : 0,
-                            barThickness: tipoGrafico === 'bar' ? 60 : undefined,
-                            hoverOffset: tipoGrafico === 'doughnut' ? 15 : 0
+                            borderRadius: 0, // Pizza não precisa de borderRadius
+                            hoverOffset: 15
                         }]
                     },
                     options: {
@@ -1571,7 +1602,7 @@ function carregarSintomas(tipoGrafico = 'bar') {
                         },
                         plugins: {
                             legend: {
-                                display: tipoGrafico === 'doughnut',
+                                display: true, // Sempre mostrar legenda (gráfico pizza)
                                 position: 'bottom',
                                 labels: {
                                     padding: 20,
@@ -1617,7 +1648,7 @@ function carregarSintomas(tipoGrafico = 'bar') {
                                         return '👥 ' + context[0].label;
                                     },
                                     label: function(context) {
-                                        return 'Ocorrências: ' + context.parsed + (tipoGrafico === 'bar' ? '' : ' casos');
+                                        return 'Ocorrências: ' + context.parsed + ' casos'; // Pizza sempre mostra "casos"
                                     },
                                     afterLabel: function(context) {
                                         const percentual = data.dados[context.dataIndex].percentual;
@@ -1629,31 +1660,9 @@ function carregarSintomas(tipoGrafico = 'bar') {
                                 }
                             }
                         },
-                        scales: tipoGrafico === 'bar' ? {
-                            y: {
-                                beginAtZero: true,
-                                ticks: {
-                                    precision: 0,
-                                    font: { size: 12, weight: '500' },
-                                    color: '#64748b'
-                                },
-                                grid: {
-                                    color: 'rgba(148, 163, 184, 0.1)',
-                                    drawBorder: false
-                                },
-                                border: { display: false }
-                            },
-                            x: {
-                                ticks: {
-                                    font: { size: 12, weight: '500' },
-                                    color: '#64748b'
-                                },
-                                grid: { display: false },
-                                border: { display: false }
-                            }
-                        } : {},
-                        cutout: tipoGrafico === 'doughnut' ? '65%' : undefined,
-                        radius: tipoGrafico === 'doughnut' ? '90%' : undefined
+                        // Pizza não precisa de scales
+                        cutout: '65%',
+                        radius: '90%'
                     }
                 });
                 
@@ -1704,9 +1713,11 @@ document.querySelectorAll('.chart-option-btn').forEach(btn => {
         } else if (chart === 'pacientes') {
             carregarPacientes(this.dataset.agrupamento);
         } else if (chart === 'sintomas') {
-            carregarSintomas(this.dataset.type);
+            carregarSintomas(); // Sempre pizza
         } else if (chart === 'genero') {
-            carregarGenero(this.dataset.type);
+            carregarGenero(); // Sempre pizza
+        } else if (chart === 'localizacao') {
+            carregarLocalizacao(); // Sempre barras
         }
     });
 });
@@ -1753,12 +1764,42 @@ document.getElementById('genero-periodo-filter').addEventListener('change', func
     carregarGenero();
 });
 
+// ==========================================
+// EVENT LISTENERS PARA FILTROS DE LOCALIZAÇÃO
+// Atualiza gráfico quando agrupamento, sintoma ou período mudam
+// ==========================================
+
+/**
+ * Event Listener: Mudança no filtro de agrupamento (bairro/cidade)
+ * Recarrega o gráfico quando o usuário seleciona outro agrupamento
+ */
+document.getElementById('localizacao-agrupamento-filter').addEventListener('change', function() {
+    carregarLocalizacao();
+});
+
+/**
+ * Event Listener: Mudança no filtro de sintoma (localização)
+ * Recarrega o gráfico quando o usuário seleciona outro sintoma
+ */
+document.getElementById('sintoma-localizacao-filter').addEventListener('change', function() {
+    carregarLocalizacao();
+});
+
+/**
+ * Event Listener: Mudança no filtro de período de localização
+ * Recarrega o gráfico quando o usuário seleciona outro período
+ */
+document.getElementById('localizacao-periodo-filter').addEventListener('change', function() {
+    carregarLocalizacao();
+});
+
 /**
  * Função: carregarGenero
  * Carrega e renderiza gráfico de sintomas por gênero
- * @param {string} tipoGrafico - Tipo do gráfico ('bar' ou 'doughnut')
+ * Sempre usa gráfico tipo pizza (doughnut)
  */
-function carregarGenero(tipoGrafico = 'bar') {
+function carregarGenero() {
+    const tipoGrafico = 'doughnut'; // Sempre pizza
     const sintoma = document.getElementById('sintoma-genero-filter').value;
     const periodo = document.getElementById('genero-periodo-filter').value;
     const loading = document.getElementById('loading-genero');
@@ -1798,7 +1839,7 @@ function carregarGenero(tipoGrafico = 'bar') {
                 
                 // Criar gráfico
                 generoChart = new Chart(ctx, {
-                    type: tipoGrafico,
+                    type: tipoGrafico, // Sempre 'doughnut' (pizza)
                     data: {
                         labels: data.dados.map(d => d.genero),
                         datasets: [{
@@ -1808,9 +1849,8 @@ function carregarGenero(tipoGrafico = 'bar') {
                             hoverBackgroundColor: coresHover,
                             borderColor: '#ffffff',
                             borderWidth: 3,
-                            borderRadius: tipoGrafico === 'bar' ? 8 : 0,
-                            barThickness: tipoGrafico === 'bar' ? 60 : undefined,
-                            hoverOffset: tipoGrafico === 'doughnut' ? 15 : 0
+                            borderRadius: 0, // Pizza não precisa de borderRadius
+                            hoverOffset: 15
                         }]
                     },
                     options: {
@@ -1822,7 +1862,7 @@ function carregarGenero(tipoGrafico = 'bar') {
                         },
                         plugins: {
                             legend: {
-                                display: tipoGrafico === 'doughnut',
+                                display: true, // Sempre mostrar legenda (gráfico pizza)
                                 position: 'bottom',
                                 labels: {
                                     padding: 20,
@@ -1869,7 +1909,7 @@ function carregarGenero(tipoGrafico = 'bar') {
                                         return icons[context[0].label] + ' ' + context[0].label;
                                     },
                                     label: function(context) {
-                                        return 'Ocorrências: ' + context.parsed + (tipoGrafico === 'bar' ? '' : ' casos');
+                                        return 'Ocorrências: ' + context.parsed + ' casos'; // Pizza sempre mostra "casos"
                                     },
                                     afterLabel: function(context) {
                                         const percentual = data.dados[context.dataIndex].percentual;
@@ -1881,31 +1921,9 @@ function carregarGenero(tipoGrafico = 'bar') {
                                 }
                             }
                         },
-                        scales: tipoGrafico === 'bar' ? {
-                            y: {
-                                beginAtZero: true,
-                                ticks: {
-                                    precision: 0,
-                                    font: { size: 12, weight: '500' },
-                                    color: '#64748b'
-                                },
-                                grid: {
-                                    color: 'rgba(148, 163, 184, 0.1)',
-                                    drawBorder: false
-                                },
-                                border: { display: false }
-                            },
-                            x: {
-                                ticks: {
-                                    font: { size: 12, weight: '500' },
-                                    color: '#64748b'
-                                },
-                                grid: { display: false },
-                                border: { display: false }
-                            }
-                        } : {},
-                        cutout: tipoGrafico === 'doughnut' ? '65%' : undefined,
-                        radius: tipoGrafico === 'doughnut' ? '90%' : undefined
+                        // Pizza não precisa de scales
+                        cutout: '65%',
+                        radius: '90%'
                     }
                 });
                 
@@ -1938,6 +1956,218 @@ function carregarGenero(tipoGrafico = 'bar') {
         .catch(error => {
             loading.style.display = 'none';
             console.error('Erro ao carregar gênero:', error);
+        });
+}
+
+/**
+ * Função: carregarLocalizacao
+ * Carrega e renderiza gráfico de sintomas por localização (bairro/cidade)
+ * Sempre usa gráfico tipo barras (bar)
+ */
+function carregarLocalizacao() {
+    const tipoGrafico = 'bar'; // Sempre barras
+    const agrupamento = document.getElementById('localizacao-agrupamento-filter').value;
+    const sintoma = document.getElementById('sintoma-localizacao-filter').value;
+    const periodo = document.getElementById('localizacao-periodo-filter').value;
+    const loading = document.getElementById('loading-localizacao');
+    
+    loading.style.display = 'block';
+    
+    fetch(`/api/estatisticas/sintomas-localizacao?sintoma=${sintoma}&periodo=${periodo}&agrupamento=${agrupamento}`)
+        .then(response => response.json())
+        .then(data => {
+            loading.style.display = 'none';
+            
+            if (data.success) {
+                const ctx = document.getElementById('localizacaoChart').getContext('2d');
+                
+                // Destruir gráfico anterior
+                if (localizacaoChart) {
+                    localizacaoChart.destroy();
+                }
+                
+                // Atualizar dropdown de sintomas se necessário
+                const sintomaFilter = document.getElementById('sintoma-localizacao-filter');
+                const optionsAtuais = Array.from(sintomaFilter.options).map(opt => opt.value);
+                
+                // Adicionar novos sintomas ao dropdown
+                data.sintomas_disponiveis.forEach(sint => {
+                    if (!optionsAtuais.includes(sint)) {
+                        const option = document.createElement('option');
+                        option.value = sint;
+                        option.textContent = sint.charAt(0).toUpperCase() + sint.slice(1).replace(/_/g, ' ');
+                        sintomaFilter.appendChild(option);
+                    }
+                });
+                
+                // Paleta de cores moderna para localização (gradiente de cores)
+                const coresLocalizacao = [
+                    '#6366f1', '#8b5cf6', '#a855f7', '#d946ef', '#ec4899',
+                    '#f43f5e', '#f97316', '#f59e0b', '#10b981', '#06b6d4',
+                    '#3b82f6', '#14b8a6', '#f59e0b', '#ef4444', '#a855f7'
+                ];
+                const coresHover = coresLocalizacao.map(cor => {
+                    // Escurecer ligeiramente para hover
+                    return cor.replace('#', '').split('').map((c, i) => {
+                        if (i % 2 === 0) {
+                            const val = parseInt(c, 16);
+                            return (val > 0 ? val - 1 : 0).toString(16);
+                        }
+                        return c;
+                    }).join('');
+                }).map(cor => '#' + cor);
+                
+                // Criar gráfico
+                localizacaoChart = new Chart(ctx, {
+                    type: tipoGrafico, // Sempre 'bar' (barras)
+                    data: {
+                        labels: data.dados.map(d => d.localizacao),
+                        datasets: [{
+                            label: sintoma === 'todos' ? 'Todos os Sintomas' : sintoma,
+                            data: data.dados.map(d => d.count),
+                            backgroundColor: coresLocalizacao.slice(0, data.dados.length),
+                            hoverBackgroundColor: coresHover.slice(0, data.dados.length),
+                            borderColor: '#ffffff',
+                            borderWidth: 3,
+                            borderRadius: 8, // Barras sempre com bordas arredondadas
+                            barThickness: 50
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        animation: {
+                            duration: 1200,
+                            easing: 'easeInOutQuart'
+                        },
+                        plugins: {
+                            legend: {
+                                display: tipoGrafico === 'doughnut',
+                                position: 'bottom',
+                                labels: {
+                                    padding: 15,
+                                    usePointStyle: true,
+                                    font: {
+                                        size: 12,
+                                        weight: '600'
+                                    },
+                                    color: '#64748b',
+                                    generateLabels: function(chart) {
+                                        const data = chart.data;
+                                        const total = data.datasets[0].data.reduce((a, b) => a + b, 0);
+                                        return data.labels.map((label, i) => {
+                                            const value = data.datasets[0].data[i];
+                                            const percent = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                                            return {
+                                                text: `${label} - ${value} (${percent}%)`,
+                                                fillStyle: data.datasets[0].backgroundColor[i],
+                                                hidden: false,
+                                                index: i
+                                            };
+                                        });
+                                    }
+                                }
+                            },
+                            tooltip: {
+                                enabled: true,
+                                backgroundColor: 'rgba(30, 41, 59, 0.95)',
+                                padding: 16,
+                                cornerRadius: 8,
+                                titleFont: {
+                                    size: 15,
+                                    weight: 'bold'
+                                },
+                                bodyFont: {
+                                    size: 14
+                                },
+                                borderWidth: 2,
+                                borderColor: (context) => coresLocalizacao[context.dataIndex % coresLocalizacao.length],
+                                displayColors: true,
+                                callbacks: {
+                                    title: function(context) {
+                                        const agrupamentoAtual = document.getElementById('localizacao-agrupamento-filter').value;
+                                        const icon = agrupamentoAtual === 'bairro' ? '🏘️' : '🏙️';
+                                        return icon + ' ' + context[0].label;
+                                    },
+                                    label: function(context) {
+                                        return 'Ocorrências: ' + context.parsed; // Barras não mostram "casos"
+                                    },
+                                    afterLabel: function(context) {
+                                        const percentual = data.dados[context.dataIndex].percentual;
+                                        return '📊 ' + percentual + '% do total';
+                                    },
+                                    footer: function(context) {
+                                        return '\n📋 Total: ' + data.total_ocorrencias + ' casos';
+                                    }
+                                }
+                            }
+                        },
+                        // Barras sempre precisam de scales
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    precision: 0,
+                                    font: { size: 12, weight: '500' },
+                                    color: '#64748b'
+                                },
+                                grid: {
+                                    color: 'rgba(148, 163, 184, 0.1)',
+                                    drawBorder: false
+                                },
+                                border: { display: false }
+                            },
+                            x: {
+                                ticks: {
+                                    font: { size: 11, weight: '500' },
+                                    color: '#64748b',
+                                    maxRotation: 45,
+                                    minRotation: 45
+                                },
+                                grid: { display: false },
+                                border: { display: false }
+                            }
+                        }
+                    }
+                });
+                
+                // Exibir badge de validação
+                const validacaoBadge = document.getElementById('validacao-localizacao-badge');
+                let badgeText = '';
+                
+                if (data.validacao.consistente) {
+                    validacaoBadge.className = 'status-badge success';
+                    badgeText = `✓ Dados consistentes (${data.validacao.soma_localizacoes} de ${data.validacao.total_esperado})`;
+                } else {
+                    validacaoBadge.className = 'status-badge warning';
+                    badgeText = `⚠ Inconsistência detectada (${data.validacao.soma_localizacoes} ≠ ${data.validacao.total_esperado})`;
+                }
+                
+                // Adicionar informação sobre dados sem localização se houver
+                if (data.validacao.dados_sem_localizacao > 0) {
+                    badgeText += ` | ${data.validacao.dados_sem_localizacao} registros sem ${agrupamento}`;
+                }
+                
+                // Adicionar informação sobre campo opcional
+                if (data.limitacoes.campo_opcional) {
+                    badgeText += ' | Campos opcionais no cadastro';
+                }
+                
+                validacaoBadge.textContent = badgeText;
+                validacaoBadge.style.display = 'inline-block';
+            } else {
+                // Se não houver dados, mostrar mensagem
+                const ctx = document.getElementById('localizacaoChart').getContext('2d');
+                ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+                ctx.font = '16px Inter, sans-serif';
+                ctx.fillStyle = '#64748b';
+                ctx.textAlign = 'center';
+                ctx.fillText('Nenhum dado disponível para o período selecionado', ctx.canvas.width / 2, ctx.canvas.height / 2);
+            }
+        })
+        .catch(error => {
+            loading.style.display = 'none';
+            console.error('Erro ao carregar localização:', error);
         });
 }
 
