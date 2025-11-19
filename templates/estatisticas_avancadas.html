@@ -779,6 +779,69 @@
         </div>
     </div>
 </div>
+
+<!-- Novo: Gráfico de Medicamentos por Sintoma -->
+<div class="row">
+    <div class="col-lg-12 mb-4">
+        <div class="chart-card">
+            <div class="chart-header">
+                <div style="flex: 1;">
+                    <div class="chart-title">
+                        <i class="bi bi-capsule-pill text-primary"></i>
+                        Medicamentos Mais Usados por Sintoma
+                    </div>
+                    <div class="chart-subtitle">Ranking de medicamentos por score (frequência + eficácia + gravidade)</div>
+                </div>
+                <div class="d-flex gap-2 flex-wrap align-items-center">
+                    <!-- Filtro de Sintoma (obrigatório) -->
+                    <select id="medicamentos-sintoma-filter" class="form-select" style="width: auto; min-width: 200px;">
+                        <option value="">Selecione um sintoma</option>
+                        <!-- Opções serão carregadas dinamicamente -->
+                    </select>
+                    
+                    <!-- Filtro de Período -->
+                    <select id="medicamentos-sintoma-periodo-filter" class="form-select" style="width: auto; min-width: 150px;">
+                        <option value="7dias">Últimos 7 Dias</option>
+                        <option value="30dias" selected>Últimos 30 Dias</option>
+                        <option value="90dias">Últimos 90 Dias</option>
+                        <option value="ano">Último Ano</option>
+                    </select>
+                    
+                    <!-- Filtro de Gênero -->
+                    <select id="medicamentos-sintoma-genero-filter" class="form-select" style="width: auto; min-width: 120px;">
+                        <option value="todos">Todos</option>
+                        <option value="M">Masculino</option>
+                        <option value="F">Feminino</option>
+                        <option value="O">Outro</option>
+                    </select>
+                    
+                    <!-- Filtro de Faixa Etária -->
+                    <select id="medicamentos-sintoma-faixa-filter" class="form-select" style="width: auto; min-width: 120px;">
+                        <option value="todos">Todas</option>
+                        <option value="0-17">0-17 anos</option>
+                        <option value="18-34">18-34 anos</option>
+                        <option value="35-54">35-54 anos</option>
+                        <option value="55+">55+ anos</option>
+                    </select>
+                </div>
+            </div>
+            <div class="loading-spinner" id="loading-medicamentos-sintoma">
+                <div class="spinner"></div>
+                <p class="mt-2 text-muted">Carregando dados...</p>
+            </div>
+            <div class="chart-container">
+                <canvas id="medicamentosSintomaChart"></canvas>
+            </div>
+            <!-- Informação sobre score -->
+            <div class="mt-3 text-center">
+                <small class="text-muted" id="score-info" style="display: none;">
+                    <i class="bi bi-info-circle"></i> 
+                    Score = Frequência × 1.0 + Casos de Sucesso × 0.3 + Score Total da Triagem × 0.1
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
@@ -811,6 +874,7 @@ let pacientesChart = null;      // Gráfico de distribuição de pacientes
 let sintomasChart = null;       // Gráfico de sintomas por faixa etária
 let generoChart = null;         // Gráfico de sintomas por gênero
 let localizacaoChart = null;    // Gráfico de sintomas por localização
+let medicamentosSintomaChart = null; // Gráfico de medicamentos por sintoma
 
 // Configurações padrão do Chart.js (aplica-se a todos os gráficos)
 Chart.defaults.font.family = 'Inter, sans-serif';  // Fonte consistente com o projeto
@@ -868,6 +932,7 @@ function aplicarFiltros() {
     carregarSintomas();                 // Atualiza gráfico de sintomas
     carregarGenero();                   // Atualiza gráfico de gênero
     carregarLocalizacao();              // Atualiza gráfico de localização
+    carregarMedicamentosPorSintoma();   // Atualiza gráfico de medicamentos por sintoma
 }
 
 /**
@@ -1803,6 +1868,38 @@ document.getElementById('localizacao-periodo-filter').addEventListener('change',
     carregarLocalizacao();
 });
 
+// ==========================================
+// EVENT LISTENERS PARA FILTROS DE MEDICAMENTOS POR SINTOMA
+// ==========================================
+
+/**
+ * Event Listener: Mudança no filtro de sintoma (medicamentos por sintoma)
+ */
+document.getElementById('medicamentos-sintoma-filter').addEventListener('change', function() {
+    carregarMedicamentosPorSintoma();
+});
+
+/**
+ * Event Listener: Mudança no filtro de período (medicamentos por sintoma)
+ */
+document.getElementById('medicamentos-sintoma-periodo-filter').addEventListener('change', function() {
+    carregarMedicamentosPorSintoma();
+});
+
+/**
+ * Event Listener: Mudança no filtro de gênero (medicamentos por sintoma)
+ */
+document.getElementById('medicamentos-sintoma-genero-filter').addEventListener('change', function() {
+    carregarMedicamentosPorSintoma();
+});
+
+/**
+ * Event Listener: Mudança no filtro de faixa etária (medicamentos por sintoma)
+ */
+document.getElementById('medicamentos-sintoma-faixa-filter').addEventListener('change', function() {
+    carregarMedicamentosPorSintoma();
+});
+
 /**
  * Função: carregarGenero
  * Carrega e renderiza gráfico de sintomas por gênero
@@ -2181,6 +2278,261 @@ function carregarLocalizacao() {
         });
 }
 
+/**
+ * Função: carregarMedicamentosPorSintoma
+ * Carrega e renderiza gráfico de medicamentos mais usados por sintoma
+ * Sempre usa gráfico de barras horizontais ordenado por score
+ */
+function carregarMedicamentosPorSintoma() {
+    const sintoma = document.getElementById('medicamentos-sintoma-filter').value;
+    const periodo = document.getElementById('medicamentos-sintoma-periodo-filter').value;
+    const genero = document.getElementById('medicamentos-sintoma-genero-filter').value;
+    const faixaEtaria = document.getElementById('medicamentos-sintoma-faixa-filter').value;
+    const loading = document.getElementById('loading-medicamentos-sintoma');
+    
+    // Validar se sintoma foi selecionado
+    if (!sintoma) {
+        const canvasEl = document.getElementById('medicamentosSintomaChart');
+        if (canvasEl && medicamentosSintomaChart) {
+            medicamentosSintomaChart.destroy();
+            medicamentosSintomaChart = null;
+        }
+        const scoreInfo = document.getElementById('score-info');
+        if (scoreInfo) {
+            scoreInfo.style.display = 'none';
+        }
+        return;
+    }
+    
+    loading.style.display = 'block';
+    
+    const params = new URLSearchParams({
+        sintoma: sintoma,
+        periodo: periodo,
+        genero: genero,
+        faixa_etaria: faixaEtaria
+    });
+    
+    fetch(`/api/estatisticas/medicamentos-por-sintoma?${params}`)
+        .then(response => response.json())
+        .then(data => {
+            loading.style.display = 'none';
+            
+            if (data.success) {
+                const ctx = document.getElementById('medicamentosSintomaChart').getContext('2d');
+                
+                // Destruir gráfico anterior se existir
+                if (medicamentosSintomaChart) {
+                    medicamentosSintomaChart.destroy();
+                }
+                
+                // Se não houver medicamentos, mostrar mensagem
+                if (!data.medicamentos || data.medicamentos.length === 0) {
+                    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+                    ctx.font = '16px Inter, sans-serif';
+                    ctx.fillStyle = '#64748b';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('Nenhum medicamento encontrado para este sintoma no período selecionado', ctx.canvas.width / 2, ctx.canvas.height / 2);
+                    document.getElementById('score-info').style.display = 'none';
+                    return;
+                }
+                
+                // Paleta de cores moderna
+                const coresBase = [
+                    '#6366f1', '#8b5cf6', '#a855f7', '#d946ef', '#ec4899',
+                    '#f43f5e', '#f97316', '#f59e0b', '#10b981', '#06b6d4',
+                    '#3b82f6', '#14b8a6', '#ef4444', '#a855f7', '#8b5cf6'
+                ];
+                
+                // Repetir cores se necessário
+                const coresPremium = [];
+                for (let i = 0; i < data.medicamentos.length; i++) {
+                    coresPremium.push(coresBase[i % coresBase.length]);
+                }
+                
+                const coresHover = coresPremium.map(cor => cor + 'dd');
+                
+                // Criar gráfico de barras horizontais
+                medicamentosSintomaChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: data.medicamentos.map(m => m.medicamento),
+                        datasets: [{
+                            label: 'Score',
+                            data: data.medicamentos.map(m => m.score),
+                            backgroundColor: coresPremium,
+                            hoverBackgroundColor: coresHover,
+                            borderColor: '#ffffff',
+                            borderWidth: 2,
+                            borderRadius: 8,
+                            barThickness: 40
+                        }]
+                    },
+                    options: {
+                        indexAxis: 'y', // Barras horizontais
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        animation: {
+                            duration: 1200,
+                            easing: 'easeInOutCubic',
+                            delay: (context) => context.dataIndex * 50
+                        },
+                        interaction: {
+                            mode: 'index',
+                            intersect: false
+                        },
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'top',
+                                align: 'end',
+                                labels: {
+                                    usePointStyle: true,
+                                    padding: 15,
+                                    font: {
+                                        size: 12,
+                                        weight: '600'
+                                    },
+                                    color: '#64748b'
+                                }
+                            },
+                            tooltip: {
+                                enabled: true,
+                                backgroundColor: 'rgba(30, 41, 59, 0.95)',
+                                padding: 16,
+                                cornerRadius: 8,
+                                titleFont: {
+                                    size: 15,
+                                    weight: 'bold',
+                                    family: "'Inter', sans-serif"
+                                },
+                                bodyFont: {
+                                    size: 14,
+                                    family: "'Inter', sans-serif"
+                                },
+                                bodySpacing: 8,
+                                borderWidth: 2,
+                                borderColor: (context) => coresPremium[context.dataIndex % coresPremium.length],
+                                displayColors: true,
+                                callbacks: {
+                                    title: function(context) {
+                                        return '💊 ' + context[0].label;
+                                    },
+                                    label: function(context) {
+                                        const medicamento = data.medicamentos[context.dataIndex];
+                                        return [
+                                            `Score: ${medicamento.score}`,
+                                            `Frequência: ${medicamento.frequencia} vezes`,
+                                            `Taxa de sucesso: ${medicamento.taxa_sucesso}%`,
+                                            `Casos: ${medicamento.total_casos} (${medicamento.casos_sucesso} sem encaminhamento)`
+                                        ];
+                                    },
+                                    footer: function(context) {
+                                        const ranking = context[0].dataIndex + 1;
+                                        return `\n🏆 #${ranking}° medicamento mais usado para "${data.sintoma}"`;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                beginAtZero: true,
+                                ticks: {
+                                    precision: 1,
+                                    font: {
+                                        size: 12,
+                                        weight: '500'
+                                    },
+                                    color: '#64748b',
+                                    padding: 10
+                                },
+                                grid: {
+                                    color: 'rgba(148, 163, 184, 0.1)',
+                                    drawBorder: false
+                                },
+                                border: { display: false },
+                                title: {
+                                    display: true,
+                                    text: 'Score',
+                                    font: {
+                                        size: 13,
+                                        weight: '600'
+                                    },
+                                    color: '#64748b'
+                                }
+                            },
+                            y: {
+                                ticks: {
+                                    font: {
+                                        size: 11,
+                                        weight: '500'
+                                    },
+                                    color: '#64748b',
+                                    padding: 10,
+                                    maxRotation: 45,
+                                    minRotation: 0
+                                },
+                                grid: { display: false },
+                                border: { display: false }
+                            }
+                        }
+                    }
+                });
+                
+                // Exibir informação sobre score
+                document.getElementById('score-info').style.display = 'block';
+                
+                // Carregar sintomas disponíveis no dropdown se necessário
+                carregarSintomasDisponiveisParaMedicamentos();
+            } else {
+                loading.style.display = 'none';
+                console.error('Erro ao carregar medicamentos por sintoma:', data.error);
+            }
+        })
+        .catch(error => {
+            loading.style.display = 'none';
+            console.error('Erro ao carregar medicamentos por sintoma:', error);
+        });
+}
+
+/**
+ * Função: carregarSintomasDisponiveisParaMedicamentos
+ * Carrega lista de sintomas disponíveis no dropdown
+ */
+function carregarSintomasDisponiveisParaMedicamentos() {
+    // Usar a mesma lista de sintomas dos outros gráficos
+    const sintomaFilter = document.getElementById('sintoma-filter');
+    const medicamentosSintomaFilter = document.getElementById('medicamentos-sintoma-filter');
+    
+    if (sintomaFilter && medicamentosSintomaFilter) {
+        const optionsAtuais = Array.from(medicamentosSintomaFilter.options).map(opt => opt.value);
+        
+        // Se já tem opções, não precisa recarregar
+        if (optionsAtuais.length > 1) {
+            return;
+        }
+        
+        // Buscar sintomas da API de sintomas por faixa etária
+        fetch('/api/estatisticas/sintomas-faixa-etaria?sintoma=todos&periodo=ano')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.sintomas_disponiveis) {
+                    // Limpar opções existentes (exceto a primeira)
+                    medicamentosSintomaFilter.innerHTML = '<option value="">Selecione um sintoma</option>';
+                    
+                    // Adicionar sintomas
+                    data.sintomas_disponiveis.forEach(sint => {
+                        const option = document.createElement('option');
+                        option.value = sint;
+                        option.textContent = sint.charAt(0).toUpperCase() + sint.slice(1).replace(/_/g, ' ');
+                        medicamentosSintomaFilter.appendChild(option);
+                    });
+                }
+            })
+            .catch(error => console.error('Erro ao carregar sintomas:', error));
+    }
+}
+
 // ==========================================
 // INICIALIZAÇÃO
 // Carrega todos os dados ao abrir a página
@@ -2194,6 +2546,9 @@ function carregarLocalizacao() {
 document.addEventListener('DOMContentLoaded', function() {
     // Carregar dados iniciais com filtros padrão (último mês)
     aplicarFiltros();
+    
+    // Carregar sintomas disponíveis para o gráfico de medicamentos por sintoma
+    carregarSintomasDisponiveisParaMedicamentos();
 });
 </script>
 {% endblock %}

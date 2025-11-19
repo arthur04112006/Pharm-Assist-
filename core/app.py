@@ -2360,6 +2360,224 @@ def api_estatisticas_sintomas_localizacao():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@app.route('/api/estatisticas/medicamentos-por-sintoma')
+@login_required
+def api_estatisticas_medicamentos_por_sintoma():
+    """
+    API para medicamentos mais usados por sintoma com score
+    
+    Score calculado como:
+    - Frequência de uso (número de vezes recomendado): peso 1.0
+    - Não encaminhamento (medicamento funcionou): peso 0.3 por caso
+    - Score da triagem (casos mais graves): peso 0.1 por ponto de score
+    
+    Filtros disponíveis:
+    - sintoma: sintoma específico (obrigatório)
+    - periodo: 7dias, 30dias, 90dias, ano
+    - genero: M, F, O ou 'todos'
+    - faixa_etaria: 0-17, 18-34, 35-54, 55+ ou 'todos'
+    """
+    try:
+        # Parâmetros de filtro
+        sintoma = request.args.get('sintoma', '')
+        periodo = request.args.get('periodo', '30dias')
+        genero = request.args.get('genero', 'todos')
+        faixa_etaria = request.args.get('faixa_etaria', 'todos')
+        
+        if not sintoma:
+            return jsonify({
+                'success': False,
+                'error': 'Parâmetro sintoma é obrigatório'
+            }), 400
+        
+        # Calcular período
+        hoje = datetime.now()
+        if periodo == 'dia':
+            inicio = hoje.replace(hour=0, minute=0, second=0, microsecond=0)
+        elif periodo == 'semana' or periodo == '7dias':
+            inicio = hoje - timedelta(days=7)
+        elif periodo == '30dias':
+            inicio = hoje - timedelta(days=30)
+        elif periodo == '90dias':
+            inicio = hoje - timedelta(days=90)
+        elif periodo == 'mes':
+            inicio = hoje - timedelta(days=30)
+        elif periodo == 'ano':
+            inicio = hoje - timedelta(days=365)
+        else:
+            inicio = hoje - timedelta(days=30)
+        
+        # Query base: buscar consultas com sintoma específico e paciente
+        query_consultas = db.session.query(
+            Consulta.id,
+            Consulta.observacoes,
+            Consulta.encaminhamento,
+            Paciente.sexo,
+            Paciente.idade
+        ).join(
+            Paciente, Consulta.id_paciente == Paciente.id
+        ).filter(
+            Consulta.data >= inicio,
+            Consulta.observacoes.like(f'MODULO: {sintoma}%')
+        )
+        
+        # Aplicar filtros de gênero e faixa etária
+        if genero != 'todos':
+            query_consultas = query_consultas.filter(Paciente.sexo == genero)
+        
+        if faixa_etaria != 'todos':
+            faixas = {
+                '0-17': (0, 17),
+                '18-34': (18, 34),
+                '35-54': (35, 54),
+                '55+': (55, 150)
+            }
+            if faixa_etaria in faixas:
+                min_idade, max_idade = faixas[faixa_etaria]
+                query_consultas = query_consultas.filter(
+                    Paciente.idade >= min_idade,
+                    Paciente.idade <= max_idade
+                )
+        
+        consultas_data = query_consultas.all()
+        
+        # Buscar recomendações de medicamentos para essas consultas
+        consultas_ids = [c[0] for c in consultas_data]
+        
+        if not consultas_ids:
+            return jsonify({
+                'success': True,
+                'sintoma': sintoma,
+                'periodo': periodo,
+                'genero': genero,
+                'faixa_etaria': faixa_etaria,
+                'total_consultas': 0,
+                'medicamentos': [],
+                'metrica_score': {
+                    'frequencia_peso': 1.0,
+                    'sucesso_peso': 0.3,
+                    'score_triagem_peso': 0.1,
+                    'descricao': 'Score = frequência × 1.0 + casos_sucesso × 0.3 + score_total_triagem × 0.1'
+                }
+            })
+        
+        recomendacoes_data = db.session.query(
+            ConsultaRecomendacao.id_consulta,
+            ConsultaRecomendacao.descricao
+        ).filter(
+            ConsultaRecomendacao.id_consulta.in_(consultas_ids),
+            ConsultaRecomendacao.tipo == 'medicamento'
+        ).all()
+        
+        # Criar dicionário de consultas para acesso rápido
+        consultas_dict = {
+            c[0]: {
+                'observacoes': c[1],
+                'encaminhamento': c[2],
+                'sexo': c[3],
+                'idade': c[4]
+            }
+            for c in consultas_data
+        }
+        
+        # Processar dados: extrair medicamentos e calcular scores
+        medicamentos_dict = {}
+        
+        for consulta_id, medicamento_desc in recomendacoes_data:
+            consulta_info = consultas_dict.get(consulta_id)
+            if not consulta_info:
+                continue
+            if not medicamento_desc:
+                continue
+            
+            # Extrair nome base do medicamento (antes do primeiro " - " ou " | ")
+            nome_base = medicamento_desc.split(' - ')[0].split(' | ')[0].strip()
+            
+            # Extrair score da triagem das observações
+            score_triagem = 0.0
+            observacoes = consulta_info['observacoes']
+            if observacoes:
+                import re
+                score_match = re.search(r'Pontuação total: ([\d.]+)', observacoes)
+                if score_match:
+                    score_triagem = float(score_match.group(1))
+            
+            encaminhamento = consulta_info['encaminhamento']
+            
+            encaminhamento = consulta_info['encaminhamento']
+            
+            # Inicializar medicamento se não existir
+            if nome_base not in medicamentos_dict:
+                medicamentos_dict[nome_base] = {
+                    'medicamento': nome_base,
+                    'frequencia': 0,
+                    'casos_sucesso': 0,  # Casos sem encaminhamento
+                    'score_total_triagem': 0.0,
+                    'total_casos': 0,
+                    'consultas_processadas': set()  # Para evitar contar a mesma consulta múltiplas vezes
+                }
+            
+            # Atualizar frequência (cada recomendação conta)
+            medicamentos_dict[nome_base]['frequencia'] += 1
+            
+            # Contar casos únicos (evitar contar a mesma consulta múltiplas vezes)
+            if consulta_id not in medicamentos_dict[nome_base]['consultas_processadas']:
+                medicamentos_dict[nome_base]['consultas_processadas'].add(consulta_id)
+                medicamentos_dict[nome_base]['total_casos'] += 1
+                
+                if not encaminhamento:
+                    medicamentos_dict[nome_base]['casos_sucesso'] += 1
+                
+                medicamentos_dict[nome_base]['score_total_triagem'] += score_triagem
+        
+        # Calcular score final para cada medicamento
+        # Score = frequência * 1.0 + casos_sucesso * 0.3 + score_total_triagem * 0.1
+        medicamentos_com_score = []
+        for nome, dados in medicamentos_dict.items():
+            # Remover set de consultas processadas antes de calcular
+            consultas_processadas = dados.pop('consultas_processadas', set())
+            
+            score = (
+                dados['frequencia'] * 1.0 +
+                dados['casos_sucesso'] * 0.3 +
+                dados['score_total_triagem'] * 0.1
+            )
+            
+            # Calcular taxa de sucesso
+            taxa_sucesso = (dados['casos_sucesso'] / dados['total_casos'] * 100) if dados['total_casos'] > 0 else 0
+            
+            medicamentos_com_score.append({
+                'medicamento': nome,
+                'score': round(score, 2),
+                'frequencia': dados['frequencia'],
+                'casos_sucesso': dados['casos_sucesso'],
+                'total_casos': dados['total_casos'],
+                'taxa_sucesso': round(taxa_sucesso, 1),
+                'score_medio_triagem': round(dados['score_total_triagem'] / dados['total_casos'], 2) if dados['total_casos'] > 0 else 0
+            })
+        
+        # Ordenar por score (maior primeiro)
+        medicamentos_com_score.sort(key=lambda x: x['score'], reverse=True)
+        
+        return jsonify({
+            'success': True,
+            'sintoma': sintoma,
+            'periodo': periodo,
+            'genero': genero,
+            'faixa_etaria': faixa_etaria,
+            'total_consultas': len(set(c[0] for c in consultas_data)),
+            'medicamentos': medicamentos_com_score,
+            'metrica_score': {
+                'frequencia_peso': 1.0,
+                'sucesso_peso': 0.3,
+                'score_triagem_peso': 0.1,
+                'descricao': 'Score = frequência × 1.0 + casos_sucesso × 0.3 + score_total_triagem × 0.1'
+            }
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 @app.errorhandler(404)
 def not_found_error(error):
     return render_template('404.html'), 404
