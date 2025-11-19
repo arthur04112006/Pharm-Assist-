@@ -645,6 +645,48 @@
     </div>
 </div>
 
+<!-- Novo: Gráfico de Sintomas Mais Comuns -->
+<div class="row">
+    <div class="col-lg-12 mb-4">
+        <div class="chart-card">
+            <div class="chart-header">
+                <div style="flex: 1;">
+                    <div class="chart-title">
+                        <i class="bi bi-clipboard-pulse text-danger"></i>
+                        Sintomas Mais Comuns
+                    </div>
+                    <div class="chart-subtitle">Ranking dos sintomas mais frequentes no período selecionado</div>
+                </div>
+                <div class="d-flex gap-2 flex-wrap align-items-center">
+                    <!-- Filtro de Período -->
+                    <select id="sintomas-comuns-periodo-filter" class="form-select" style="width: auto; min-width: 150px;">
+                        <option value="7dias">Últimos 7 Dias</option>
+                        <option value="30dias" selected>Últimos 30 Dias</option>
+                        <option value="90dias">Últimos 90 Dias</option>
+                        <option value="ano">Último Ano</option>
+                    </select>
+                    
+                    <!-- Filtro de Top -->
+                    <select id="sintomas-comuns-top-filter" class="form-select" style="width: auto; min-width: 120px;">
+                        <option value="5">Top 5</option>
+                        <option value="10" selected>Top 10</option>
+                        <option value="15">Top 15</option>
+                        <option value="20">Top 20</option>
+                        <option value="todos">Todos</option>
+                    </select>
+                </div>
+            </div>
+            <div class="loading-spinner" id="loading-sintomas-comuns">
+                <div class="spinner"></div>
+                <p class="mt-2 text-muted">Carregando dados...</p>
+            </div>
+            <div class="chart-container">
+                <canvas id="sintomasComunsChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Novo: Gráfico de Sintomas por Faixa Etária -->
 <div class="row">
     <div class="col-lg-12 mb-4">
@@ -875,6 +917,7 @@ let sintomasChart = null;       // Gráfico de sintomas por faixa etária
 let generoChart = null;         // Gráfico de sintomas por gênero
 let localizacaoChart = null;    // Gráfico de sintomas por localização
 let medicamentosSintomaChart = null; // Gráfico de medicamentos por sintoma
+let sintomasComunsChart = null; // Gráfico de sintomas mais comuns
 
 // Configurações padrão do Chart.js (aplica-se a todos os gráficos)
 Chart.defaults.font.family = 'Inter, sans-serif';  // Fonte consistente com o projeto
@@ -933,6 +976,7 @@ function aplicarFiltros() {
     carregarGenero();                   // Atualiza gráfico de gênero
     carregarLocalizacao();              // Atualiza gráfico de localização
     carregarMedicamentosPorSintoma();   // Atualiza gráfico de medicamentos por sintoma
+    carregarSintomasComuns();           // Atualiza gráfico de sintomas mais comuns
 }
 
 /**
@@ -2549,7 +2593,204 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Carregar sintomas disponíveis para o gráfico de medicamentos por sintoma
     carregarSintomasDisponiveisParaMedicamentos();
+    
+    // Carregar gráfico de sintomas mais comuns
+    carregarSintomasComuns();
 });
+
+/**
+ * Função: carregarSintomasComuns
+ * Carrega e renderiza gráfico de sintomas mais comuns
+ * Sempre usa gráfico de barras horizontais ordenado por frequência
+ */
+function carregarSintomasComuns() {
+    const periodo = document.getElementById('sintomas-comuns-periodo-filter').value;
+    const top = document.getElementById('sintomas-comuns-top-filter').value;
+    const loading = document.getElementById('loading-sintomas-comuns');
+    
+    loading.style.display = 'block';
+    
+    const params = new URLSearchParams({
+        periodo: periodo,
+        top: top
+    });
+    
+    fetch(`/api/estatisticas/sintomas-comuns?${params}`)
+        .then(response => response.json())
+        .then(data => {
+            loading.style.display = 'none';
+            
+            if (data.success) {
+                const ctx = document.getElementById('sintomasComunsChart').getContext('2d');
+                
+                // Destruir gráfico anterior se existir
+                if (sintomasComunsChart) {
+                    sintomasComunsChart.destroy();
+                }
+                
+                // Se não houver dados, mostrar mensagem
+                if (!data.dados || data.dados.length === 0) {
+                    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+                    ctx.font = '16px Inter, sans-serif';
+                    ctx.fillStyle = '#64748b';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('Nenhum sintoma encontrado no período selecionado', ctx.canvas.width / 2, ctx.canvas.height / 2);
+                    return;
+                }
+                
+                // Paleta de cores moderna
+                const coresBase = [
+                    '#ef4444', '#f97316', '#f59e0b', '#eab308', '#84cc16',
+                    '#22c55e', '#10b981', '#14b8a6', '#06b6d4', '#3b82f6',
+                    '#6366f1', '#8b5cf6', '#a855f7', '#d946ef', '#ec4899'
+                ];
+                
+                // Repetir cores se necessário
+                const coresPremium = [];
+                for (let i = 0; i < data.dados.length; i++) {
+                    coresPremium.push(coresBase[i % coresBase.length]);
+                }
+                
+                const coresHover = coresPremium.map(cor => cor + 'dd');
+                
+                // Criar gráfico de barras horizontais
+                sintomasComunsChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: data.dados.map(d => {
+                            // Formatar nome do sintoma (capitalizar e substituir underscores)
+                            return d.sintoma.charAt(0).toUpperCase() + d.sintoma.slice(1).replace(/_/g, ' ');
+                        }),
+                        datasets: [{
+                            label: 'Frequência',
+                            data: data.dados.map(d => d.count),
+                            backgroundColor: coresPremium,
+                            hoverBackgroundColor: coresHover,
+                            borderColor: '#ffffff',
+                            borderWidth: 2,
+                            borderRadius: 8,
+                            barThickness: 40
+                        }]
+                    },
+                    options: {
+                        indexAxis: 'y', // Barras horizontais
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        animation: {
+                            duration: 1200,
+                            easing: 'easeInOutCubic',
+                            delay: (context) => context.dataIndex * 50
+                        },
+                        interaction: {
+                            mode: 'index',
+                            intersect: false
+                        },
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'top',
+                                align: 'end',
+                                labels: {
+                                    usePointStyle: true,
+                                    padding: 15,
+                                    font: {
+                                        size: 12,
+                                        weight: '600'
+                                    },
+                                    color: '#64748b'
+                                }
+                            },
+                            tooltip: {
+                                enabled: true,
+                                backgroundColor: 'rgba(30, 41, 59, 0.95)',
+                                padding: 16,
+                                cornerRadius: 8,
+                                titleFont: {
+                                    size: 15,
+                                    weight: 'bold',
+                                    family: "'Inter', sans-serif"
+                                },
+                                bodyFont: {
+                                    size: 14,
+                                    family: "'Inter', sans-serif"
+                                },
+                                bodySpacing: 8,
+                                borderWidth: 2,
+                                borderColor: (context) => coresPremium[context.dataIndex % coresPremium.length],
+                                displayColors: true,
+                                callbacks: {
+                                    title: function(context) {
+                                        return '🩺 ' + context[0].label;
+                                    },
+                                    label: function(context) {
+                                        const sintoma = data.dados[context.dataIndex];
+                                        return [
+                                            `Ocorrências: ${sintoma.count}`,
+                                            `Percentual: ${sintoma.percentual}% do total`,
+                                            `Total de consultas: ${data.total_consultas}`
+                                        ];
+                                    },
+                                    footer: function(context) {
+                                        const ranking = context[0].dataIndex + 1;
+                                        return `\n🏆 #${ranking}° sintoma mais comum`;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                beginAtZero: true,
+                                ticks: {
+                                    precision: 0,
+                                    font: {
+                                        size: 12,
+                                        weight: '500'
+                                    },
+                                    color: '#64748b',
+                                    padding: 10
+                                },
+                                grid: {
+                                    color: 'rgba(148, 163, 184, 0.1)',
+                                    drawBorder: false
+                                },
+                                border: { display: false },
+                                title: {
+                                    display: true,
+                                    text: 'Número de Ocorrências',
+                                    font: {
+                                        size: 13,
+                                        weight: '600'
+                                    },
+                                    color: '#64748b'
+                                }
+                            },
+                            y: {
+                                ticks: {
+                                    font: {
+                                        size: 11,
+                                        weight: '500'
+                                    },
+                                    color: '#64748b',
+                                    padding: 10,
+                                    maxRotation: 45,
+                                    minRotation: 0
+                                },
+                                grid: { display: false },
+                                border: { display: false }
+                            }
+                        }
+                    }
+                });
+            } else {
+                loading.style.display = 'none';
+                console.error('Erro ao carregar sintomas comuns:', data.error);
+            }
+        })
+        .catch(error => {
+            loading.style.display = 'none';
+            console.error('Erro ao carregar sintomas comuns:', error);
+        });
+}
 </script>
 {% endblock %}
 

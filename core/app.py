@@ -2578,6 +2578,98 @@ def api_estatisticas_medicamentos_por_sintoma():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@app.route('/api/estatisticas/sintomas-comuns')
+@login_required
+def api_estatisticas_sintomas_comuns():
+    """API para ranking dos sintomas mais comuns"""
+    try:
+        # Parâmetros de filtro
+        periodo = request.args.get('periodo', '30dias')
+        top = request.args.get('top', '10')
+        
+        # Calcular período
+        hoje = datetime.now()
+        if periodo == 'dia':
+            inicio = hoje.replace(hour=0, minute=0, second=0, microsecond=0)
+        elif periodo == 'semana' or periodo == '7dias':
+            inicio = hoje - timedelta(days=7)
+        elif periodo == '30dias':
+            inicio = hoje - timedelta(days=30)
+        elif periodo == '90dias':
+            inicio = hoje - timedelta(days=90)
+        elif periodo == 'mes':
+            inicio = hoje - timedelta(days=30)
+        elif periodo == 'ano':
+            inicio = hoje - timedelta(days=365)
+        else:
+            inicio = hoje - timedelta(days=30)
+        
+        # Query: buscar consultas com sintomas
+        query = db.session.query(
+            Consulta.observacoes
+        ).filter(
+            Consulta.data >= inicio,
+            Consulta.observacoes.isnot(None)
+        )
+        
+        consultas_data = query.all()
+        
+        # Extrair e contar sintomas
+        sintomas_dict = {}
+        total_consultas = 0
+        
+        for (observacoes,) in consultas_data:
+            if not observacoes:
+                continue
+            
+            # Primeira linha das observações contém o módulo/sintoma
+            linhas = observacoes.split('\n')
+            if linhas and linhas[0].startswith('MODULO:'):
+                sintoma = linhas[0].replace('MODULO:', '').strip()
+                
+                if sintoma not in sintomas_dict:
+                    sintomas_dict[sintoma] = 0
+                
+                sintomas_dict[sintoma] += 1
+                total_consultas += 1
+        
+        # Ordenar por frequência (maior para menor)
+        sintomas_ordenados = sorted(
+            sintomas_dict.items(),
+            key=lambda x: x[1],
+            reverse=True
+        )
+        
+        # Aplicar limite de Top N
+        if top != 'todos':
+            try:
+                top_n = int(top)
+                sintomas_ordenados = sintomas_ordenados[:top_n]
+            except ValueError:
+                pass
+        
+        # Preparar dados para o gráfico
+        dados_grafico = []
+        for sintoma, count in sintomas_ordenados:
+            percentual = (count / total_consultas * 100) if total_consultas > 0 else 0
+            dados_grafico.append({
+                'sintoma': sintoma,
+                'count': count,
+                'percentual': round(percentual, 1)
+            })
+        
+        return jsonify({
+            'success': True,
+            'periodo': periodo,
+            'top': top,
+            'total_consultas': total_consultas,
+            'total_sintomas_unicos': len(sintomas_dict),
+            'dados': dados_grafico
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 @app.errorhandler(404)
 def not_found_error(error):
     return render_template('404.html'), 404
