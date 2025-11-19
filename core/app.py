@@ -1793,7 +1793,7 @@ def api_estatisticas_medicamentos():
     try:
         # Parâmetros de filtro
         periodo = request.args.get('periodo', 'mes')
-        limite = request.args.get('limite', 10, type=int)
+        # Removido limite - mostra todos os medicamentos
         data_inicio = request.args.get('data_inicio')
         data_fim = request.args.get('data_fim')
         
@@ -1839,12 +1839,12 @@ def api_estatisticas_medicamentos():
             else:
                 medicamentos_dict[nome_base] = 1
         
-        # Ordenar e limitar
+        # Ordenar (sem limite - mostra todos)
         medicamentos_ordenados = sorted(
             medicamentos_dict.items(),
             key=lambda x: x[1],
             reverse=True
-        )[:limite]
+        )
         
         # Preparar dados para o gráfico
         dados = [

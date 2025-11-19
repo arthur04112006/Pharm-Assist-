@@ -490,20 +490,6 @@
             </div>
         </div>
         
-        <div class="col-md-3">
-            <div class="filter-group">
-                <label for="limite-filter">
-                    <i class="bi bi-list-ol"></i> Limite de Resultados
-                </label>
-                <select id="limite-filter" class="form-select">
-                    <option value="5">Top 5</option>
-                    <option value="10" selected>Top 10</option>
-                    <option value="15">Top 15</option>
-                    <option value="20">Top 20</option>
-                </select>
-            </div>
-        </div>
-        
         <div class="col-md-12 d-flex justify-content-center mt-3">
             <button class="btn-filter" onclick="aplicarFiltros()">
                 <i class="bi bi-funnel"></i> Aplicar Filtros
@@ -637,13 +623,15 @@
                     </div>
                     <div class="chart-subtitle">Ranking de medicamentos por frequência de recomendação</div>
                 </div>
-                <div class="chart-options">
-                    <button class="chart-option-btn active" data-chart="medicamentos" data-type="bar">
-                        <i class="bi bi-bar-chart-fill"></i> Barras
-                    </button>
-                    <button class="chart-option-btn" data-chart="medicamentos" data-type="horizontalBar">
-                        <i class="bi bi-bar-chart"></i> Horizontal
-                    </button>
+                <div class="d-flex gap-2 flex-wrap align-items-center">
+                    <!-- Filtro de Top -->
+                    <select id="medicamentos-top-filter" class="form-select" style="width: auto; min-width: 150px;">
+                        <option value="5">Top 5</option>
+                        <option value="10" selected>Top 10</option>
+                        <option value="15">Top 15</option>
+                        <option value="20">Top 20</option>
+                        <option value="todos">Todos</option>
+                    </select>
                 </div>
             </div>
             <div class="loading-spinner" id="loading-medicamentos">
@@ -890,7 +878,6 @@ function aplicarFiltros() {
 function resetarFiltros() {
     // Restaurar valores padrão
     document.getElementById('periodo-filter').value = '30dias';
-    document.getElementById('limite-filter').value = '10';
     
     // Ocultar campos de data personalizada
     document.getElementById('data-inicio-group').style.display = 'none';
@@ -1195,12 +1182,11 @@ function carregarConsultas(tipoGrafico = 'line') {
 /**
  * Função: carregarMedicamentos
  * Carrega e renderiza gráfico de medicamentos mais recomendados
- * @param {string} tipoGrafico - Tipo do gráfico ('bar', 'pie', ou 'doughnut')
+ * Sempre usa gráfico horizontal com filtro de Top N
  */
-function carregarMedicamentos(tipoGrafico = 'bar') {
+function carregarMedicamentos() {
     const params = getFiltroParams();
-    // Adiciona limite de medicamentos a exibir (10, 20, 50, etc.)
-    params.append('limite', document.getElementById('limite-filter').value);
+    // Não passa limite - API retorna todos, filtramos no frontend
     
     const loading = document.getElementById('loading-medicamentos');
     loading.style.display = 'block';  // Exibe loading spinner
@@ -1211,6 +1197,15 @@ function carregarMedicamentos(tipoGrafico = 'bar') {
             loading.style.display = 'none';
             
             if (data.success) {
+                // Aplicar filtro de Top N
+                const topFilter = document.getElementById('medicamentos-top-filter').value;
+                let dadosFiltrados = [...data.dados];
+                
+                if (topFilter !== 'todos') {
+                    const topN = parseInt(topFilter);
+                    dadosFiltrados = data.dados.slice(0, topN);
+                }
+                
                 const ctx = document.getElementById('medicamentosChart').getContext('2d');
                 
                 // Destruir gráfico anterior se existir
@@ -1218,23 +1213,24 @@ function carregarMedicamentos(tipoGrafico = 'bar') {
                     medicamentosChart.destroy();
                 }
                 
-                // Configurar tipo de gráfico
-                const chartType = tipoGrafico === 'horizontalBar' ? 'bar' : tipoGrafico;
-                const indexAxis = tipoGrafico === 'horizontalBar' ? 'y' : 'x';
+                // Sempre usar gráfico horizontal
+                const chartType = 'bar';
+                const indexAxis = 'y'; // Horizontal
                 
                 // Paleta de cores moderna e vibrante (gradiente de azul para roxo/laranja)
-                const coresPremium = [
-                    '#6366f1',  // Indigo (primária)
-                    '#8b5cf6',  // Violeta
-                    '#a855f7',  // Roxo
-                    '#d946ef',  // Fúcsia
-                    '#ec4899',  // Rosa
-                    '#f43f5e',  // Vermelho-Rosa
-                    '#f97316',  // Laranja
-                    '#f59e0b',  // Âmbar
-                    '#10b981',  // Verde Esmeralda
-                    '#06b6d4'   // Ciano
+                // Expandida para suportar muitos medicamentos (sem limite)
+                const coresBase = [
+                    '#6366f1', '#8b5cf6', '#a855f7', '#d946ef', '#ec4899',
+                    '#f43f5e', '#f97316', '#f59e0b', '#10b981', '#06b6d4',
+                    '#3b82f6', '#14b8a6', '#f59e0b', '#ef4444', '#a855f7',
+                    '#8b5cf6', '#ec4899', '#06b6d4', '#10b981', '#f97316'
                 ];
+                
+                // Repetir cores se necessário para muitos medicamentos
+                const coresPremium = [];
+                for (let i = 0; i < dadosFiltrados.length; i++) {
+                    coresPremium.push(coresBase[i % coresBase.length]);
+                }
                 
                 // Criar versões com transparência para hover
                 const coresHover = coresPremium.map(cor => cor + 'dd');
@@ -1243,10 +1239,10 @@ function carregarMedicamentos(tipoGrafico = 'bar') {
                 medicamentosChart = new Chart(ctx, {
                     type: chartType,
                     data: {
-                        labels: data.dados.map(d => d.medicamento),
+                        labels: dadosFiltrados.map(d => d.medicamento),
                         datasets: [{
                             label: 'Medicamentos Recomendados',
-                            data: data.dados.map(d => d.count),
+                            data: dadosFiltrados.map(d => d.count),
                             backgroundColor: coresPremium,
                             hoverBackgroundColor: coresHover,
                             borderColor: '#ffffff',
@@ -1317,12 +1313,13 @@ function carregarMedicamentos(tipoGrafico = 'bar') {
                                         return 'Recomendações: ' + context.parsed.y + 'x';
                                     },
                                     afterLabel: function(context) {
-                                        const percentual = data.dados[context.dataIndex].percentual;
+                                        const percentual = dadosFiltrados[context.dataIndex].percentual;
                                         return '📊 ' + percentual.toFixed(1) + '% do total';
                                     },
                                     footer: function(context) {
                                         const ranking = context[0].dataIndex + 1;
-                                        return '\n🏆 #' + ranking + '° mais recomendado';
+                                        const totalMostrado = topFilter === 'todos' ? data.dados.length : parseInt(topFilter);
+                                        return '\n🏆 #' + ranking + '° mais recomendado' + (topFilter !== 'todos' ? ` (de ${totalMostrado} mostrados)` : '');
                                     }
                                 }
                             }
@@ -1709,7 +1706,7 @@ document.querySelectorAll('.chart-option-btn').forEach(btn => {
         if (chart === 'consultas') {
             carregarConsultas(this.dataset.type);
         } else if (chart === 'medicamentos') {
-            carregarMedicamentos(this.dataset.type);
+            carregarMedicamentos(); // Sempre horizontal
         } else if (chart === 'pacientes') {
             carregarPacientes(this.dataset.agrupamento);
         } else if (chart === 'sintomas') {
@@ -1762,6 +1759,19 @@ document.getElementById('sintoma-genero-filter').addEventListener('change', func
  */
 document.getElementById('genero-periodo-filter').addEventListener('change', function() {
     carregarGenero();
+});
+
+// ==========================================
+// EVENT LISTENERS PARA FILTROS DE MEDICAMENTOS
+// Atualiza gráfico quando filtro de Top muda
+// ==========================================
+
+/**
+ * Event Listener: Mudança no filtro de Top de medicamentos
+ * Recarrega o gráfico quando o usuário seleciona outro Top N
+ */
+document.getElementById('medicamentos-top-filter').addEventListener('change', function() {
+    carregarMedicamentos();
 });
 
 // ==========================================
