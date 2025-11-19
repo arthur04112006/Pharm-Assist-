@@ -551,7 +551,7 @@
 <!-- Gráficos -->
 <div class="row">
     <!-- Gráfico de Consultas por Dia -->
-    <div class="col-lg-8 mb-4">
+    <div class="col-lg-12 mb-4">
         <div class="chart-card">
             <div class="chart-header">
                 <div>
@@ -579,74 +579,10 @@
             </div>
         </div>
     </div>
-    
-    <!-- Gráfico de Pacientes -->
-    <div class="col-lg-4 mb-4">
-        <div class="chart-card">
-            <div class="chart-header">
-                <div>
-                    <div class="chart-title">
-                        <i class="bi bi-people-fill text-success"></i>
-                        Distribuição de Pacientes
-                    </div>
-                    <div class="chart-subtitle">Por faixa etária</div>
-                </div>
-                <div class="chart-options">
-                    <button class="chart-option-btn active" data-chart="pacientes" data-agrupamento="faixa_etaria">
-                        <i class="bi bi-person"></i> Idade
-                    </button>
-                    <button class="chart-option-btn" data-chart="pacientes" data-agrupamento="genero">
-                        <i class="bi bi-gender-ambiguous"></i> Gênero
-                    </button>
-                </div>
-            </div>
-            <div class="loading-spinner" id="loading-pacientes">
-                <div class="spinner"></div>
-                <p class="mt-2 text-muted">Carregando dados...</p>
-            </div>
-            <div class="chart-container">
-                <canvas id="pacientesChart"></canvas>
-            </div>
-        </div>
-    </div>
 </div>
 
 <div class="row">
-    <!-- Gráfico de Medicamentos -->
-    <div class="col-lg-12 mb-4">
-        <div class="chart-card">
-            <div class="chart-header">
-                <div>
-                    <div class="chart-title">
-                        <i class="bi bi-capsule text-warning"></i>
-                        Medicamentos Mais Recomendados
-                    </div>
-                    <div class="chart-subtitle">Ranking de medicamentos por frequência de recomendação</div>
-                </div>
-                <div class="d-flex gap-2 flex-wrap align-items-center">
-                    <!-- Filtro de Top -->
-                    <select id="medicamentos-top-filter" class="form-select" style="width: auto; min-width: 150px;">
-                        <option value="5">Top 5</option>
-                        <option value="10" selected>Top 10</option>
-                        <option value="15">Top 15</option>
-                        <option value="20">Top 20</option>
-                        <option value="todos">Todos</option>
-                    </select>
-                </div>
-            </div>
-            <div class="loading-spinner" id="loading-medicamentos">
-                <div class="spinner"></div>
-                <p class="mt-2 text-muted">Carregando dados...</p>
-            </div>
-            <div class="chart-container">
-                <canvas id="medicamentosChart"></canvas>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Novo: Gráfico de Sintomas Mais Comuns -->
-<div class="row">
+    <!-- Gráfico de Sintomas Mais Comuns -->
     <div class="col-lg-12 mb-4">
         <div class="chart-card">
             <div class="chart-header">
@@ -884,6 +820,228 @@
         </div>
     </div>
 </div>
+
+<!-- Gráfico de Medicamentos Mais Recomendados -->
+<div class="row">
+    <div class="col-lg-12 mb-4">
+        <div class="chart-card">
+            <div class="chart-header">
+                <div>
+                    <div class="chart-title">
+                        <i class="bi bi-capsule text-warning"></i>
+                        Medicamentos Mais Recomendados
+                    </div>
+                    <div class="chart-subtitle">Ranking de medicamentos por frequência de recomendação</div>
+                </div>
+                <div class="d-flex gap-2 flex-wrap align-items-center">
+                    <!-- Filtro de Top -->
+                    <select id="medicamentos-top-filter" class="form-select" style="width: auto; min-width: 150px;">
+                        <option value="5">Top 5</option>
+                        <option value="10" selected>Top 10</option>
+                        <option value="15">Top 15</option>
+                        <option value="20">Top 20</option>
+                        <option value="todos">Todos</option>
+                    </select>
+                </div>
+            </div>
+            <div class="loading-spinner" id="loading-medicamentos">
+                <div class="spinner"></div>
+                <p class="mt-2 text-muted">Carregando dados...</p>
+            </div>
+            <div class="chart-container">
+                <canvas id="medicamentosChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Gráfico de Tipos de Recomendações (Farmacológica vs Não-Farmacológica) -->
+<div class="row">
+    <div class="col-lg-12 mb-4">
+        <div class="chart-card">
+            <div class="chart-header">
+                <div style="flex: 1;">
+                    <div class="chart-title">
+                        <i class="bi bi-pie-chart-fill text-info"></i>
+                        Tipos de Recomendações
+                    </div>
+                    <div class="chart-subtitle">Distribuição entre recomendações farmacológicas e não-farmacológicas</div>
+                </div>
+                <div class="d-flex gap-2 flex-wrap align-items-center">
+                    <!-- Filtro de Período -->
+                    <select id="tipos-recomendacoes-periodo-filter" class="form-select" style="width: auto; min-width: 150px;">
+                        <option value="7dias">Últimos 7 Dias</option>
+                        <option value="30dias" selected>Últimos 30 Dias</option>
+                        <option value="90dias">Últimos 90 Dias</option>
+                        <option value="ano">Último Ano</option>
+                    </select>
+                    
+                    <!-- Filtro de Sintoma -->
+                    <select id="tipos-recomendacoes-sintoma-filter" class="form-select" style="width: auto; min-width: 200px;">
+                        <option value="todos">Todos os Sintomas</option>
+                        <!-- Opções serão carregadas dinamicamente -->
+                    </select>
+                </div>
+            </div>
+            <div class="loading-spinner" id="loading-tipos-recomendacoes">
+                <div class="spinner"></div>
+                <p class="mt-2 text-muted">Carregando dados...</p>
+            </div>
+            <div class="chart-container">
+                <canvas id="tiposRecomendacoesChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Gráfico de Taxa de Encaminhamentos ao Longo do Tempo -->
+<div class="row">
+    <div class="col-lg-12 mb-4">
+        <div class="chart-card">
+            <div class="chart-header">
+                <div style="flex: 1;">
+                    <div class="chart-title">
+                        <i class="bi bi-graph-up text-danger"></i>
+                        Taxa de Encaminhamentos ao Longo do Tempo
+                    </div>
+                    <div class="chart-subtitle">Evolução da taxa de encaminhamentos médicos e resolução</div>
+                </div>
+                <div class="d-flex gap-2 flex-wrap align-items-center">
+                    <!-- Filtro de Período -->
+                    <select id="encaminhamentos-periodo-filter" class="form-select" style="width: auto; min-width: 150px;">
+                        <option value="7dias">Últimos 7 Dias</option>
+                        <option value="30dias" selected>Últimos 30 Dias</option>
+                        <option value="90dias">Últimos 90 Dias</option>
+                        <option value="ano">Último Ano</option>
+                    </select>
+                    
+                    <!-- Filtro de Gênero -->
+                    <select id="encaminhamentos-genero-filter" class="form-select" style="width: auto; min-width: 120px;">
+                        <option value="todos">Todos</option>
+                        <option value="M">Masculino</option>
+                        <option value="F">Feminino</option>
+                        <option value="O">Outro</option>
+                    </select>
+                    
+                    <!-- Filtro de Faixa Etária -->
+                    <select id="encaminhamentos-faixa-filter" class="form-select" style="width: auto; min-width: 120px;">
+                        <option value="todos">Todas</option>
+                        <option value="0-17">0-17 anos</option>
+                        <option value="18-34">18-34 anos</option>
+                        <option value="35-54">35-54 anos</option>
+                        <option value="55+">55+ anos</option>
+                    </select>
+                </div>
+            </div>
+            <div class="loading-spinner" id="loading-encaminhamentos">
+                <div class="spinner"></div>
+                <p class="mt-2 text-muted">Carregando dados...</p>
+            </div>
+            <div class="chart-container">
+                <canvas id="encaminhamentosChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Gráfico de Distribuição de Hábitos -->
+<div class="row">
+    <div class="col-lg-12 mb-4">
+        <div class="chart-card">
+            <div class="chart-header">
+                <div style="flex: 1;">
+                    <div class="chart-title">
+                        <i class="bi bi-person-heart text-warning"></i>
+                        Distribuição de Hábitos
+                    </div>
+                    <div class="chart-subtitle">Distribuição de pacientes fumantes e etilistas</div>
+                </div>
+                <div class="d-flex gap-2 flex-wrap align-items-center">
+                    <!-- Filtro de Período -->
+                    <select id="habitos-periodo-filter" class="form-select" style="width: auto; min-width: 150px;">
+                        <option value="todos">Todos</option>
+                        <option value="7dias">Últimos 7 Dias</option>
+                        <option value="30dias">Últimos 30 Dias</option>
+                        <option value="90dias">Últimos 90 Dias</option>
+                        <option value="ano">Último Ano</option>
+                    </select>
+                    
+                    <!-- Filtro de Gênero -->
+                    <select id="habitos-genero-filter" class="form-select" style="width: auto; min-width: 120px;">
+                        <option value="todos">Todos</option>
+                        <option value="M">Masculino</option>
+                        <option value="F">Feminino</option>
+                        <option value="O">Outro</option>
+                    </select>
+                    
+                    <!-- Filtro de Faixa Etária -->
+                    <select id="habitos-faixa-filter" class="form-select" style="width: auto; min-width: 120px;">
+                        <option value="todos">Todas</option>
+                        <option value="0-17">0-17 anos</option>
+                        <option value="18-34">18-34 anos</option>
+                        <option value="35-54">35-54 anos</option>
+                        <option value="55+">55+ anos</option>
+                    </select>
+                </div>
+            </div>
+            <div class="loading-spinner" id="loading-habitos">
+                <div class="spinner"></div>
+                <p class="mt-2 text-muted">Carregando dados...</p>
+            </div>
+            <div class="chart-container">
+                <canvas id="habitosChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Gráfico de Recomendações Não-Farmacológicas Mais Comuns -->
+<div class="row">
+    <div class="col-lg-12 mb-4">
+        <div class="chart-card">
+            <div class="chart-header">
+                <div style="flex: 1;">
+                    <div class="chart-title">
+                        <i class="bi bi-heart-pulse text-success"></i>
+                        Recomendações Não-Farmacológicas Mais Comuns
+                    </div>
+                    <div class="chart-subtitle">Ranking das recomendações não-farmacológicas mais frequentes</div>
+                </div>
+                <div class="d-flex gap-2 flex-wrap align-items-center">
+                    <!-- Filtro de Período -->
+                    <select id="nao-farmacologicas-periodo-filter" class="form-select" style="width: auto; min-width: 150px;">
+                        <option value="7dias">Últimos 7 Dias</option>
+                        <option value="30dias" selected>Últimos 30 Dias</option>
+                        <option value="90dias">Últimos 90 Dias</option>
+                        <option value="ano">Último Ano</option>
+                    </select>
+                    
+                    <!-- Filtro de Sintoma -->
+                    <select id="nao-farmacologicas-sintoma-filter" class="form-select" style="width: auto; min-width: 200px;">
+                        <option value="todos">Todos os Sintomas</option>
+                        <!-- Opções serão carregadas dinamicamente -->
+                    </select>
+                    
+                    <!-- Filtro de Top -->
+                    <select id="nao-farmacologicas-top-filter" class="form-select" style="width: auto; min-width: 120px;">
+                        <option value="5">Top 5</option>
+                        <option value="10" selected>Top 10</option>
+                        <option value="15">Top 15</option>
+                        <option value="20">Top 20</option>
+                        <option value="todos">Todos</option>
+                    </select>
+                </div>
+            </div>
+            <div class="loading-spinner" id="loading-nao-farmacologicas">
+                <div class="spinner"></div>
+                <p class="mt-2 text-muted">Carregando dados...</p>
+            </div>
+            <div class="chart-container">
+                <canvas id="naoFarmacologicasChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
@@ -912,12 +1070,15 @@
 // Instâncias dos gráficos Chart.js (para atualização dinâmica)
 let consultasChart = null;      // Gráfico de consultas por período
 let medicamentosChart = null;   // Gráfico de medicamentos mais recomendados
-let pacientesChart = null;      // Gráfico de distribuição de pacientes
 let sintomasChart = null;       // Gráfico de sintomas por faixa etária
 let generoChart = null;         // Gráfico de sintomas por gênero
 let localizacaoChart = null;    // Gráfico de sintomas por localização
 let medicamentosSintomaChart = null; // Gráfico de medicamentos por sintoma
 let sintomasComunsChart = null; // Gráfico de sintomas mais comuns
+let tiposRecomendacoesChart = null; // Gráfico de tipos de recomendações
+let encaminhamentosChart = null; // Gráfico de encaminhamentos ao longo do tempo
+let habitosChart = null; // Gráfico de distribuição de hábitos
+let naoFarmacologicasChart = null; // Gráfico de recomendações não-farmacológicas
 
 // Configurações padrão do Chart.js (aplica-se a todos os gráficos)
 Chart.defaults.font.family = 'Inter, sans-serif';  // Fonte consistente com o projeto
@@ -970,13 +1131,16 @@ document.getElementById('periodo-filter').addEventListener('change', function() 
 function aplicarFiltros() {
     carregarDesempenho();               // Atualiza cards de métricas
     carregarConsultas();                // Atualiza gráfico de consultas
-    carregarMedicamentos();             // Atualiza gráfico de medicamentos
-    carregarPacientes('faixa_etaria');  // Atualiza gráfico de pacientes
+    carregarSintomasComuns();           // Atualiza gráfico de sintomas mais comuns
     carregarSintomas();                 // Atualiza gráfico de sintomas
     carregarGenero();                   // Atualiza gráfico de gênero
     carregarLocalizacao();              // Atualiza gráfico de localização
     carregarMedicamentosPorSintoma();   // Atualiza gráfico de medicamentos por sintoma
-    carregarSintomasComuns();           // Atualiza gráfico de sintomas mais comuns
+    carregarMedicamentos();             // Atualiza gráfico de medicamentos mais recomendados
+    carregarTiposRecomendacoes();       // Atualiza gráfico de tipos de recomendações
+    carregarEncaminhamentos();          // Atualiza gráfico de encaminhamentos
+    carregarHabitos();                  // Atualiza gráfico de hábitos
+    carregarNaoFarmacologicas();        // Atualiza gráfico de recomendações não-farmacológicas
 }
 
 /**
@@ -1482,164 +1646,6 @@ function carregarMedicamentos() {
 }
 
 /**
- * Função: carregarPacientes
- * Carrega e renderiza gráfico de distribuição de pacientes
- * @param {string} agrupamento - Tipo de agrupamento ('faixa_etaria' ou 'genero')
- */
-function carregarPacientes(agrupamento = 'faixa_etaria') {
-    const loading = document.getElementById('loading-pacientes');
-    loading.style.display = 'block';  // Exibe loading spinner
-    
-    fetch(`/api/estatisticas/pacientes?agrupamento=${agrupamento}`)
-        .then(response => response.json())
-        .then(data => {
-            loading.style.display = 'none';
-            
-            if (data.success) {
-                const ctx = document.getElementById('pacientesChart').getContext('2d');
-                
-                // Destruir gráfico anterior se existir
-                if (pacientesChart) {
-                    pacientesChart.destroy();
-                }
-                
-                // Paleta de cores vibrante e moderna
-                const coresPacientes = [
-                    '#6366f1',  // Indigo
-                    '#8b5cf6',  // Violeta
-                    '#06b6d4',  // Ciano
-                    '#10b981',  // Verde
-                    '#f59e0b',  // Âmbar
-                    '#ef4444',  // Vermelho
-                    '#ec4899',  // Rosa
-                    '#a855f7'   // Roxo
-                ];
-                
-                // Versões mais escuras para hover
-                const coresHoverPacientes = [
-                    '#4f46e5',
-                    '#7c3aed',
-                    '#0891b2',
-                    '#059669',
-                    '#d97706',
-                    '#dc2626',
-                    '#db2777',
-                    '#9333ea'
-                ];
-                
-                // Criar novo gráfico
-                pacientesChart = new Chart(ctx, {
-                    type: 'doughnut',
-                    data: {
-                        labels: data.dados.map(d => d.categoria),
-                        datasets: [{
-                            label: 'Pacientes',
-                            data: data.dados.map(d => d.count),
-                            backgroundColor: coresPacientes,
-                            hoverBackgroundColor: coresHoverPacientes,
-                            borderColor: '#ffffff',
-                            borderWidth: 3,
-                            hoverBorderWidth: 4,
-                            hoverOffset: 15,  // Aumenta offset no hover
-                            spacing: 2  // Espaço entre segmentos
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        // Animação suave e rotativa
-                        animation: {
-                            animateRotate: true,
-                            animateScale: true,
-                            duration: 1500,
-                            easing: 'easeInOutQuart'
-                        },
-                        interaction: {
-                            mode: 'nearest',
-                            intersect: true
-                        },
-                        plugins: {
-                            legend: {
-                                position: 'bottom',
-                                labels: {
-                                    padding: 20,
-                                    usePointStyle: true,
-                                    pointStyle: 'circle',
-                                    font: {
-                                        size: 13,
-                                        weight: '600',
-                                        family: "'Inter', sans-serif"
-                                    },
-                                    color: '#64748b',
-                                    generateLabels: function(chart) {
-                                        const data = chart.data;
-                                        const total = data.datasets[0].data.reduce((a, b) => a + b, 0);
-                                        return data.labels.map((label, i) => {
-                                            const value = data.datasets[0].data[i];
-                                            const percent = ((value / total) * 100).toFixed(1);
-                                            return {
-                                                text: `${label} - ${value} (${percent}%)`,
-                                                fillStyle: data.datasets[0].backgroundColor[i],
-                                                hidden: false,
-                                                index: i
-                                            };
-                                        });
-                                    }
-                                }
-                            },
-                            // Tooltip avançado e informativo
-                            tooltip: {
-                                enabled: true,
-                                backgroundColor: 'rgba(30, 41, 59, 0.95)',
-                                padding: 16,
-                                cornerRadius: 8,
-                                titleFont: {
-                                    size: 15,
-                                    weight: 'bold',
-                                    family: "'Inter', sans-serif"
-                                },
-                                bodyFont: {
-                                    size: 14,
-                                    family: "'Inter', sans-serif"
-                                },
-                                bodySpacing: 8,
-                                borderWidth: 3,
-                                borderColor: (context) => {
-                                    return coresPacientes[context.dataIndex];
-                                },
-                                displayColors: true,
-                                callbacks: {
-                                    title: function(context) {
-                                        return '👥 ' + context[0].label;
-                                    },
-                                    label: function(context) {
-                                        return 'Total: ' + context.parsed + ' pacientes';
-                                    },
-                                    afterLabel: function(context) {
-                                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                        const percentual = (context.parsed / total * 100).toFixed(1);
-                                        return '📊 ' + percentual + '% do total';
-                                    },
-                                    footer: function(context) {
-                                        const total = context[0].dataset.data.reduce((a, b) => a + b, 0);
-                                        return '\n📋 Total geral: ' + total + ' pacientes';
-                                    }
-                                }
-                            }
-                        },
-                        cutout: '65%',  // Mais fino para visual moderno
-                        radius: '90%'   // Tamanho do gráfico
-                    }
-                });
-            }
-        })
-        .catch(error => {
-            loading.style.display = 'none';
-            console.error('Erro ao carregar pacientes:', error);
-        });
-}
-
-/**
  * Função: carregarSintomas
  * Carrega e renderiza gráfico de sintomas por faixa etária
  * Sempre usa gráfico tipo pizza (doughnut)
@@ -1816,8 +1822,6 @@ document.querySelectorAll('.chart-option-btn').forEach(btn => {
             carregarConsultas(this.dataset.type);
         } else if (chart === 'medicamentos') {
             carregarMedicamentos(); // Sempre horizontal
-        } else if (chart === 'pacientes') {
-            carregarPacientes(this.dataset.agrupamento);
         } else if (chart === 'sintomas') {
             carregarSintomas(); // Sempre pizza
         } else if (chart === 'genero') {
@@ -2596,6 +2600,12 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Carregar gráfico de sintomas mais comuns
     carregarSintomasComuns();
+    
+    // Carregar novos gráficos
+    carregarTiposRecomendacoes();
+    carregarEncaminhamentos();
+    carregarHabitos();
+    carregarNaoFarmacologicas();
 });
 
 /**
@@ -2791,6 +2801,499 @@ function carregarSintomasComuns() {
             console.error('Erro ao carregar sintomas comuns:', error);
         });
 }
+
+/**
+ * Função: carregarTiposRecomendacoes
+ * Carrega e renderiza gráfico de pizza de tipos de recomendações
+ */
+function carregarTiposRecomendacoes() {
+    const periodo = document.getElementById('tipos-recomendacoes-periodo-filter').value;
+    const sintoma = document.getElementById('tipos-recomendacoes-sintoma-filter').value;
+    const loading = document.getElementById('loading-tipos-recomendacoes');
+    
+    loading.style.display = 'block';
+    
+    const params = new URLSearchParams({
+        periodo: periodo,
+        sintoma: sintoma
+    });
+    
+    fetch(`/api/estatisticas/tipos-recomendacoes?${params}`)
+        .then(response => response.json())
+        .then(data => {
+            loading.style.display = 'none';
+            
+            if (data.success) {
+                const ctx = document.getElementById('tiposRecomendacoesChart').getContext('2d');
+                
+                if (tiposRecomendacoesChart) {
+                    tiposRecomendacoesChart.destroy();
+                }
+                
+                if (!data.dados || data.dados.length === 0) {
+                    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+                    ctx.font = '16px Inter, sans-serif';
+                    ctx.fillStyle = '#64748b';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('Nenhuma recomendação encontrada no período selecionado', ctx.canvas.width / 2, ctx.canvas.height / 2);
+                    return;
+                }
+                
+                const cores = ['#6366f1', '#10b981'];
+                const coresHover = ['#4f46e5', '#059669'];
+                
+                tiposRecomendacoesChart = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: data.dados.map(d => d.tipo),
+                        datasets: [{
+                            label: 'Recomendações',
+                            data: data.dados.map(d => d.count),
+                            backgroundColor: cores.slice(0, data.dados.length),
+                            hoverBackgroundColor: coresHover.slice(0, data.dados.length),
+                            borderColor: '#ffffff',
+                            borderWidth: 3,
+                            hoverOffset: 15
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        animation: {
+                            animateRotate: true,
+                            animateScale: true,
+                            duration: 1500
+                        },
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    padding: 20,
+                                    usePointStyle: true,
+                                    font: {
+                                        size: 13,
+                                        weight: '600'
+                                    },
+                                    generateLabels: function(chart) {
+                                        const data = chart.data;
+                                        const total = data.datasets[0].data.reduce((a, b) => a + b, 0);
+                                        return data.labels.map((label, i) => {
+                                            const value = data.datasets[0].data[i];
+                                            const percent = ((value / total) * 100).toFixed(1);
+                                            return {
+                                                text: `${label} - ${value} (${percent}%)`,
+                                                fillStyle: data.datasets[0].backgroundColor[i],
+                                                hidden: false,
+                                                index: i
+                                            };
+                                        });
+                                    }
+                                }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                        const percent = ((context.parsed / total) * 100).toFixed(1);
+                                        return `${context.label}: ${context.parsed} (${percent}%)`;
+                                    },
+                                    footer: function(context) {
+                                        return `Total: ${data.total} recomendações`;
+                                    }
+                                }
+                            }
+                        },
+                        cutout: '65%'
+                    }
+                });
+                
+                // Carregar sintomas disponíveis se necessário
+                carregarSintomasDisponiveisParaTiposRecomendacoes();
+            }
+        })
+        .catch(error => {
+            loading.style.display = 'none';
+            console.error('Erro ao carregar tipos de recomendações:', error);
+        });
+}
+
+/**
+ * Função: carregarEncaminhamentos
+ * Carrega e renderiza gráfico de linha de taxa de encaminhamentos
+ */
+function carregarEncaminhamentos() {
+    const periodo = document.getElementById('encaminhamentos-periodo-filter').value;
+    const genero = document.getElementById('encaminhamentos-genero-filter').value;
+    const faixaEtaria = document.getElementById('encaminhamentos-faixa-filter').value;
+    const loading = document.getElementById('loading-encaminhamentos');
+    
+    loading.style.display = 'block';
+    
+    const params = new URLSearchParams({
+        periodo: periodo,
+        genero: genero,
+        faixa_etaria: faixaEtaria
+    });
+    
+    fetch(`/api/estatisticas/encaminhamentos-tempo?${params}`)
+        .then(response => response.json())
+        .then(data => {
+            loading.style.display = 'none';
+            
+            if (data.success) {
+                const ctx = document.getElementById('encaminhamentosChart').getContext('2d');
+                
+                if (encaminhamentosChart) {
+                    encaminhamentosChart.destroy();
+                }
+                
+                if (!data.dados || data.dados.length === 0) {
+                    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+                    ctx.font = '16px Inter, sans-serif';
+                    ctx.fillStyle = '#64748b';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('Nenhum dado encontrado no período selecionado', ctx.canvas.width / 2, ctx.canvas.height / 2);
+                    return;
+                }
+                
+                encaminhamentosChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: data.dados.map(d => {
+                            const date = new Date(d.data);
+                            return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+                        }),
+                        datasets: [{
+                            label: 'Taxa de Encaminhamento (%)',
+                            data: data.dados.map(d => d.taxa_encaminhamento),
+                            borderColor: '#ef4444',
+                            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        }, {
+                            label: 'Taxa de Resolução (%)',
+                            data: data.dados.map(d => d.taxa_resolucao),
+                            borderColor: '#10b981',
+                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: {
+                            mode: 'index',
+                            intersect: false
+                        },
+                        plugins: {
+                            legend: {
+                                position: 'top'
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return `${context.dataset.label}: ${context.parsed.y}%`;
+                                    },
+                                    afterLabel: function(context) {
+                                        const index = context.dataIndex;
+                                        const dados = data.dados[index];
+                                        return `Total: ${dados.total} consultas | Encaminhamentos: ${dados.encaminhamentos}`;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 100,
+                                ticks: {
+                                    callback: function(value) {
+                                        return value + '%';
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        })
+        .catch(error => {
+            loading.style.display = 'none';
+            console.error('Erro ao carregar encaminhamentos:', error);
+        });
+}
+
+/**
+ * Função: carregarHabitos
+ * Carrega e renderiza gráfico de distribuição de hábitos
+ */
+function carregarHabitos() {
+    const periodo = document.getElementById('habitos-periodo-filter').value;
+    const genero = document.getElementById('habitos-genero-filter').value;
+    const faixaEtaria = document.getElementById('habitos-faixa-filter').value;
+    const loading = document.getElementById('loading-habitos');
+    
+    loading.style.display = 'block';
+    
+    const params = new URLSearchParams({
+        periodo: periodo,
+        genero: genero,
+        faixa_etaria: faixaEtaria
+    });
+    
+    fetch(`/api/estatisticas/habitos?${params}`)
+        .then(response => response.json())
+        .then(data => {
+            loading.style.display = 'none';
+            
+            if (data.success) {
+                const ctx = document.getElementById('habitosChart').getContext('2d');
+                
+                if (habitosChart) {
+                    habitosChart.destroy();
+                }
+                
+                if (!data.dados || data.dados.length === 0) {
+                    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+                    ctx.font = '16px Inter, sans-serif';
+                    ctx.fillStyle = '#64748b';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('Nenhum dado encontrado', ctx.canvas.width / 2, ctx.canvas.height / 2);
+                    return;
+                }
+                
+                const cores = ['#10b981', '#f59e0b', '#3b82f6', '#ef4444'];
+                
+                habitosChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: data.dados.map(d => d.categoria),
+                        datasets: [{
+                            label: 'Pacientes',
+                            data: data.dados.map(d => d.count),
+                            backgroundColor: cores.slice(0, data.dados.length),
+                            borderRadius: 8,
+                            borderWidth: 2,
+                            borderColor: '#ffffff'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return `${context.parsed.y} pacientes (${data.dados[context.dataIndex].percentual}%)`;
+                                    },
+                                    footer: function() {
+                                        return `Total: ${data.total} pacientes`;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    precision: 0
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        })
+        .catch(error => {
+            loading.style.display = 'none';
+            console.error('Erro ao carregar hábitos:', error);
+        });
+}
+
+/**
+ * Função: carregarNaoFarmacologicas
+ * Carrega e renderiza gráfico de recomendações não-farmacológicas mais comuns
+ */
+function carregarNaoFarmacologicas() {
+    const periodo = document.getElementById('nao-farmacologicas-periodo-filter').value;
+    const sintoma = document.getElementById('nao-farmacologicas-sintoma-filter').value;
+    const top = document.getElementById('nao-farmacologicas-top-filter').value;
+    const loading = document.getElementById('loading-nao-farmacologicas');
+    
+    loading.style.display = 'block';
+    
+    const params = new URLSearchParams({
+        periodo: periodo,
+        sintoma: sintoma,
+        top: top
+    });
+    
+    fetch(`/api/estatisticas/recomendacoes-nao-farmacologicas?${params}`)
+        .then(response => response.json())
+        .then(data => {
+            loading.style.display = 'none';
+            
+            if (data.success) {
+                const ctx = document.getElementById('naoFarmacologicasChart').getContext('2d');
+                
+                if (naoFarmacologicasChart) {
+                    naoFarmacologicasChart.destroy();
+                }
+                
+                if (!data.dados || data.dados.length === 0) {
+                    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+                    ctx.font = '16px Inter, sans-serif';
+                    ctx.fillStyle = '#64748b';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('Nenhuma recomendação não-farmacológica encontrada', ctx.canvas.width / 2, ctx.canvas.height / 2);
+                    return;
+                }
+                
+                const coresBase = [
+                    '#10b981', '#14b8a6', '#06b6d4', '#3b82f6', '#6366f1',
+                    '#8b5cf6', '#a855f7', '#d946ef', '#ec4899', '#f43f5e'
+                ];
+                
+                const coresPremium = [];
+                for (let i = 0; i < data.dados.length; i++) {
+                    coresPremium.push(coresBase[i % coresBase.length]);
+                }
+                
+                const coresHover = coresPremium.map(cor => cor + 'dd');
+                
+                naoFarmacologicasChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: data.dados.map(d => d.recomendacao.length > 50 ? d.recomendacao.substring(0, 50) + '...' : d.recomendacao),
+                        datasets: [{
+                            label: 'Frequência',
+                            data: data.dados.map(d => d.count),
+                            backgroundColor: coresPremium,
+                            hoverBackgroundColor: coresHover,
+                            borderColor: '#ffffff',
+                            borderWidth: 2,
+                            borderRadius: 8,
+                            barThickness: 40
+                        }]
+                    },
+                    options: {
+                        indexAxis: 'y',
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    title: function(context) {
+                                        const index = context[0].dataIndex;
+                                        return data.dados[index].recomendacao;
+                                    },
+                                    label: function(context) {
+                                        const index = context.dataIndex;
+                                        const rec = data.dados[index];
+                                        return [
+                                            `Frequência: ${rec.count}`,
+                                            `Percentual: ${rec.percentual}%`
+                                        ];
+                                    },
+                                    footer: function(context) {
+                                        const ranking = context[0].dataIndex + 1;
+                                        return `\n🏆 #${ranking}° recomendação mais comum`;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                beginAtZero: true,
+                                ticks: {
+                                    precision: 0
+                                }
+                            },
+                            y: {
+                                ticks: {
+                                    maxRotation: 45,
+                                    minRotation: 0
+                                }
+                            }
+                        }
+                    }
+                });
+                
+                // Carregar sintomas disponíveis se necessário
+                carregarSintomasDisponiveisParaNaoFarmacologicas();
+            }
+        })
+        .catch(error => {
+            loading.style.display = 'none';
+            console.error('Erro ao carregar recomendações não-farmacológicas:', error);
+        });
+}
+
+/**
+ * Função auxiliar: carregar sintomas para filtro de tipos de recomendações
+ */
+function carregarSintomasDisponiveisParaTiposRecomendacoes() {
+    const sintomaFilter = document.getElementById('tipos-recomendacoes-sintoma-filter');
+    if (sintomaFilter && sintomaFilter.options.length <= 1) {
+        fetch('/api/estatisticas/sintomas-faixa-etaria?sintoma=todos&periodo=ano')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.sintomas_disponiveis) {
+                    sintomaFilter.innerHTML = '<option value="todos">Todos os Sintomas</option>';
+                    data.sintomas_disponiveis.forEach(sint => {
+                        const option = document.createElement('option');
+                        option.value = sint;
+                        option.textContent = sint.charAt(0).toUpperCase() + sint.slice(1).replace(/_/g, ' ');
+                        sintomaFilter.appendChild(option);
+                    });
+                }
+            })
+            .catch(error => console.error('Erro ao carregar sintomas:', error));
+    }
+}
+
+/**
+ * Função auxiliar: carregar sintomas para filtro de recomendações não-farmacológicas
+ */
+function carregarSintomasDisponiveisParaNaoFarmacologicas() {
+    const sintomaFilter = document.getElementById('nao-farmacologicas-sintoma-filter');
+    if (sintomaFilter && sintomaFilter.options.length <= 1) {
+        fetch('/api/estatisticas/sintomas-faixa-etaria?sintoma=todos&periodo=ano')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.sintomas_disponiveis) {
+                    sintomaFilter.innerHTML = '<option value="todos">Todos os Sintomas</option>';
+                    data.sintomas_disponiveis.forEach(sint => {
+                        const option = document.createElement('option');
+                        option.value = sint;
+                        option.textContent = sint.charAt(0).toUpperCase() + sint.slice(1).replace(/_/g, ' ');
+                        sintomaFilter.appendChild(option);
+                    });
+                }
+            })
+            .catch(error => console.error('Erro ao carregar sintomas:', error));
+    }
+}
+
+// Event listeners para os novos gráficos
+document.getElementById('tipos-recomendacoes-periodo-filter').addEventListener('change', carregarTiposRecomendacoes);
+document.getElementById('tipos-recomendacoes-sintoma-filter').addEventListener('change', carregarTiposRecomendacoes);
+document.getElementById('encaminhamentos-periodo-filter').addEventListener('change', carregarEncaminhamentos);
+document.getElementById('encaminhamentos-genero-filter').addEventListener('change', carregarEncaminhamentos);
+document.getElementById('encaminhamentos-faixa-filter').addEventListener('change', carregarEncaminhamentos);
+document.getElementById('habitos-periodo-filter').addEventListener('change', carregarHabitos);
+document.getElementById('habitos-genero-filter').addEventListener('change', carregarHabitos);
+document.getElementById('habitos-faixa-filter').addEventListener('change', carregarHabitos);
+document.getElementById('nao-farmacologicas-periodo-filter').addEventListener('change', carregarNaoFarmacologicas);
+document.getElementById('nao-farmacologicas-sintoma-filter').addEventListener('change', carregarNaoFarmacologicas);
+document.getElementById('nao-farmacologicas-top-filter').addEventListener('change', carregarNaoFarmacologicas);
 </script>
 {% endblock %}
 

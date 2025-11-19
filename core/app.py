@@ -2670,6 +2670,366 @@ def api_estatisticas_sintomas_comuns():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@app.route('/api/estatisticas/tipos-recomendacoes')
+@login_required
+def api_estatisticas_tipos_recomendacoes():
+    """API para distribuição de tipos de recomendações (farmacológica vs não-farmacológica)"""
+    try:
+        periodo = request.args.get('periodo', '30dias')
+        sintoma = request.args.get('sintoma', 'todos')
+        
+        # Calcular período
+        hoje = datetime.now()
+        if periodo == '7dias':
+            inicio = hoje - timedelta(days=7)
+        elif periodo == '30dias':
+            inicio = hoje - timedelta(days=30)
+        elif periodo == '90dias':
+            inicio = hoje - timedelta(days=90)
+        elif periodo == 'ano':
+            inicio = hoje - timedelta(days=365)
+        else:
+            inicio = hoje - timedelta(days=30)
+        
+        # Query base
+        query = db.session.query(
+            ConsultaRecomendacao.tipo,
+            Consulta.observacoes
+        ).join(
+            Consulta, ConsultaRecomendacao.id_consulta == Consulta.id
+        ).filter(
+            Consulta.data >= inicio,
+            ConsultaRecomendacao.tipo.in_(['medicamento', 'nao_farmacologico'])
+        )
+        
+        # Filtrar por sintoma se especificado
+        if sintoma != 'todos':
+            query = query.filter(Consulta.observacoes.like(f'MODULO: {sintoma}%'))
+        
+        recomendacoes_data = query.all()
+        
+        # Contar tipos
+        farmacologica = 0
+        nao_farmacologica = 0
+        
+        for tipo, observacoes in recomendacoes_data:
+            if tipo == 'medicamento':
+                farmacologica += 1
+            elif tipo == 'nao_farmacologico':
+                nao_farmacologica += 1
+        
+        total = farmacologica + nao_farmacologica
+        
+        dados_grafico = []
+        if farmacologica > 0:
+            dados_grafico.append({
+                'tipo': 'Farmacológica',
+                'count': farmacologica,
+                'percentual': round((farmacologica / total * 100) if total > 0 else 0, 1)
+            })
+        if nao_farmacologica > 0:
+            dados_grafico.append({
+                'tipo': 'Não-Farmacológica',
+                'count': nao_farmacologica,
+                'percentual': round((nao_farmacologica / total * 100) if total > 0 else 0, 1)
+            })
+        
+        return jsonify({
+            'success': True,
+            'periodo': periodo,
+            'sintoma': sintoma,
+            'total': total,
+            'dados': dados_grafico
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/estatisticas/encaminhamentos-tempo')
+@login_required
+def api_estatisticas_encaminhamentos_tempo():
+    """API para taxa de encaminhamentos ao longo do tempo"""
+    try:
+        periodo = request.args.get('periodo', '30dias')
+        genero = request.args.get('genero', 'todos')
+        faixa_etaria = request.args.get('faixa_etaria', 'todos')
+        
+        # Calcular período
+        hoje = datetime.now()
+        if periodo == '7dias':
+            inicio = hoje - timedelta(days=7)
+        elif periodo == '30dias':
+            inicio = hoje - timedelta(days=30)
+        elif periodo == '90dias':
+            inicio = hoje - timedelta(days=90)
+        elif periodo == 'ano':
+            inicio = hoje - timedelta(days=365)
+        else:
+            inicio = hoje - timedelta(days=30)
+        
+        # Query base
+        query = db.session.query(
+            Consulta.data,
+            Consulta.encaminhamento,
+            Paciente.sexo,
+            Paciente.idade
+        ).join(
+            Paciente, Consulta.id_paciente == Paciente.id
+        ).filter(
+            Consulta.data >= inicio
+        )
+        
+        # Aplicar filtros
+        if genero != 'todos':
+            query = query.filter(Paciente.sexo == genero)
+        
+        if faixa_etaria != 'todos':
+            faixas = {
+                '0-17': (0, 17),
+                '18-34': (18, 34),
+                '35-54': (35, 54),
+                '55+': (55, 150)
+            }
+            if faixa_etaria in faixas:
+                min_idade, max_idade = faixas[faixa_etaria]
+                query = query.filter(
+                    Paciente.idade >= min_idade,
+                    Paciente.idade <= max_idade
+                )
+        
+        consultas_data = query.all()
+        
+        # Agrupar por data
+        dados_por_data = {}
+        for data, encaminhamento, sexo, idade in consultas_data:
+            data_str = data.strftime('%Y-%m-%d')
+            if data_str not in dados_por_data:
+                dados_por_data[data_str] = {'total': 0, 'encaminhamentos': 0}
+            
+            dados_por_data[data_str]['total'] += 1
+            if encaminhamento:
+                dados_por_data[data_str]['encaminhamentos'] += 1
+        
+        # Preparar dados para o gráfico
+        dados_grafico = []
+        for data_str in sorted(dados_por_data.keys()):
+            dados = dados_por_data[data_str]
+            taxa = (dados['encaminhamentos'] / dados['total'] * 100) if dados['total'] > 0 else 0
+            taxa_resolucao = 100 - taxa
+            
+            dados_grafico.append({
+                'data': data_str,
+                'total': dados['total'],
+                'encaminhamentos': dados['encaminhamentos'],
+                'taxa_encaminhamento': round(taxa, 1),
+                'taxa_resolucao': round(taxa_resolucao, 1)
+            })
+        
+        return jsonify({
+            'success': True,
+            'periodo': periodo,
+            'genero': genero,
+            'faixa_etaria': faixa_etaria,
+            'dados': dados_grafico
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/estatisticas/habitos')
+@login_required
+def api_estatisticas_habitos():
+    """API para distribuição de hábitos (fumantes/etilistas)"""
+    try:
+        periodo = request.args.get('periodo', 'todos')
+        genero = request.args.get('genero', 'todos')
+        faixa_etaria = request.args.get('faixa_etaria', 'todos')
+        cidade = request.args.get('cidade', 'todos')
+        
+        # Query base
+        query = db.session.query(
+            Paciente.fuma,
+            Paciente.bebe,
+            Paciente.sexo,
+            Paciente.idade,
+            Paciente.cidade
+        )
+        
+        # Filtrar por período de cadastro se especificado
+        if periodo != 'todos':
+            hoje = datetime.now()
+            if periodo == '7dias':
+                inicio = hoje - timedelta(days=7)
+            elif periodo == '30dias':
+                inicio = hoje - timedelta(days=30)
+            elif periodo == '90dias':
+                inicio = hoje - timedelta(days=90)
+            elif periodo == 'ano':
+                inicio = hoje - timedelta(days=365)
+            else:
+                inicio = hoje - timedelta(days=30)
+            query = query.filter(Paciente.created_at >= inicio)
+        
+        # Aplicar filtros
+        if genero != 'todos':
+            query = query.filter(Paciente.sexo == genero)
+        
+        if faixa_etaria != 'todos':
+            faixas = {
+                '0-17': (0, 17),
+                '18-34': (18, 34),
+                '35-54': (35, 54),
+                '55+': (55, 150)
+            }
+            if faixa_etaria in faixas:
+                min_idade, max_idade = faixas[faixa_etaria]
+                query = query.filter(
+                    Paciente.idade >= min_idade,
+                    Paciente.idade <= max_idade
+                )
+        
+        if cidade != 'todos':
+            query = query.filter(Paciente.cidade == cidade)
+        
+        pacientes_data = query.all()
+        
+        # Contar categorias
+        categorias = {
+            'Não fuma / Não bebe': 0,
+            'Fuma / Não bebe': 0,
+            'Não fuma / Bebe': 0,
+            'Fuma / Bebe': 0
+        }
+        
+        for fuma, bebe, sexo, idade, cidade_paciente in pacientes_data:
+            if fuma and bebe:
+                categorias['Fuma / Bebe'] += 1
+            elif fuma:
+                categorias['Fuma / Não bebe'] += 1
+            elif bebe:
+                categorias['Não fuma / Bebe'] += 1
+            else:
+                categorias['Não fuma / Não bebe'] += 1
+        
+        total = sum(categorias.values())
+        
+        # Preparar dados para o gráfico
+        dados_grafico = []
+        for categoria, count in categorias.items():
+            if count > 0:
+                percentual = (count / total * 100) if total > 0 else 0
+                dados_grafico.append({
+                    'categoria': categoria,
+                    'count': count,
+                    'percentual': round(percentual, 1)
+                })
+        
+        return jsonify({
+            'success': True,
+            'periodo': periodo,
+            'genero': genero,
+            'faixa_etaria': faixa_etaria,
+            'cidade': cidade,
+            'total': total,
+            'dados': dados_grafico
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/estatisticas/recomendacoes-nao-farmacologicas')
+@login_required
+def api_estatisticas_recomendacoes_nao_farmacologicas():
+    """API para recomendações não-farmacológicas mais comuns"""
+    try:
+        periodo = request.args.get('periodo', '30dias')
+        sintoma = request.args.get('sintoma', 'todos')
+        top = request.args.get('top', '10')
+        
+        # Calcular período
+        hoje = datetime.now()
+        if periodo == '7dias':
+            inicio = hoje - timedelta(days=7)
+        elif periodo == '30dias':
+            inicio = hoje - timedelta(days=30)
+        elif periodo == '90dias':
+            inicio = hoje - timedelta(days=90)
+        elif periodo == 'ano':
+            inicio = hoje - timedelta(days=365)
+        else:
+            inicio = hoje - timedelta(days=30)
+        
+        # Query base
+        query = db.session.query(
+            ConsultaRecomendacao.descricao,
+            Consulta.observacoes
+        ).join(
+            Consulta, ConsultaRecomendacao.id_consulta == Consulta.id
+        ).filter(
+            Consulta.data >= inicio,
+            ConsultaRecomendacao.tipo == 'nao_farmacologico'
+        )
+        
+        # Filtrar por sintoma se especificado
+        if sintoma != 'todos':
+            query = query.filter(Consulta.observacoes.like(f'MODULO: {sintoma}%'))
+        
+        recomendacoes_data = query.all()
+        
+        # Contar recomendações (normalizar descrições similares)
+        recomendacoes_dict = {}
+        for descricao, observacoes in recomendacoes_data:
+            # Normalizar: remover espaços extras, converter para minúsculas para agrupar similares
+            descricao_normalizada = descricao.strip().lower()
+            
+            # Tentar agrupar recomendações similares
+            if descricao_normalizada not in recomendacoes_dict:
+                recomendacoes_dict[descricao_normalizada] = {
+                    'descricao_original': descricao,
+                    'count': 0
+                }
+            
+            recomendacoes_dict[descricao_normalizada]['count'] += 1
+        
+        # Ordenar por frequência
+        recomendacoes_ordenadas = sorted(
+            recomendacoes_dict.items(),
+            key=lambda x: x[1]['count'],
+            reverse=True
+        )
+        
+        # Aplicar limite Top N
+        if top != 'todos':
+            try:
+                top_n = int(top)
+                recomendacoes_ordenadas = recomendacoes_ordenadas[:top_n]
+            except ValueError:
+                pass
+        
+        total_recomendacoes = sum(r[1]['count'] for r in recomendacoes_dict.items())
+        
+        # Preparar dados para o gráfico
+        dados_grafico = []
+        for descricao_norm, dados in recomendacoes_ordenadas:
+            percentual = (dados['count'] / total_recomendacoes * 100) if total_recomendacoes > 0 else 0
+            dados_grafico.append({
+                'recomendacao': dados['descricao_original'],
+                'count': dados['count'],
+                'percentual': round(percentual, 1)
+            })
+        
+        return jsonify({
+            'success': True,
+            'periodo': periodo,
+            'sintoma': sintoma,
+            'top': top,
+            'total_recomendacoes': total_recomendacoes,
+            'dados': dados_grafico
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 @app.errorhandler(404)
 def not_found_error(error):
     return render_template('404.html'), 404
