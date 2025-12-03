@@ -2016,15 +2016,23 @@ def api_estatisticas_sintomas_faixa_etaria():
         else:
             inicio = hoje - timedelta(days=30)
         
+        # Parâmetro de filtro de gênero
+        genero = request.args.get('genero', 'todos')
+        
         # Query base: buscar consultas com pacientes
         query = db.session.query(
             Consulta.observacoes,
-            Paciente.idade
+            Paciente.idade,
+            Paciente.sexo
         ).join(
             Paciente, Consulta.id_paciente == Paciente.id
         ).filter(
             Consulta.data >= inicio
         )
+        
+        # Aplicar filtro de gênero
+        if genero != 'todos':
+            query = query.filter(Paciente.sexo == genero)
         
         consultas_data = query.all()
         
@@ -2032,7 +2040,7 @@ def api_estatisticas_sintomas_faixa_etaria():
         sintomas_disponiveis = set()
         dados_sintomas = []
         
-        for observacoes, idade in consultas_data:
+        for observacoes, idade, sexo in consultas_data:
             if not observacoes:
                 continue
             
@@ -2130,15 +2138,34 @@ def api_estatisticas_sintomas_genero():
         else:
             inicio = hoje - timedelta(days=30)
         
+        # Parâmetro de filtro de faixa etária
+        faixa_etaria = request.args.get('faixa_etaria', 'todos')
+        
         # Query base: buscar consultas com pacientes
         query = db.session.query(
             Consulta.observacoes,
-            Paciente.sexo
+            Paciente.sexo,
+            Paciente.idade
         ).join(
             Paciente, Consulta.id_paciente == Paciente.id
         ).filter(
             Consulta.data >= inicio
         )
+        
+        # Aplicar filtro de faixa etária
+        if faixa_etaria != 'todos':
+            faixas = {
+                '0-17': (0, 17),
+                '18-34': (18, 34),
+                '35-54': (35, 54),
+                '55+': (55, 150)
+            }
+            if faixa_etaria in faixas:
+                min_idade, max_idade = faixas[faixa_etaria]
+                query = query.filter(
+                    Paciente.idade >= min_idade,
+                    Paciente.idade <= max_idade
+                )
         
         consultas_data = query.all()
         
@@ -2146,7 +2173,7 @@ def api_estatisticas_sintomas_genero():
         sintomas_disponiveis = set()
         dados_sintomas = []
         
-        for observacoes, sexo in consultas_data:
+        for observacoes, sexo, idade in consultas_data:
             if not observacoes:
                 continue
             
@@ -2255,16 +2282,24 @@ def api_estatisticas_sintomas_localizacao():
         else:
             inicio = hoje - timedelta(days=30)
         
+        # Parâmetro de filtro de gênero
+        genero = request.args.get('genero', 'todos')
+        
         # Query base: buscar consultas com pacientes e localização
         query = db.session.query(
             Consulta.observacoes,
             Paciente.bairro,
-            Paciente.cidade
+            Paciente.cidade,
+            Paciente.sexo
         ).join(
             Paciente, Consulta.id_paciente == Paciente.id
         ).filter(
             Consulta.data >= inicio
         )
+        
+        # Aplicar filtro de gênero
+        if genero != 'todos':
+            query = query.filter(Paciente.sexo == genero)
         
         # Filtrar apenas pacientes com localização preenchida
         if agrupamento == 'bairro':
@@ -2278,7 +2313,7 @@ def api_estatisticas_sintomas_localizacao():
         sintomas_disponiveis = set()
         dados_sintomas = []
         
-        for observacoes, bairro, cidade in consultas_data:
+        for observacoes, bairro, cidade, sexo in consultas_data:
             if not observacoes:
                 continue
             
@@ -2585,7 +2620,7 @@ def api_estatisticas_sintomas_comuns():
     try:
         # Parâmetros de filtro
         periodo = request.args.get('periodo', '30dias')
-        top = request.args.get('top', '10')
+        genero = request.args.get('genero', 'todos')
         
         # Calcular período
         hoje = datetime.now()
@@ -2606,11 +2641,18 @@ def api_estatisticas_sintomas_comuns():
         
         # Query: buscar consultas com sintomas
         query = db.session.query(
-            Consulta.observacoes
+            Consulta.observacoes,
+            Paciente.sexo
+        ).join(
+            Paciente, Consulta.id_paciente == Paciente.id
         ).filter(
             Consulta.data >= inicio,
             Consulta.observacoes.isnot(None)
         )
+        
+        # Aplicar filtro de gênero
+        if genero != 'todos':
+            query = query.filter(Paciente.sexo == genero)
         
         consultas_data = query.all()
         
@@ -2618,7 +2660,7 @@ def api_estatisticas_sintomas_comuns():
         sintomas_dict = {}
         total_consultas = 0
         
-        for (observacoes,) in consultas_data:
+        for observacoes, sexo in consultas_data:
             if not observacoes:
                 continue
             
@@ -2640,14 +2682,6 @@ def api_estatisticas_sintomas_comuns():
             reverse=True
         )
         
-        # Aplicar limite de Top N
-        if top != 'todos':
-            try:
-                top_n = int(top)
-                sintomas_ordenados = sintomas_ordenados[:top_n]
-            except ValueError:
-                pass
-        
         # Preparar dados para o gráfico
         dados_grafico = []
         for sintoma, count in sintomas_ordenados:
@@ -2661,7 +2695,7 @@ def api_estatisticas_sintomas_comuns():
         return jsonify({
             'success': True,
             'periodo': periodo,
-            'top': top,
+            'genero': genero,
             'total_consultas': total_consultas,
             'total_sintomas_unicos': len(sintomas_dict),
             'dados': dados_grafico
@@ -2677,6 +2711,7 @@ def api_estatisticas_tipos_recomendacoes():
     try:
         periodo = request.args.get('periodo', '30dias')
         sintoma = request.args.get('sintoma', 'todos')
+        genero = request.args.get('genero', 'todos')
         
         # Calcular período
         hoje = datetime.now()
@@ -2694,9 +2729,12 @@ def api_estatisticas_tipos_recomendacoes():
         # Query base
         query = db.session.query(
             ConsultaRecomendacao.tipo,
-            Consulta.observacoes
+            Consulta.observacoes,
+            Paciente.sexo
         ).join(
             Consulta, ConsultaRecomendacao.id_consulta == Consulta.id
+        ).join(
+            Paciente, Consulta.id_paciente == Paciente.id
         ).filter(
             Consulta.data >= inicio,
             ConsultaRecomendacao.tipo.in_(['medicamento', 'nao_farmacologico'])
@@ -2706,13 +2744,17 @@ def api_estatisticas_tipos_recomendacoes():
         if sintoma != 'todos':
             query = query.filter(Consulta.observacoes.like(f'MODULO: {sintoma}%'))
         
+        # Aplicar filtro de gênero
+        if genero != 'todos':
+            query = query.filter(Paciente.sexo == genero)
+        
         recomendacoes_data = query.all()
         
         # Contar tipos
         farmacologica = 0
         nao_farmacologica = 0
         
-        for tipo, observacoes in recomendacoes_data:
+        for tipo, observacoes, sexo in recomendacoes_data:
             if tipo == 'medicamento':
                 farmacologica += 1
             elif tipo == 'nao_farmacologico':
@@ -2738,6 +2780,7 @@ def api_estatisticas_tipos_recomendacoes():
             'success': True,
             'periodo': periodo,
             'sintoma': sintoma,
+            'genero': genero,
             'total': total,
             'dados': dados_grafico
         })
@@ -2953,7 +2996,7 @@ def api_estatisticas_recomendacoes_nao_farmacologicas():
     try:
         periodo = request.args.get('periodo', '30dias')
         sintoma = request.args.get('sintoma', 'todos')
-        top = request.args.get('top', '10')
+        genero = request.args.get('genero', 'todos')
         
         # Calcular período
         hoje = datetime.now()
@@ -2971,9 +3014,12 @@ def api_estatisticas_recomendacoes_nao_farmacologicas():
         # Query base
         query = db.session.query(
             ConsultaRecomendacao.descricao,
-            Consulta.observacoes
+            Consulta.observacoes,
+            Paciente.sexo
         ).join(
             Consulta, ConsultaRecomendacao.id_consulta == Consulta.id
+        ).join(
+            Paciente, Consulta.id_paciente == Paciente.id
         ).filter(
             Consulta.data >= inicio,
             ConsultaRecomendacao.tipo == 'nao_farmacologico'
@@ -2983,11 +3029,15 @@ def api_estatisticas_recomendacoes_nao_farmacologicas():
         if sintoma != 'todos':
             query = query.filter(Consulta.observacoes.like(f'MODULO: {sintoma}%'))
         
+        # Aplicar filtro de gênero
+        if genero != 'todos':
+            query = query.filter(Paciente.sexo == genero)
+        
         recomendacoes_data = query.all()
         
         # Contar recomendações (normalizar descrições similares)
         recomendacoes_dict = {}
-        for descricao, observacoes in recomendacoes_data:
+        for descricao, observacoes, sexo in recomendacoes_data:
             # Normalizar: remover espaços extras, converter para minúsculas para agrupar similares
             descricao_normalizada = descricao.strip().lower()
             
@@ -3007,14 +3057,6 @@ def api_estatisticas_recomendacoes_nao_farmacologicas():
             reverse=True
         )
         
-        # Aplicar limite Top N
-        if top != 'todos':
-            try:
-                top_n = int(top)
-                recomendacoes_ordenadas = recomendacoes_ordenadas[:top_n]
-            except ValueError:
-                pass
-        
         total_recomendacoes = sum(r[1]['count'] for r in recomendacoes_dict.items())
         
         # Preparar dados para o gráfico
@@ -3031,7 +3073,7 @@ def api_estatisticas_recomendacoes_nao_farmacologicas():
             'success': True,
             'periodo': periodo,
             'sintoma': sintoma,
-            'top': top,
+            'genero': genero,
             'total_recomendacoes': total_recomendacoes,
             'dados': dados_grafico
         })

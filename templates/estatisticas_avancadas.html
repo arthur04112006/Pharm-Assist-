@@ -612,15 +612,6 @@
                         <option value="90dias">Últimos 90 Dias</option>
                         <option value="ano">Último Ano</option>
                     </select>
-                    
-                    <!-- Filtro de Top -->
-                    <select id="sintomas-comuns-top-filter" class="form-select" style="width: auto; min-width: 120px;">
-                        <option value="5">Top 5</option>
-                        <option value="10" selected>Top 10</option>
-                        <option value="15">Top 15</option>
-                        <option value="20">Top 20</option>
-                        <option value="todos">Todos</option>
-                    </select>
                 </div>
             </div>
             <div class="loading-spinner" id="loading-sintomas-comuns">
@@ -896,15 +887,6 @@
                     <select id="nao-farmacologicas-sintoma-filter" class="form-select" style="width: auto; min-width: 200px;">
                         <option value="todos">Todos os Sintomas</option>
                         <!-- Opções serão carregadas dinamicamente -->
-                    </select>
-                    
-                    <!-- Filtro de Top -->
-                    <select id="nao-farmacologicas-top-filter" class="form-select" style="width: auto; min-width: 120px;">
-                        <option value="5">Top 5</option>
-                        <option value="10" selected>Top 10</option>
-                        <option value="15">Top 15</option>
-                        <option value="20">Top 20</option>
-                        <option value="todos">Todos</option>
                     </select>
                 </div>
             </div>
@@ -1640,13 +1622,7 @@ document.getElementById('genero-periodo-filter').addEventListener('change', func
 
 // ==========================================
 // EVENT LISTENERS PARA FILTROS DE MEDICAMENTOS
-// Atualiza gráfico quando filtro de Top muda
 // ==========================================
-
-/**
- * Event Listener: Mudança no filtro de Top de medicamentos
- * Recarrega o gráfico quando o usuário seleciona outro Top N
- */
 
 // ==========================================
 // EVENT LISTENERS PARA FILTROS DE LOCALIZAÇÃO
@@ -2389,14 +2365,12 @@ document.addEventListener('DOMContentLoaded', function() {
  */
 function carregarSintomasComuns() {
     const periodo = document.getElementById('sintomas-comuns-periodo-filter').value;
-    const top = document.getElementById('sintomas-comuns-top-filter').value;
     const loading = document.getElementById('loading-sintomas-comuns');
     
     loading.style.display = 'block';
     
     const params = new URLSearchParams({
-        periodo: periodo,
-        top: top
+        periodo: periodo
     });
     
     fetch(`/api/estatisticas/sintomas-comuns?${params}`)
@@ -2874,15 +2848,13 @@ function carregarHabitos() {
 function carregarNaoFarmacologicas() {
     const periodo = document.getElementById('nao-farmacologicas-periodo-filter').value;
     const sintoma = document.getElementById('nao-farmacologicas-sintoma-filter').value;
-    const top = document.getElementById('nao-farmacologicas-top-filter').value;
     const loading = document.getElementById('loading-nao-farmacologicas');
     
     loading.style.display = 'block';
     
     const params = new URLSearchParams({
         periodo: periodo,
-        sintoma: sintoma,
-        top: top
+        sintoma: sintoma
     });
     
     fetch(`/api/estatisticas/recomendacoes-nao-farmacologicas?${params}`)
@@ -3064,7 +3036,6 @@ document.getElementById('habitos-periodo-filter').addEventListener('change', car
 document.getElementById('habitos-faixa-filter').addEventListener('change', carregarHabitos);
 document.getElementById('nao-farmacologicas-periodo-filter').addEventListener('change', carregarNaoFarmacologicas);
 document.getElementById('nao-farmacologicas-sintoma-filter').addEventListener('change', carregarNaoFarmacologicas);
-document.getElementById('nao-farmacologicas-top-filter').addEventListener('change', carregarNaoFarmacologicas);
 </script>
 {% endblock %}
 
