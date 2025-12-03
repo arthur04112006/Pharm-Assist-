@@ -2893,34 +2893,43 @@ def api_estatisticas_habitos():
         
         pacientes_data = query.all()
         
-        # Contar categorias
+        # Contar categorias separadas por gênero
         categorias = {
-            'Não fuma / Não bebe': 0,
-            'Fuma / Não bebe': 0,
-            'Não fuma / Bebe': 0,
-            'Fuma / Bebe': 0
+            'Não fuma / Não bebe': {'M': 0, 'F': 0, 'O': 0},
+            'Fuma / Não bebe': {'M': 0, 'F': 0, 'O': 0},
+            'Não fuma / Bebe': {'M': 0, 'F': 0, 'O': 0},
+            'Fuma / Bebe': {'M': 0, 'F': 0, 'O': 0}
         }
         
         for fuma, bebe, sexo, idade, cidade_paciente in pacientes_data:
+            # Determinar categoria de hábitos
             if fuma and bebe:
-                categorias['Fuma / Bebe'] += 1
+                categoria = 'Fuma / Bebe'
             elif fuma:
-                categorias['Fuma / Não bebe'] += 1
+                categoria = 'Fuma / Não bebe'
             elif bebe:
-                categorias['Não fuma / Bebe'] += 1
+                categoria = 'Não fuma / Bebe'
             else:
-                categorias['Não fuma / Não bebe'] += 1
+                categoria = 'Não fuma / Não bebe'
+            
+            # Contar por gênero
+            if sexo in categorias[categoria]:
+                categorias[categoria][sexo] += 1
         
-        total = sum(categorias.values())
+        total = sum(sum(cat.values()) for cat in categorias.values())
         
         # Preparar dados para o gráfico
         dados_grafico = []
-        for categoria, count in categorias.items():
-            if count > 0:
-                percentual = (count / total * 100) if total > 0 else 0
+        for categoria, contagens in categorias.items():
+            total_categoria = sum(contagens.values())
+            if total_categoria > 0:
+                percentual = (total_categoria / total * 100) if total > 0 else 0
                 dados_grafico.append({
                     'categoria': categoria,
-                    'count': count,
+                    'masculino': contagens.get('M', 0),
+                    'feminino': contagens.get('F', 0),
+                    'outro': contagens.get('O', 0),
+                    'total': total_categoria,
                     'percentual': round(percentual, 1)
                 })
         
