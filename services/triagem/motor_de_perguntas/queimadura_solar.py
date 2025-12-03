@@ -213,11 +213,9 @@ def run_cli():
 if __name__ == "__main__":
     run_cli()
 
-def iniciar_triangem(paciente):
+def iniciar_triagem(paciente):
     """
     Fluxo de perguntas e decisões para queimadura solar.
     Será implementado conforme diretrizes da ANVISA.
     """
     raise NotImplementedError("Fluxo de queimadura_solar ainda não implementado")
-
-

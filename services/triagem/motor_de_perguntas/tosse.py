@@ -291,11 +291,9 @@ def run_cli():
 if __name__ == "__main__":
     run_cli()
 
-def iniciar_triangem(paciente):
+def iniciar_triagem(paciente):
     """
     Fluxo de perguntas e decisões para tosse.
     Será implementado conforme diretrizes da ANVISA.
     """
     raise NotImplementedError("Fluxo de tosse ainda não implementado")
-
-

@@ -277,4 +277,3 @@ class ReportGenerator:
         
         # Construir PDF
         doc.build(story)
-
